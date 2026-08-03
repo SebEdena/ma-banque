@@ -1,6 +1,6 @@
 # Architecture technique détaillée — Ma Banque
 
-Complément au [cahier des charges](../spec/Specification_Application_Banque.md), qui reste la référence fonctionnelle. Ce document détaille les choix techniques (stack, tests, CI/CD) issus d'une session de revue de l'architecture.
+Complément au [cahier des charges](../spec/00-business-requirements.md) (désormais rédigé en anglais — voir aussi la [version française originale](../spec/00-business-requirements.fr.md)), qui reste la référence fonctionnelle. Ce document détaille les choix techniques (stack, tests, CI/CD) issus d'une session de revue de l'architecture.
 
 **Convention transverse** : le code source (identifiants, commentaires, noms de tables) est intégralement **en anglais**, même si ce document et le cahier des charges sont en français. Voir le glossaire de traduction en fin de document.
 
@@ -51,13 +51,15 @@ Un workspace multi-crates apporterait une frontière de compilation plus stricte
 
 ### 2.1 Composants UI / style
 
+- **Angular 22** (stable depuis juin 2026, support actif jusqu'à décembre 2026 / LTS jusqu'à mai 2028) comme version cible du projet.
 - **`spartan/ui`** (architecture Brain + Helm, sur base Angular CDK + Tailwind CSS) comme socle principal : couvre la majorité des besoins (modal, dropdown, date picker, select, toast) avec un point de départ stylé "arrondi/SaaS" personnalisable.
-- **`@angular/aria`** (headless, officiel Angular 21+) en complément pour tout pattern custom non couvert par spartan (ex: comportement de l'indicateur de pointage).
+- **`@angular/aria`** (headless, stable depuis la v22) en complément pour tout pattern custom non couvert par spartan (ex: comportement de l'indicateur de pointage).
 - Dark mode géré nativement via Tailwind (`dark:`), cohérent avec le besoin clair/sombre/système.
+- **Détection de changement zoneless par défaut** (pas de dépendance `zone.js`), composants en `OnPush` — comportement par défaut de `ng new` en v22, pas un choix opt-in du projet.
 
 ### 2.2 Tests
 
-- **Vitest** pour les tests unitaires et de composants (nouveau standard Angular 21+, remplace Karma/Jasmine, désormais déprécié).
+- **Vitest** pour les tests unitaires et de composants (runner par défaut scaffoldé par `ng new` depuis Angular 22, Karma/Jasmine totalement retirés).
 - **E2E** : WebdriverIO + `@wdio/tauri-service` (pilote `tauri-driver`), exécutés sur `windows-latest` uniquement (voir §3).
 
 ### 2.3 Style de code

@@ -15,7 +15,7 @@ Application desktop de gestion de comptes bancaires personnels (type "cash book"
 
 ## 2. Architecture technique
 
-> Détails techniques approfondis (choix de crates/librairies, stratégie de tests, CI/CD) : voir [Architecture_Technique.md](../architecture/Architecture_Technique.md).
+> Détails techniques approfondis (choix de crates/librairies, stratégie de tests, CI/CD) : voir [technical-architecture.fr.md](../architecture/technical-architecture.fr.md).
 
 ### 2.1 Répartition des responsabilités
 
