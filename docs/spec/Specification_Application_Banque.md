@@ -9,11 +9,13 @@ Application desktop de gestion de comptes bancaires personnels (type "cash book"
 - **Stockage** : SQLite, emplacement du fichier configurable dans les paramètres
 - **Architecture** : Clean Architecture / DDD léger, logique métier 100% côté Rust
 - **Style visuel** : design arrondi, moderne, façon Slack / SaaS actuel, mode clair et sombre
-- **Plateformes cibles** : Windows, macOS, Linux
+- **Plateformes cibles** : Windows pour la v1 (macOS et Linux envisagés en évolution future)
 
 ---
 
 ## 2. Architecture technique
+
+> Détails techniques approfondis (choix de crates/librairies, stratégie de tests, CI/CD) : voir [Architecture_Technique.md](../architecture/Architecture_Technique.md).
 
 ### 2.1 Répartition des responsabilités
 
@@ -245,6 +247,7 @@ Une douzaine de postes courants, à ajuster librement dans l'application après 
 
 ### Explicitement hors scope v1 (évolutions possibles)
 
+- Support macOS et Linux (v1 : Windows uniquement)
 - Virements natifs entre comptes (écritures liées automatiquement)
 - Hiérarchie de postes (sous-postes)
 - Import / export de données (CSV, OFX...)
