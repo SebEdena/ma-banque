@@ -16,13 +16,13 @@ Out of scope: any business entities (`Account`, `Category`, `Entry`, `RecurringR
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `cargo tauri init`-based crate exists with `domain/`, `usecases/`, `infra/`, `commands/` modules
-- [ ] `rusqlite`, `rusqlite_migration`, `thiserror`, `anyhow`, `serde` (derive) are added as dependencies and the crate compiles
-- [ ] Module-boundary rules (`commands → usecases → domain`, `infra → domain`) are documented in the codebase (e.g. a module-level doc comment or README section)
-- [ ] `tauri.conf.json` holds the app version as the documented single source of truth
-- [ ] `cargo fmt --check` passes with no diff
-- [ ] `cargo clippy -- -D warnings` passes with zero warnings
-- [ ] `cargo check` and `cargo build` succeed locally
-- [ ] No business entities or rules are present in the crate
+- [x] `cargo tauri init`-based crate exists with `domain/`, `usecases/`, `infra/`, `commands/` modules
+- [x] `rusqlite`, `rusqlite_migration`, `thiserror`, `anyhow`, `serde` (derive) are added as dependencies and the crate compiles
+- [x] Module-boundary rules (`commands → usecases → domain`, `infra → domain`) are documented in the codebase (e.g. a module-level doc comment or README section)
+- [x] `tauri.conf.json` holds the app version as the documented single source of truth
+- [x] `cargo fmt --check` passes with no diff
+- [x] `cargo clippy -- -D warnings` passes with zero warnings
+- [x] `cargo check` and `cargo build` succeed locally
+- [x] No business entities or rules are present in the crate

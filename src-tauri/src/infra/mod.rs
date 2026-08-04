@@ -4,3 +4,5 @@
 //! It must never depend on `usecases` or `commands`. Technical failures
 //! here are represented with `anyhow`, not the `thiserror` enums used in
 //! `domain`/`usecases`.
+
+pub mod db;

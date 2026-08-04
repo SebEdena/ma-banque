@@ -9,13 +9,17 @@ Scope, per `docs/spec/01-setup-backend.md`:
 - At least one real migration file exists (even if minimal) so the runner has something to apply and verify — this can be the schema this spec's proof feature (ticket 03) needs, decided when that ticket starts.
 - No business schema (`Account`, `Category`, `Entry`, `RecurringRule`, `Reconciliation` tables) — this ticket only proves the migration mechanism works.
 
-**Blocked by:** 01 — Crate scaffold: Clean Architecture skeleton & tooling
+**Blocked by:** ~~01 — Crate scaffold: Clean Architecture skeleton & tooling~~ (done)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Shared connection is wrapped in `Arc<Mutex<Connection>>` and managed as `tauri::State`
-- [ ] `rusqlite_migration` runner is wired with `.sql` files embedded via `include_str!`
-- [ ] Migrations run automatically on app startup
-- [ ] An integration test spins up a fresh `:memory:` database, runs the migrations, and asserts the expected schema/table(s) exist
-- [ ] `cargo fmt --check` and `cargo clippy -- -D warnings` still pass
-- [ ] `cargo test` passes locally
+- [x] Shared connection is wrapped in `Arc<Mutex<Connection>>` and managed as `tauri::State`
+- [x] `rusqlite_migration` runner is wired with `.sql` files embedded via `include_str!`
+- [x] Migrations run automatically on app startup
+- [x] An integration test spins up a fresh `:memory:` database, runs the migrations, and asserts the expected schema/table(s) exist
+- [x] `cargo fmt --check` and `cargo clippy -- -D warnings` still pass
+- [x] `cargo test` passes locally
+
+**Implementation notes:**
+- First real migration (`migrations/0001_create_settings.sql`) creates a `settings` key/value table — the schema ticket 03's data-file-location setting needs, per the spec's "decided when that ticket starts" note.
+- Startup connection lives at `{app_data_dir}/ma-banque.sqlite`, opened and migrated in `lib.rs`'s `.setup()` hook, then `app.manage()`d as `tauri::State<SharedConnection>`.

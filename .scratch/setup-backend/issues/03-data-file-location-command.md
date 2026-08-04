@@ -11,7 +11,7 @@ Scope, per `docs/spec/01-setup-backend.md`:
 - Tauri commands exposing get/set, calling the use cases.
 - Still no business entities (`Account`, `Category`, `Entry`, `RecurringRule`, `Reconciliation`).
 
-**Blocked by:** 02 — Shared SQLite connection & migration runner
+**Blocked by:** ~~02 — Shared SQLite connection & migration runner~~ (done)
 
 **Status:** ready-for-agent
 
