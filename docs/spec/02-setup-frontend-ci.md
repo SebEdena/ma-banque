@@ -55,7 +55,7 @@ Set up the Angular frontend as a pure presentation shell (`spartan/ui` + Tailwin
 
 ## Out of Scope
 
-- Any business screens or logic: accounts, categories, entries, recurring rules, reconciliation, statistics (business requirements §4.1–4.4, §7).
+- Any business screens or logic: accounts, categories, entries, recurring rules, reconciliation, statistics (business requirements §4.1–4.5, §7).
 - The full Settings screen — only the theme-detection mechanism and the plumbing to read the one backend setting are established here.
 - Code signing / notarization of the installer.
 - macOS/Linux builds (v1 targets Windows only).

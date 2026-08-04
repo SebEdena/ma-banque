@@ -64,20 +64,22 @@ Out of scope for v1. Data portability relies solely on the SQLite file itself (c
 
 ### 3.1 Account
 
-| Field            | Type              | Notes                                    |
-| ---------------- | ----------------- | ---------------------------------------- |
-| id               | unique identifier |                                          |
-| name             | text              |                                          |
-| color            | color             | displayed on cards and throughout the UI |
-| created_date     | date              |                                          |
-| opening_balance  | amount            | generates a system entry at creation     |
-| archived         | boolean           | true if the account is archived          |
-| last_viewed_date | date              | used for generating recurring entries    |
+| Field            | Type                    | Notes                                    |
+| ---------------- | ----------------------- | ---------------------------------------- |
+| id               | unique identifier       |                                          |
+| name             | text                    |                                          |
+| color            | color                   | displayed on cards and throughout the UI |
+| icon             | icon library reference  | e.g. Lucide, shown in the sidebar        |
+| created_date     | date                    |                                          |
+| opening_balance  | amount                  | generates a system entry at creation     |
+| archived         | boolean                 | true if the account is archived          |
+| last_viewed_date | date                    | used for generating recurring entries    |
 
 **Rules**:
 
 - Deleting an account is forbidden if it contains entries; archiving is possible instead (hidden from active lists, history preserved).
-- The opening balance generates a **system entry** in the register, visible but editable **only** from the account screen (not from the regular entry screen). Its default date is the account's creation date, but it remains editable.
+- The opening balance generates a **system entry** in the register, visible but **read-only** from the entries screen (4.3). It is only editable from the account settings screen (4.2). Its default date is the account's creation date.
+- `created_date` is editable from the account settings screen (4.2) and the change is **retroactive**: it updates the date of the associated system entry. Validation: the new `created_date` must remain strictly earlier than the account's first non-system entry.
 - Clicking an account goes directly to its entries screen.
 
 ### 3.2 Category
@@ -159,6 +161,8 @@ Computed per account, no dedicated stored entity beyond the `reconciled` field o
 
 ## 4. Screens
 
+Navigation is structured around a persistent **sidebar** (Slack-style): an icon rail listing every account (account color as background, active account marked with a ring), plus access to the category management, statistics, and settings screens. It is the primary navigation structure across all screens, not just the home screen's cards.
+
 ### 4.1 Home screen
 
 - List of active (non-archived) accounts as cards.
@@ -166,34 +170,42 @@ Computed per account, no dedicated stored entity beyond the `reconciled` field o
 - No aggregated total balance across all accounts.
 - Clicking a card → the account's entries screen.
 
-### 4.2 Account / entries screen
+### 4.2 Account settings screen
+
+Dedicated screen for editing an existing account, distinct from the global settings screen (4.6).
+
+- Editable fields: name, color, icon, opening date (`created_date`), opening balance.
+- `created_date` changes are retroactive and update the system entry's date, constrained to remain strictly earlier than the account's first non-system entry (see 3.1).
+- This is the only place the opening balance can be edited; it is read-only from the entries screen (4.3).
+
+### 4.3 Account / entries screen
 
 - List of the account's entries (paginated, virtual scroll), sorted by default from most recent to oldest.
-- "Reconciliation" area: reconciled balance, bank balance (editable), statement date (editable), delta, red/green indicator.
-- Entry creation/edit form: label, category (with a quick-create shortcut on the fly), date, debit/credit selector synced with the amount, reconciliation checkbox, description, amount.
+- "Reconciliation" area: reconciled balance, bank balance (editable), statement date (editable), delta, red/green indicator. Collapsible panel, **collapsed by default**.
+  - "Unreconciled only" filter checkbox: checked by default when the panel is opened, disabled/grayed out if the account has no unreconciled entry. The filter only affects the entries list **while the panel is open** — collapsing the panel disables the filter's effect regardless of the checkbox state.
+- Entries are created and edited **inline** in the list: a dedicated row for creating a new entry, and clicking an existing entry turns it into an editable row in place (no separate form or modal). Fields: label, category (with a quick-create shortcut on the fly), date, debit/credit selector synced with the amount, reconciliation checkbox, description, amount.
+- The system entry (opening balance) is shown in the list but **read-only**; editing it happens on the account settings screen (4.2).
 - Utility features:
   - Filter entries by date range / jump to a specific date
   - Reverse the display order
   - Quick-create shortcut for a category directly from the entry form
-  - Filter to show only unreconciled entries
 - Access to the account's recurring entries configuration.
-- Opening balance editable from this screen (modifies the associated system line).
 
-### 4.3 Category management screen
+### 4.4 Category management screen
 
 - Global list of categories (name, color, icon, description).
 - Free creation / modification.
 - Deletion only possible if no entry is associated with the category.
 - Icon picker: search within a predefined library (e.g. Lucide).
 
-### 4.4 Statistics screen (advanced / not urgent)
+### 4.5 Statistics screen (advanced / not urgent)
 
 - Scope: always per individual account (no consolidated cross-account view).
 - Over a selectable time range:
   - Breakdown of entries by category
   - Total income / expense amount per month
 
-### 4.5 Settings screen
+### 4.6 Settings screen
 
 - Data file location (editable)
 - Date display format
@@ -206,7 +218,7 @@ Computed per account, no dedicated stored entity beyond the `reconciled` field o
 
 - **Application language: French.** All on-screen labels, field names, button text, and messages are in French, using the domain terms from these business requirements (Compte, Poste, Écriture, Pointage...). Only the source code (identifiers, comments, table names) is in English — see the [technical architecture doc](../architecture/technical-architecture.md) §4 for the FR (UI) → EN (code) glossary.
 - Rounded, clean design, Slack / modern-SaaS spirit.
-- Accent colors used to differentiate accounts and categories (color chosen at creation).
+- Accent colors used to differentiate accounts and categories (color chosen at creation). On the account / entries screen (4.3), the current account's color is applied systematically to all interactive elements (buttons, checkboxes, selects, entry form, filters, reconciliation panel) — not just to identification elements like cards or the sidebar rail. Screens with no current account (category management, global settings, statistics if not scoped to one account) are not affected by this rule.
 - **Light and dark mode**, with system preference detection on first launch and manual toggle in settings.
 - Category icons from a predefined library (e.g. Lucide) via a picker with keyword search — no custom image upload in v1.
 
@@ -261,3 +273,10 @@ About a dozen common categories, freely adjustable in the application after inst
 ## 8. Open decisions / not yet addressed
 
 _(to be completed if additional points emerge during development)_
+
+### Verifications required before porting the prototype
+
+- Statistics screen (4.5): not yet checked in detail against the prototype (category breakdown, income/expense per month).
+- Category management screen (4.4): icon picker with keyword search — implementation state to confirm.
+- Dark mode (5): presence not confirmed in the current prototype.
+- Recurring entries (3.4): out of scope for the static prototype; UI/UX to be designed during actual implementation.

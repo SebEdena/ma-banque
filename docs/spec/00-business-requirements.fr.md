@@ -66,18 +66,20 @@ Hors scope pour la v1. La portabilité des données passe uniquement par le fich
 
 | Champ                      | Type               | Notes                                                 |
 | -------------------------- | ------------------ | ----------------------------------------------------- |
-| id                         | identifiant unique |                                                       |
-| nom                        | texte              |                                                       |
-| couleur                    | couleur            | affichée sur les cartes et dans l'UI                  |
-| date_creation              | date               |                                                       |
-| solde_depart               | montant            | génère une écriture système à la création             |
-| archive                    | booléen            | true si le compte est archivé                         |
-| date_derniere_consultation | date               | utilisée pour la génération des écritures périodiques |
+| id                         | identifiant unique      |                                                       |
+| nom                        | texte                    |                                                       |
+| couleur                    | couleur                  | affichée sur les cartes et dans l'UI                  |
+| icone                      | référence bibliothèque d'icônes | ex: Lucide, affichée dans la sidebar          |
+| date_creation              | date                     |                                                       |
+| solde_depart               | montant                  | génère une écriture système à la création             |
+| archive                    | booléen                  | true si le compte est archivé                         |
+| date_derniere_consultation | date                     | utilisée pour la génération des écritures périodiques |
 
 **Règles** :
 
 - La suppression d'un compte est interdite s'il contient des écritures ; possibilité d'archiver à la place (masqué des listes actives, historique conservé).
-- Le solde de départ génère une **écriture système** dans le registre, visible mais modifiable **uniquement** via l'écran du compte (pas via l'écran d'écriture classique). Sa date par défaut est la date de création du compte, mais reste éditable.
+- Le solde de départ génère une **écriture système** dans le registre, visible mais **en lecture seule** depuis l'écran des écritures (4.3). Il n'est modifiable que depuis l'écran de paramétrage de compte (4.2). Sa date par défaut est la date de création du compte.
+- `date_creation` est éditable depuis l'écran de paramétrage de compte (4.2), et le changement est **rétroactif** : il met à jour la date de la ligne système associée. Contrainte de validation : la nouvelle `date_creation` doit rester strictement antérieure à la date de la première écriture non-système du compte.
 - Cliquer sur un compte amène directement à l'écran de ses écritures.
 
 ### 3.2 Poste
@@ -159,6 +161,8 @@ Calculé par compte, pas d'entité dédiée stockée à part le champ `pointee` 
 
 ## 4. Écrans
 
+La navigation s'articule autour d'une **sidebar** persistante (façon Slack) : un rail d'icônes listant tous les comptes (couleur du compte en fond, anneau sur le compte actif), avec accès à la gestion des postes, aux statistiques et aux paramètres. C'est la structure de navigation de référence pour tous les écrans, pas seulement les cartes de l'accueil.
+
 ### 4.1 Écran d'accueil
 
 - Liste des comptes actifs (non archivés) sous forme de cartes.
@@ -166,34 +170,42 @@ Calculé par compte, pas d'entité dédiée stockée à part le champ `pointee` 
 - Pas de solde total agrégé tous comptes confondus.
 - Clic sur une carte → écran des écritures du compte.
 
-### 4.2 Écran du compte / écritures
+### 4.2 Écran de paramétrage de compte
+
+Écran dédié à l'édition d'un compte existant, distinct de l'écran de paramètres global (4.6).
+
+- Champs éditables : nom, couleur, icône, date d'ouverture (`date_creation`), solde de départ.
+- Les changements de `date_creation` sont rétroactifs et mettent à jour la date de la ligne système, avec la contrainte qu'elle reste strictement antérieure à la première écriture non-système du compte (voir 3.1).
+- C'est le seul endroit où le solde de départ peut être modifié ; il est en lecture seule depuis l'écran des écritures (4.3).
+
+### 4.3 Écran du compte / écritures
 
 - Liste des écritures du compte (paginée, scroll virtuel), triée par défaut du plus récent au plus ancien.
-- Zone "Pointage" : solde pointé, solde banque (éditable), date d'arrêt (éditable), delta, indicateur rouge/vert.
-- Formulaire de saisie/édition d'écriture : label, poste (avec raccourci de création rapide à la volée), date, sélecteur débit/crédit synchronisé avec le montant, coche de pointage, description, montant.
+- Zone "Pointage" : solde pointé, solde banque (éditable), date d'arrêt (éditable), delta, indicateur rouge/vert. Panneau repliable, **replié par défaut**.
+  - Case "non pointées uniquement" : cochée par défaut à l'ouverture du panneau, grisée/désactivée si le compte n'a aucune écriture non pointée. Le filtre n'affecte la liste des écritures que **lorsque le panneau est ouvert** — panneau replié, l'état de la case n'a aucun effet sur l'affichage.
+- Les écritures se créent et s'éditent **en ligne** dans la liste : une ligne dédiée pour la création, et un clic sur une écriture existante la transforme en ligne éditable en place (pas de formulaire ou de modale séparés). Champs : label, poste (avec raccourci de création rapide à la volée), date, sélecteur débit/crédit synchronisé avec le montant, coche de pointage, description, montant.
+- La ligne système (solde de départ) est affichée dans la liste mais **en lecture seule** ; son édition se fait depuis l'écran de paramétrage de compte (4.2).
 - Fonctionnalités utilitaires :
   - Filtrer les écritures par plage de dates / atteindre une date précise
   - Inverser l'ordre d'affichage
   - Raccourci de création rapide d'un poste directement depuis le formulaire d'écriture
-  - Filtrer pour n'afficher que les écritures non pointées
 - Accès à la configuration des écritures périodiques du compte.
-- Solde de départ éditable depuis cet écran (modifie la ligne système associée).
 
-### 4.3 Écran de gestion des postes
+### 4.4 Écran de gestion des postes
 
 - Liste globale des postes (nom, couleur, icône, description).
 - Création / modification libres.
 - Suppression possible uniquement si aucune écriture associée au poste.
 - Sélecteur d'icône : recherche dans une bibliothèque prédéfinie (type Lucide).
 
-### 4.4 Écran de statistiques (avancé / non urgent)
+### 4.5 Écran de statistiques (avancé / non urgent)
 
 - Portée : toujours par compte individuel (pas de vue consolidée tous comptes).
 - Sur un intervalle de temps sélectionnable :
   - Répartition des écritures par poste
   - Montant total des recettes / dépenses par mois
 
-### 4.5 Écran des paramètres
+### 4.6 Écran des paramètres
 
 - Emplacement du fichier de données (modifiable)
 - Format d'affichage des dates
@@ -205,7 +217,7 @@ Calculé par compte, pas d'entité dédiée stockée à part le champ `pointee` 
 ## 5. UI / UX
 
 - Design arrondi, épuré, esprit Slack / SaaS moderne.
-- Couleurs d'accent utilisées pour différencier comptes et postes (couleur choisie à la création).
+- Couleurs d'accent utilisées pour différencier comptes et postes (couleur choisie à la création). Sur l'écran du compte / écritures (4.3), la couleur du compte courant est appliquée systématiquement à tous les éléments interactifs (boutons, cases à cocher, selects, formulaire d'écriture, filtres, panneau de pointage) — pas uniquement aux éléments d'identification comme les cartes ou le rail de la sidebar. Les écrans sans compte courant (gestion des postes, paramètres globaux, statistiques si non cadrées sur un compte) ne sont pas concernés par cette règle.
 - **Mode clair et sombre**, avec détection de la préférence système au premier lancement et bascule manuelle dans les paramètres.
 - Icônes des postes issues d'une bibliothèque prédéfinie (type Lucide) via un sélecteur avec recherche par mot-clé — pas d'upload d'image personnalisée en v1.
 
@@ -260,3 +272,10 @@ Une douzaine de postes courants, à ajuster librement dans l'application après 
 ## 8. Décisions ouvertes / non abordées
 
 *(à compléter si des points supplémentaires émergent en cours de développement)*
+
+### Vérifications requises avant portage du prototype
+
+- Écran de statistiques (4.5) : non encore confronté en détail au prototype (répartition par poste, recettes/dépenses par mois).
+- Écran de gestion des postes (4.4) : sélecteur d'icône avec recherche par mot-clé — état d'implémentation à confirmer.
+- Mode sombre (5) : présence non confirmée dans le prototype actuel.
+- Écritures périodiques (3.4) : hors périmètre du mockup statique ; UX à concevoir lors de l'implémentation réelle.

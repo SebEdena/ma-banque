@@ -36,7 +36,7 @@ Set up the Tauri/Rust backend skeleton in line with the architecture described i
 - **Data access**: `rusqlite` (synchronous), no async runtime (no `tokio`). Connection shared via `Arc<Mutex<Connection>>` in Tauri-managed state — not an `r2d2` pool, since SQLite only supports one writer at a time.
 - **Migrations**: `rusqlite_migration`, `.sql` files embedded via `include_str!`, applied automatically at startup.
 - **Repository pattern**: traits declared in `domain/`, concrete SQLite structs in `infra/`, each holding its own clone of the shared `Arc<Mutex<Connection>>` and locking internally per call (avoids explicit lifetime parameters on traits/use cases). Use cases depend on `&dyn Trait` (or a bounded generic), never on the SQLite connection directly.
-- **Vertical-slice proof command**: the one real end-to-end command built in this spec should be the data-file-location setting (get/set) — it's genuinely part of "app setup" rather than business logic, and it doubles as the first building block of the future Settings screen (business requirements §4.5) without pulling in the rest of that screen's scope.
+- **Vertical-slice proof command**: the one real end-to-end command built in this spec should be the data-file-location setting (get/set) — it's genuinely part of "app setup" rather than business logic, and it doubles as the first building block of the future Settings screen (business requirements §4.6) without pulling in the rest of that screen's scope.
 - **Formatting/linting**: `cargo fmt`, `cargo clippy -- -D warnings` runnable locally; wiring into CI is covered by the companion spec (`02-setup-frontend-ci.md`), which owns the full pipeline since it depends on both sides existing.
 
 ## Testing Decisions
