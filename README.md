@@ -36,6 +36,70 @@ real user profile. Delete `.dev-data/` to reset to a clean first-launch state.
 Release builds (`cargo tauri build`) are unaffected and use the real OS
 directories. See `src-tauri/src/lib.rs`'s `.setup()` hook.
 
+### Commands
+
+All commands run from the repo root unless noted otherwise.
+
+**Run the app locally (dev, hot-reload, dev-tools)**
+
+```sh
+cd src-tauri && cargo tauri dev
+```
+
+Starts Angular (`npm start`) and opens the Tauri window pointed at it, per
+`beforeDevCommand` in `tauri.conf.json`. Uses `.dev-data/` for its data
+folder (see above) — delete that folder to reset.
+
+**Frontend tests / lint**
+
+```sh
+npm test              # Vitest, unit + component tests
+npm run lint           # angular-eslint
+npx tsc --noEmit       # type-check only
+```
+
+**Backend tests / lint**
+
+```sh
+cd src-tauri
+cargo test             # unit + integration tests
+cargo fmt               # format
+cargo fmt --check       # format check only (what CI runs)
+cargo clippy -- -D warnings
+```
+
+**End-to-end tests**
+
+```sh
+cargo install tauri-driver                       # once
+sudo apt-get install -y webkit2gtk-driver         # once, Linux only
+cd src-tauri && cargo tauri build --debug --no-bundle   # compiles the binary wdio drives
+npm run e2e
+```
+
+**Debug build without the dev server** (matches what the e2e suite runs against)
+
+```sh
+cd src-tauri && cargo tauri build --debug --no-bundle
+```
+
+Plain `cargo build`/`cargo run` still work for compiling the crate, but the
+resulting binary tries to connect to `devUrl` (`localhost:4200`) instead of
+loading a bundled frontend — use `cargo tauri build --debug --no-bundle` or
+`cargo tauri dev` instead when you need a working window.
+
+**Pre-commit hooks**
+
+Husky + lint-staged run automatically on `git commit` (formats/lints staged
+`*.{ts,html,js,json,css,md}` files — Rust files are not covered, run
+`cargo fmt`/`cargo clippy` yourself before committing backend changes). To
+(re)install the hook after a fresh clone: `npm install` (runs the `prepare`
+script). To run lint-staged manually against currently staged files:
+
+```sh
+npx lint-staged
+```
+
 ### Versioning
 
 `src-tauri/tauri.conf.json`'s `version` field is the single source of truth
