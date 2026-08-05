@@ -12,11 +12,13 @@ Out of scope: any business screen content, the Settings screen's manual theme-ov
 
 **Blocked by:** 01 — Angular scaffold, UI stack & code-style tooling
 
-**Status:** ready-for-agent
+**Status:** done — validated via `/code-review` (Standards + Spec axes) against `af42c72...HEAD`, commits `4f3547a`, `7630f07`
 
-- [ ] Theme service/signal exists, exposing the current theme (light/dark)
-- [ ] System preference (`prefers-color-scheme`) is detected on first launch and applied via Tailwind's `dark:` variant
-- [ ] Theme detection is unit-tested (asserts the theme class/state under a given system preference)
-- [ ] Routing skeleton has placeholder routes for home, account, categories, stats, and settings
-- [ ] Each placeholder route is component-tested (renders its expected placeholder content)
-- [ ] No business logic or manual theme-override UI is introduced
+- [x] Theme service/signal exists, exposing the current theme (light/dark)
+- [x] System preference (`prefers-color-scheme`) is detected on first launch and applied via Tailwind's `dark:` variant
+- [x] Theme detection is unit-tested (asserts the theme class/state under a given system preference)
+- [x] Routing skeleton has placeholder routes for home, account, categories, stats, and settings — restructured to match `docs/design/design.html`'s actual navigation model (per-instance `account/:id`, `stats/:id`; `categories` nested under `settings`), a deliberate, user-approved deviation from the ticket's literal flat list, visually verified against the rendered design
+- [x] Each placeholder route is component-tested (renders its expected placeholder content) — see `app.routes.spec.ts` and each feature's `*.spec.ts`
+- [x] No business logic or manual theme-override UI is introduced
+
+**Review notes (non-blocking):** `theme.ts` exposes a public `setTheme()` — functionally the override mechanism the ticket assigns to the future Settings screen, but no UI calls it yet, so not a real violation.

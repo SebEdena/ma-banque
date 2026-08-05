@@ -11,17 +11,19 @@ Scope, per `docs/spec/02-setup-frontend-ci.md`:
 - Husky + lint-staged pre-commit hook formatting/linting staged files.
 - App builds and runs as an empty shell (default/placeholder content only).
 
-Out of scope: theme detection mechanism (ticket 02), routing skeleton (ticket 02), the home screen's Tauri wiring proof (ticket 04), Vitest component/unit test *content* beyond what scaffolding produces by default, WebdriverIO e2e (ticket 03), CI/CD pipeline (ticket 05).
+Out of scope: theme detection mechanism (ticket 02), routing skeleton (ticket 02), the home screen's Tauri wiring proof (ticket 04), Vitest component/unit test _content_ beyond what scaffolding produces by default, WebdriverIO e2e (ticket 03), CI/CD pipeline (ticket 05).
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** done — validated via `/code-review` (Standards + Spec axes) against `af42c72...HEAD`, commits `4f3547a`, `7630f07`
 
-- [ ] Angular 22 app is scaffolded inside the Tauri shell, zoneless (no `zone.js` dependency), components authored `OnPush`
-- [ ] Vitest is the configured test runner (no Karma/Jasmine)
-- [ ] `spartan/ui` (Brain + Helm) is installed and configured on Angular CDK + Tailwind CSS
-- [ ] `@angular/aria` is installed and available
-- [ ] `angular-eslint` and Prettier are configured
-- [ ] Husky + lint-staged pre-commit hook is wired and formats/lints staged files
-- [ ] The app builds (`ng build` / `tauri build` dev flow) and runs as an empty shell
-- [ ] No business screens, theme mechanism, or routing skeleton are introduced
+- [x] Angular 22 app is scaffolded inside the Tauri shell, zoneless (no `zone.js` dependency), components authored `OnPush`
+- [x] Vitest is the configured test runner (no Karma/Jasmine)
+- [x] `spartan/ui` (Brain + Helm) is installed and configured on Angular CDK + Tailwind CSS
+- [x] `@angular/aria` is installed and available
+- [x] `angular-eslint` and Prettier are configured
+- [x] Husky + lint-staged pre-commit hook is wired and formats/lints staged files
+- [x] The app builds (`ng build` / `tauri build` dev flow) and runs as an empty shell
+- [x] No business screens, theme mechanism, or routing skeleton are introduced
+
+**Review notes (non-blocking):** `src/index.html` has `lang="en"` though the shipped UI is French-only per `docs/architecture/technical-architecture.md` — worth fixing opportunistically. Generated spartan `button`/`provideSpartanHlm` scaffold output is present but unused/uncalled — harmless, not wired to any screen yet.
