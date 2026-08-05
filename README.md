@@ -26,6 +26,16 @@ the Tauri shell's webview (`npm start` for dev, `npm run build` for the
 (`spartan/ui` + Tailwind CSS, `@angular/aria`) and code style tooling
 (`angular-eslint` + Prettier, Husky + lint-staged pre-commit hook).
 
+### Local dev data
+
+Debug builds (`cargo tauri dev`, and the `--debug` build the e2e suite runs
+against) keep the data-folder pointer file and the default `saves/` folder
+under `.dev-data/` at the repo root instead of the OS-standard user config/data
+directories — local runs and e2e tests never touch (or get polluted by) a
+real user profile. Delete `.dev-data/` to reset to a clean first-launch state.
+Release builds (`cargo tauri build`) are unaffected and use the real OS
+directories. See `src-tauri/src/lib.rs`'s `.setup()` hook.
+
 ### Versioning
 
 `src-tauri/tauri.conf.json`'s `version` field is the single source of truth

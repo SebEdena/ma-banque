@@ -35,8 +35,18 @@ pub fn run() {
                 )?;
             }
 
-            let config_dir = app.path().app_config_dir()?;
-            let data_dir = app.path().app_data_dir()?;
+            let (config_dir, data_dir) = if cfg!(debug_assertions) {
+                // Debug builds (`cargo tauri dev`, and the `--debug` build
+                // the e2e suite drives) keep their pointer file and default
+                // save folder inside the repo instead of the OS-standard
+                // user directories, so local runs and e2e tests never touch
+                // (or get polluted by) a real user profile — delete
+                // `.dev-data/` to reset. Release builds are untouched.
+                let dev_data_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../.dev-data");
+                (dev_data_dir.join("config"), dev_data_dir.join("data"))
+            } else {
+                (app.path().app_config_dir()?, app.path().app_data_dir()?)
+            };
             let folder_repo = FsDataFolderLocationRepository::new(config_dir, data_dir);
 
             // No folder configured yet (first launch, or the previously

@@ -29,6 +29,9 @@ yarn-error.log
 !.vscode/mcp.json
 .history/*
 
+# Local dev-mode data (see README.md "Local dev data")
+/.dev-data
+
 # Miscellaneous
 /.angular/cache
 .sass-cache/

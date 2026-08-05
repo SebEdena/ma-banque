@@ -45,6 +45,16 @@ A multi-crate workspace would give a stricter compilation boundary, but adds fri
 | SQLite repositories | Integration tests against an **`:memory:`** database, fresh connection + migrations for each test (full isolation, fast).                                                    |
 | Domain              | Classic unit tests (calculation rules, validations).                                                                                                                         |
 
+### 1.6 Local dev data
+
+In debug builds (`cargo tauri dev`, and the `--debug` build the e2e suite
+runs against), the data-folder pointer file and the default `saves/` folder
+are kept under `.dev-data/` at the repo root instead of the OS-standard
+config/data directories — local runs and e2e tests never touch (or get
+polluted by) a real user profile. Deleting `.dev-data/` resets to a clean
+first-launch state. Release builds (`cargo tauri build`) are unaffected and
+use the real OS directories.
+
 ---
 
 ## 2. Angular (frontend)

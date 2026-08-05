@@ -39,11 +39,22 @@ Un workspace multi-crates apporterait une frontière de compilation plus stricte
 
 ### 1.5 Tests
 
-| Niveau | Approche |
-|---|---|
-| Use cases | **Fakes en mémoire** écrits à la main (implémentations des traits repository sur `Vec`/`HashMap`), pas `mockall` — plus robustes au refactor, plus lisibles pour un dev découvrant Rust. |
-| Repositories SQLite | Tests d'intégration contre une base **`:memory:`**, connexion + migrations neuves à chaque test (isolation totale, rapide). |
-| Domaine | Tests unitaires classiques (règles de calcul, validations). |
+| Niveau              | Approche                                                                                                                                                                                 |
+| ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Use cases           | **Fakes en mémoire** écrits à la main (implémentations des traits repository sur `Vec`/`HashMap`), pas `mockall` — plus robustes au refactor, plus lisibles pour un dev découvrant Rust. |
+| Repositories SQLite | Tests d'intégration contre une base **`:memory:`**, connexion + migrations neuves à chaque test (isolation totale, rapide).                                                              |
+| Domaine             | Tests unitaires classiques (règles de calcul, validations).                                                                                                                              |
+
+### 1.6 Données locales de dev
+
+En build debug (`cargo tauri dev`, ainsi que le build `--debug` utilisé par
+la suite e2e), le fichier pointeur du dossier de données et le dossier
+`saves/` par défaut sont conservés sous `.dev-data/` à la racine du repo au
+lieu des répertoires config/data standards de l'OS — les runs locaux et les
+tests e2e ne touchent jamais (et ne sont jamais pollués par) un vrai profil
+utilisateur. Supprimer `.dev-data/` réinitialise à un état de premier
+lancement. Les builds release (`cargo tauri build`) ne sont pas concernés et
+utilisent les vrais répertoires de l'OS.
 
 ---
 
@@ -99,14 +110,14 @@ Workflow dédié utilisant **`tauri-apps/tauri-action`** sur `windows-latest` :
 
 ## 4. Glossaire de traduction (FR → EN, code source)
 
-| FR (cahier des charges) | EN (code) |
-|---|---|
-| Compte | `Account` |
-| Poste | `Category` |
-| Écriture | `Entry` |
-| Règle de périodicité | `RecurringRule` |
-| Pointage | `Reconciliation` |
-| solde_pointe | `reconciled_balance` |
-| solde_banque | `bank_balance` |
-| date_arret | `statement_date` |
-| est_systeme | `is_system` |
+| FR (cahier des charges) | EN (code)            |
+| ----------------------- | -------------------- |
+| Compte                  | `Account`            |
+| Poste                   | `Category`           |
+| Écriture                | `Entry`              |
+| Règle de périodicité    | `RecurringRule`      |
+| Pointage                | `Reconciliation`     |
+| solde_pointe            | `reconciled_balance` |
+| solde_banque            | `bank_balance`       |
+| date_arret              | `statement_date`     |
+| est_systeme             | `is_system`          |
