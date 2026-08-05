@@ -12,7 +12,7 @@ mod usecases;
 
 use tauri::Manager;
 
-use domain::data_folder_location::DataFolderLocationRepository;
+use domain::data_folder_location::{DataFolderLocationRepository, DynDataFolderLocationRepository};
 use infra::data_folder_location::FsDataFolderLocationRepository;
 use infra::db::StartupDbError;
 
@@ -59,7 +59,7 @@ pub fn run() {
             }
 
             app.manage(StartupDbError(std::sync::Mutex::new(startup_error)));
-            app.manage(folder_repo);
+            app.manage(Box::new(folder_repo) as DynDataFolderLocationRepository);
 
             Ok(())
         })

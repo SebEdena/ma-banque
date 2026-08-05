@@ -41,3 +41,10 @@ pub trait DataFolderLocationRepository {
     /// Rejected up front if `destination` already holds a valid save.
     fn move_folder(&self, destination: PathBuf) -> Result<PathBuf, DataFolderLocationError>;
 }
+
+/// A `DataFolderLocationRepository` behind a trait object, boxed so it can
+/// be registered as Tauri-managed state without commands ever needing to
+/// name the concrete (infra-layer) implementation. `Send + Sync` are
+/// required by `tauri::State` — Tauri commands may run on different
+/// threads, so managed state must be safely shareable across them.
+pub type DynDataFolderLocationRepository = Box<dyn DataFolderLocationRepository + Send + Sync>;
