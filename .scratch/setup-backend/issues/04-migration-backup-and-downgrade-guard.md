@@ -13,12 +13,19 @@ Out of scope: the folder pointer / move / open-a-different-folder operations the
 
 **Blocked by:** ~~02 — Shared SQLite connection & migration runner~~ (done); 03 — Data-folder-location setting: end-to-end proof command (needs the folder pointer to know which path to open/migrate)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Startup connection opens the database at the folder returned by ticket 03's pointer, not a hardcoded path
-- [ ] A timestamped backup is written before any pending migration runs
-- [ ] Only the last 3 backups are kept, oldest dropped first
-- [ ] Opening a database with a schema newer than the app's known migrations is refused with a distinct, serializable error — no migration attempted
-- [ ] Integration tests cover: backup created before migration, 4th backup triggers rotation (oldest deleted), newer-than-supported schema is rejected without modification
-- [ ] `cargo fmt --check`, `cargo clippy -- -D warnings`, and `cargo test` all pass locally
-- [ ] No business entities or rules are introduced
+- [x] Startup connection opens the database at the folder returned by ticket 03's pointer, not a hardcoded path
+- [x] A timestamped backup is written before any pending migration runs
+- [x] Only the last 3 backups are kept, oldest dropped first
+- [x] Opening a database with a schema newer than the app's known migrations is refused with a distinct, serializable error — no migration attempted
+- [x] Integration tests cover: backup created before migration, 4th backup triggers rotation (oldest deleted), newer-than-supported schema is rejected without modification
+- [x] `cargo fmt --check`, `cargo clippy -- -D warnings`, and `cargo test` all pass locally
+- [x] No business entities or rules are introduced
+
+**Implementation notes:**
+- `infra::db::open_and_migrate(db_path)` replaces the old `init(Connection)` helper; `lib.rs`'s `.setup()` hook now calls `folder_repo.get_current_folder()` first and only opens/migrates if a folder is configured — matching the "don't decide unilaterally" rule from `01-setup-backend.md`. No folder configured yet → no connection is managed at startup (no command currently needs one before the frontend's future onboarding flow sets a folder).
+- Downgrade guard uses `rusqlite_migration::SchemaVersion::Outside`, checked via `Migrations::current_version` before `to_latest` is ever called.
+- Backup filenames are `<db-file-name>.bak-<nanos-since-epoch>`; rotation keeps the 3 most recent by sorting the matching filenames (fixed-width nanosecond timestamps sort correctly as strings).
+- A startup open failure (e.g. `SchemaNewerThanSupported`) is logged via `log::error!`, stored in a managed `StartupDbError` state, and surfaced to the frontend via the `get_startup_db_error` command (`commands/db.rs`) — added after code review flagged the original "serializable but unreachable by the UI" gap.
+- `infra::db::is_schema_supported(&Connection)` is shared between the downgrade guard here and `infra::data_folder_location`'s save validation (`is_valid_save`), so "Open a different folder" rejects a too-new save up front instead of accepting it and failing later at connection time — another code-review fix (the two checks previously disagreed on what counts as a valid save).

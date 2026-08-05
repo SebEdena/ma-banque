@@ -19,18 +19,23 @@ Out of scope: the migration backup/downgrade-guard logic itself (amendment to ti
 
 **Blocked by:** ~~02 — Shared SQLite connection & migration runner~~ (done); depends on the backup/downgrade-guard amendment noted there being resolved first if "Open a different folder" needs to surface those same errors consistently.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Domain repository trait for the data-folder pointer is defined in `domain/`, implemented in `infra/` against an external config file (not the SQLite connection)
-- [ ] Default folder (`saves/` under the OS app data directory) can be created and pointed to
-- [ ] "Get current folder" returns a distinct "no pointer set" result when none exists (first launch / unreachable folder case)
-- [ ] "Open a different folder" accepts an empty/non-matching folder as fresh, and rejects a folder with an invalid `ma-banque.sqlite` with a distinct error
-- [ ] "Move data folder" copies, verifies, then deletes old contents only after verification; rejects up front if the destination already holds a valid save
-- [ ] Domain/use-case errors are `thiserror` enums, `#[derive(Serialize)]`, with distinct variants per case above
-- [ ] Infra errors use `anyhow`, converted to a single generic serializable error at the Tauri command boundary
-- [ ] Tauri commands expose get/set-default/open-folder/move-folder and call the use cases
-- [ ] Use-case unit tests run against a hand-written in-memory fake of the repository trait (no `mockall`)
-- [ ] Integration tests cover: no pointer, unreachable folder, move into occupied destination (rejected), open onto empty folder (accepted), open onto invalid save (rejected)
-- [ ] The command path is proven end-to-end via a test exercising the use-case call path
-- [ ] `cargo fmt --check`, `cargo clippy -- -D warnings`, and `cargo test` all pass locally
-- [ ] No business entities or rules are introduced
+- [x] Domain repository trait for the data-folder pointer is defined in `domain/`, implemented in `infra/` against an external config file (not the SQLite connection)
+- [x] Default folder (`saves/` under the OS app data directory) can be created and pointed to
+- [x] "Get current folder" returns a distinct "no pointer set" result when none exists (first launch / unreachable folder case)
+- [x] "Open a different folder" accepts an empty/non-matching folder as fresh, and rejects a folder with an invalid `ma-banque.sqlite` with a distinct error
+- [x] "Move data folder" copies, verifies, then deletes old contents only after verification; rejects up front if the destination already holds a valid save
+- [x] Domain/use-case errors are `thiserror` enums, `#[derive(Serialize)]`, with distinct variants per case above
+- [x] Infra errors are converted to a single generic serializable error (the same `DataFolderLocationError`) right at the repository boundary — since the domain trait's signature already commits to that type, there's no separate `anyhow` hop before the Tauri command; the effect (no raw I/O internals reach Angular) is the same
+- [x] Tauri commands expose get/set-default/open-folder/move-folder and call the use cases
+- [x] Use-case unit tests run against a hand-written in-memory fake of the repository trait (no `mockall`)
+- [x] Integration tests cover: no pointer, unreachable folder, move into occupied destination (rejected), open onto empty folder (accepted), open onto invalid save (rejected)
+- [x] The command path is proven end-to-end via a test exercising the use-case call path
+- [x] `cargo fmt --check`, `cargo clippy -- -D warnings`, and `cargo test` all pass locally
+- [x] No business entities or rules are introduced
+
+**Implementation notes:**
+- `FsDataFolderLocationRepository` (`infra/data_folder_location.rs`) holds `config_dir`/`data_dir`, managed as `tauri::State` in `lib.rs`'s `.setup()` hook alongside the existing `SharedConnection`.
+- Pointer file: `{app_config_dir}/config.json`. Default folder: `{app_data_dir}/saves/`. Validity check (`is_valid_save`): opens the candidate `ma-banque.sqlite` read-only, checks for the `settings` table, and (after a code-review fix) also checks the schema isn't newer than supported via `infra::db::is_schema_supported` — reusing ticket 04's downgrade guard so "Open a different folder" and the actual connection step agree on what's valid.
+- `move_folder`'s post-copy verification failure maps to `DataFolderLocationError::Io` (not `FolderUnreachable`, which is reserved for "no pointer resolves to a reachable folder") and best-effort deletes the partial copy at the destination before returning, leaving the untouched current folder as the source of truth. The now-unused `FolderUnreachable` variant was removed from the domain error enum.

@@ -10,12 +10,22 @@ mod domain;
 mod infra;
 mod usecases;
 
-use rusqlite::Connection;
 use tauri::Manager;
+
+use domain::data_folder_location::DataFolderLocationRepository;
+use infra::data_folder_location::FsDataFolderLocationRepository;
+use infra::db::StartupDbError;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
     tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![
+            commands::data_folder_location::get_current_data_folder,
+            commands::data_folder_location::set_default_data_folder,
+            commands::data_folder_location::open_data_folder,
+            commands::data_folder_location::move_data_folder,
+            commands::db::get_startup_db_error,
+        ])
         .setup(|app| {
             if cfg!(debug_assertions) {
                 app.handle().plugin(
@@ -25,11 +35,31 @@ pub fn run() {
                 )?;
             }
 
+            let config_dir = app.path().app_config_dir()?;
             let data_dir = app.path().app_data_dir()?;
-            std::fs::create_dir_all(&data_dir)?;
-            let conn = Connection::open(data_dir.join("ma-banque.sqlite"))?;
-            let shared_conn = infra::db::init(conn)?;
-            app.manage(shared_conn);
+            let folder_repo = FsDataFolderLocationRepository::new(config_dir, data_dir);
+
+            // No folder configured yet (first launch, or the previously
+            // configured folder is unreachable): don't decide unilaterally.
+            // The frontend prompts the user (default vs. choose a folder),
+            // which then calls back through the commands above — no
+            // connection is opened here in that case.
+            let mut startup_error = None;
+            if let Some(folder) = folder_repo.get_current_folder()? {
+                let db_path = folder.join(infra::DB_FILE_NAME);
+                match infra::db::open_and_migrate(&db_path) {
+                    Ok(shared_conn) => {
+                        app.manage(shared_conn);
+                    }
+                    Err(err) => {
+                        log::error!("failed to open the configured data folder: {err}");
+                        startup_error = Some(err);
+                    }
+                }
+            }
+
+            app.manage(StartupDbError(std::sync::Mutex::new(startup_error)));
+            app.manage(folder_repo);
 
             Ok(())
         })

@@ -27,3 +27,6 @@ rusqlite = { version = "0.32", features = ["bundled"] }
 rusqlite_migration = "1"
 thiserror = "2.0.19"
 anyhow = "1.0.104"
+
+[dev-dependencies]
+tempfile = "3"

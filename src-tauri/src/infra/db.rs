@@ -4,39 +4,148 @@
 //! per call (see `domain`/`infra` module docs) rather than holding the lock
 //! for their whole lifetime.
 
+use std::fs;
+use std::path::Path;
 use std::sync::{Arc, Mutex};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use rusqlite::Connection;
-use rusqlite_migration::{Migrations, M};
+use rusqlite_migration::{Migrations, SchemaVersion, M};
+use serde::Serialize;
+use thiserror::Error;
 
 /// Connection handle shared across the app via `tauri::State`.
 pub type SharedConnection = Arc<Mutex<Connection>>;
 
-fn migrations() -> Migrations<'static> {
-    Migrations::new(vec![M::up(include_str!(
-        "../../migrations/0001_create_settings.sql"
-    ))])
+/// Records the error from the startup `open_and_migrate` attempt, if any,
+/// so the frontend can find out why no connection is available (managed as
+/// `tauri::State` even when there's no error to report).
+#[derive(Default)]
+pub struct StartupDbError(pub Mutex<Option<DbOpenError>>);
+
+/// Number of `.sql` files embedded in [`migrations`] — kept in sync with
+/// that function so the downgrade guard can tell "older than this" apart
+/// from "newer than this" without a public accessor on `Migrations`.
+const MIGRATION_COUNT: usize = 1;
+
+/// How many pre-migration backups to keep (oldest dropped first).
+const MAX_BACKUPS: usize = 3;
+
+#[derive(Debug, Clone, Error, Serialize)]
+#[serde(tag = "kind", content = "message")]
+pub enum DbOpenError {
+    #[error("this save was created by a newer version of the app and can't be opened")]
+    SchemaNewerThanSupported,
+    #[error("a filesystem or database error occurred: {0}")]
+    Io(String),
 }
 
-/// Runs all pending migrations against `conn`, wrapping it for shared use.
-///
-/// `.sql` migration files are embedded into the binary at compile time via
-/// `include_str!`, so the app never depends on files present on disk.
-pub fn init(mut conn: Connection) -> anyhow::Result<SharedConnection> {
-    migrations().to_latest(&mut conn)?;
+fn migrations() -> Migrations<'static> {
+    let ms = vec![M::up(include_str!(
+        "../../migrations/0001_create_settings.sql"
+    ))];
+    debug_assert_eq!(ms.len(), MIGRATION_COUNT);
+    Migrations::new(ms)
+}
+
+/// Whether `conn`'s current schema is one this app's migrations know about
+/// — `false` for a schema newer than the app supports (or unreadable).
+/// Shared by the downgrade guard here and by `data_folder_location`'s save
+/// validation, so both agree on what counts as an openable save.
+pub fn is_schema_supported(conn: &Connection) -> bool {
+    !matches!(
+        migrations().current_version(conn),
+        Ok(SchemaVersion::Outside(_)) | Err(_)
+    )
+}
+
+/// Opens (or creates) the database at `db_path`, guarding against schemas
+/// newer than the app supports and backing up the file before applying any
+/// pending migration.
+pub fn open_and_migrate(db_path: &Path) -> Result<SharedConnection, DbOpenError> {
+    let existed_before = db_path.is_file();
+
+    let mut conn = Connection::open(db_path).map_err(io_err)?;
+
+    if !is_schema_supported(&conn) {
+        return Err(DbOpenError::SchemaNewerThanSupported);
+    }
+
+    let current_version = migrations().current_version(&conn).map_err(io_err)?;
+    let has_pending_migrations = match current_version {
+        SchemaVersion::NoneSet => existed_before,
+        SchemaVersion::Inside(v) => usize::from(v) < MIGRATION_COUNT,
+        SchemaVersion::Outside(_) => unreachable!("handled above"),
+    };
+
+    if existed_before && has_pending_migrations {
+        backup_before_migrate(db_path).map_err(io_err)?;
+    }
+
+    migrations().to_latest(&mut conn).map_err(io_err)?;
+
     Ok(Arc::new(Mutex::new(conn)))
+}
+
+fn io_err<E: std::fmt::Display>(e: E) -> DbOpenError {
+    DbOpenError::Io(e.to_string())
+}
+
+fn backup_before_migrate(db_path: &Path) -> anyhow::Result<()> {
+    let dir = db_path
+        .parent()
+        .ok_or_else(|| anyhow::anyhow!("database path has no parent folder"))?;
+    let file_name = db_path
+        .file_name()
+        .ok_or_else(|| anyhow::anyhow!("database path has no file name"))?
+        .to_string_lossy()
+        .into_owned();
+
+    let timestamp = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .unwrap_or_default()
+        .as_nanos();
+    let backup_path = dir.join(format!("{file_name}.bak-{timestamp}"));
+    fs::copy(db_path, &backup_path)?;
+
+    rotate_backups(dir, &file_name)?;
+    Ok(())
+}
+
+fn rotate_backups(dir: &Path, db_file_name: &str) -> anyhow::Result<()> {
+    let prefix = format!("{db_file_name}.bak-");
+
+    let mut backups: Vec<_> = fs::read_dir(dir)?
+        .filter_map(|entry| entry.ok())
+        .map(|entry| entry.path())
+        .filter(|path| {
+            path.file_name()
+                .and_then(|n| n.to_str())
+                .is_some_and(|n| n.starts_with(&prefix))
+        })
+        .collect();
+    backups.sort();
+
+    while backups.len() > MAX_BACKUPS {
+        let oldest = backups.remove(0);
+        fs::remove_file(oldest)?;
+    }
+
+    Ok(())
 }
 
 #[cfg(test)]
 mod tests {
     use super::*;
+    use tempfile::tempdir;
 
     #[test]
     fn migrations_create_the_settings_table() {
-        let conn = Connection::open_in_memory().expect("open in-memory db");
-        let shared = init(conn).expect("migrations should apply cleanly");
+        let mut conn = Connection::open_in_memory().expect("open in-memory db");
+        migrations()
+            .to_latest(&mut conn)
+            .expect("migrations should apply cleanly");
 
-        let conn = shared.lock().expect("lock connection");
         let table_exists: bool = conn
             .query_row(
                 "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'settings')",
@@ -49,5 +158,96 @@ mod tests {
             table_exists,
             "expected `settings` table to exist after migrations"
         );
+    }
+
+    #[test]
+    fn open_and_migrate_creates_a_fresh_database_with_no_backup() {
+        let dir = tempdir().unwrap();
+        let db_path = dir.path().join("ma-banque.sqlite");
+
+        let shared = open_and_migrate(&db_path).expect("should open cleanly");
+        {
+            let conn = shared.lock().unwrap();
+            let exists: bool = conn
+                .query_row(
+                    "SELECT EXISTS(SELECT 1 FROM sqlite_master WHERE type='table' AND name='settings')",
+                    [],
+                    |row| row.get(0),
+                )
+                .unwrap();
+            assert!(exists);
+        }
+
+        let backups: Vec<_> = fs::read_dir(dir.path())
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_name().to_string_lossy().contains(".bak-"))
+            .collect();
+        assert!(
+            backups.is_empty(),
+            "a brand-new database should not be backed up"
+        );
+    }
+
+    #[test]
+    fn open_and_migrate_backs_up_an_existing_db_that_has_a_pending_migration() {
+        let dir = tempdir().unwrap();
+        let db_path = dir.path().join("ma-banque.sqlite");
+
+        // Pre-existing database file with no schema applied yet (`NoneSet`)
+        // — simulates a real save that still has migrations pending.
+        Connection::open(&db_path).unwrap();
+
+        open_and_migrate(&db_path).unwrap();
+
+        let backups: Vec<_> = fs::read_dir(dir.path())
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_name().to_string_lossy().contains(".bak-"))
+            .collect();
+        assert_eq!(backups.len(), 1);
+    }
+
+    #[test]
+    fn backup_rotation_keeps_only_the_last_three() {
+        let dir = tempdir().unwrap();
+        let db_path = dir.path().join("ma-banque.sqlite");
+        fs::write(&db_path, b"pretend database contents").unwrap();
+
+        for _ in 0..4 {
+            backup_before_migrate(&db_path).unwrap();
+            std::thread::sleep(std::time::Duration::from_millis(1));
+        }
+
+        let backups: Vec<_> = fs::read_dir(dir.path())
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_name().to_string_lossy().contains(".bak-"))
+            .collect();
+        assert_eq!(backups.len(), MAX_BACKUPS);
+    }
+
+    #[test]
+    fn open_and_migrate_refuses_a_schema_newer_than_supported() {
+        let dir = tempdir().unwrap();
+        let db_path = dir.path().join("ma-banque.sqlite");
+        open_and_migrate(&db_path).unwrap();
+
+        {
+            let conn = Connection::open(&db_path).unwrap();
+            conn.pragma_update(None, "user_version", MIGRATION_COUNT + 1)
+                .unwrap();
+        }
+
+        let err = open_and_migrate(&db_path).unwrap_err();
+        assert!(matches!(err, DbOpenError::SchemaNewerThanSupported));
+
+        // No backup should be attempted for a rejected open.
+        let backups: Vec<_> = fs::read_dir(dir.path())
+            .unwrap()
+            .filter_map(|e| e.ok())
+            .filter(|e| e.file_name().to_string_lossy().contains(".bak-"))
+            .collect();
+        assert!(backups.is_empty());
     }
 }

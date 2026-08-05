@@ -5,4 +5,8 @@
 //! here are represented with `anyhow`, not the `thiserror` enums used in
 //! `domain`/`usecases`.
 
+pub mod data_folder_location;
 pub mod db;
+
+/// Filename of the SQLite database inside a data folder.
+pub const DB_FILE_NAME: &str = "ma-banque.sqlite";
