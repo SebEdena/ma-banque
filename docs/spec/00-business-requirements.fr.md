@@ -32,7 +32,7 @@ Application desktop de gestion de comptes bancaires personnels (type "cash book"
 ### 2.3 Stockage
 
 - **Moteur** : SQLite (via `tauri-plugin-sql` et/ou `rusqlite` selon les besoins d'intégration avec les repositories Clean Architecture).
-- **Fichier unique**, déplaçable, emplacement configurable dans les paramètres.
+- **Dossier unique** (contenant le fichier de base de données et ses sauvegardes de migration), déplaçable, emplacement configurable dans les paramètres — voir §2.3.1.
 - **Devise** : une seule devise globale pour toute l'application (paramètre global, pas de gestion multi-devises ni de taux de change).
 - **Format d'affichage** date et monétaire configurable dans les paramètres (indépendant de la devise elle-même).
 

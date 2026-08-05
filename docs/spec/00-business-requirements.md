@@ -32,7 +32,7 @@ Desktop application for managing personal bank accounts (a "cash book" / account
 ### 2.3 Storage
 
 - **Engine**: SQLite (via `tauri-plugin-sql` and/or `rusqlite` depending on integration needs with the Clean Architecture repositories).
-- **Single file**, movable, location configurable in settings.
+- **Single folder** (containing the database file plus its migration backups), movable, location configurable in settings — see §2.3.1.
 - **Currency**: a single global currency for the whole application (global setting, no multi-currency or exchange-rate handling).
 - **Display format** for dates and amounts configurable in settings (independent from the currency itself).
 
