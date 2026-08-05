@@ -36,6 +36,17 @@ Application desktop de gestion de comptes bancaires personnels (type "cash book"
 - **Devise** : une seule devise globale pour toute l'application (paramètre global, pas de gestion multi-devises ni de taux de change).
 - **Format d'affichage** date et monétaire configurable dans les paramètres (indépendant de la devise elle-même).
 
+### 2.3.1 Dossier de données, premier lancement & migration
+
+- L'emplacement configurable est un **dossier** (pas un simple chemin de fichier), contenant `ma-banque.sqlite` ainsi que ses sauvegardes de migration. Par défaut : un dossier `saves/` géré par l'application, sous le répertoire de données standard de l'OS.
+- Le chemin du dossier choisi est mémorisé dans un petit fichier de configuration conservé **en dehors** du fichier SQLite lui-même (la base ne peut pas indiquer à l'application où elle se trouve), stocké dans le répertoire de configuration standard de l'OS.
+- **Premier lancement, ou dossier configuré introuvable** (déplacé/supprimé/disque débranché) : l'application ne recrée rien silencieusement. Elle propose à l'utilisateur soit d'utiliser l'emplacement par défaut, soit de choisir un dossier.
+- **L'écran des paramètres** propose deux actions distinctes sur le dossier :
+  - **Déplacer le dossier de données** — relocalise le dossier actuel (et ses sauvegardes) vers une nouvelle destination. Copie, vérifie la copie, puis supprime l'ancien contenu ; bloqué si la destination contient déjà une sauvegarde valide (pas d'écrasement/fusion silencieux).
+  - **Ouvrir un autre dossier** — pointe vers un dossier existant ailleurs sans toucher au dossier actuel (ex. restauration d'une sauvegarde, changement de machine). Un dossier vide ou ne correspondant pas est traité comme neuf (une nouvelle base est créée et migrée dedans) ; un dossier contenant un `ma-banque.sqlite` invalide est rejeté avec une erreur explicite.
+- **Les migrations** s'exécutent automatiquement vers l'avant au démarrage dès que le schéma de la base ouverte est plus ancien que celui attendu par l'application. Avant de migrer, une sauvegarde horodatée de la base est écrite dans le même dossier ; les 3 dernières sauvegardes sont conservées (la plus ancienne est supprimée en premier).
+- Si le schéma de la base ouverte est **plus récent** que ce que l'application supporte (ex. retour à une version antérieure de l'application), l'application refuse de l'ouvrir et affiche une erreur bloquante explicite — aucune tentative de migration, aucune proposition de repli automatique.
+
 ### 2.4 Performance
 
 - Pagination des écritures côté Rust (requêtes par lots).
@@ -207,7 +218,7 @@ La navigation s'articule autour d'une **sidebar** persistante (façon Slack) : u
 
 ### 4.6 Écran des paramètres
 
-- Emplacement du fichier de données (modifiable)
+- Emplacement du dossier de données — actions « Déplacer le dossier de données » et « Ouvrir un autre dossier » (voir §2.3.1)
 - Format d'affichage des dates
 - Format d'affichage monétaire
 - Thème (clair / sombre / système)

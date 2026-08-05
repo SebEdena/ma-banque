@@ -36,6 +36,17 @@ Desktop application for managing personal bank accounts (a "cash book" / account
 - **Currency**: a single global currency for the whole application (global setting, no multi-currency or exchange-rate handling).
 - **Display format** for dates and amounts configurable in settings (independent from the currency itself).
 
+### 2.3.1 Data folder, first launch & migration
+
+- The configurable location is a **folder** (not a bare file path), containing `ma-banque.sqlite` plus its migration backups. Default: an app-managed `saves/` folder under the OS-standard app data directory.
+- The chosen folder path is tracked in a small config file kept **outside** the SQLite file itself (the database can't tell the app where it is), stored in the OS-standard app config directory.
+- **First launch, or the configured folder is unreachable** (moved/deleted/drive unplugged): the app does not silently create or recreate anything. It prompts the user to either use the default location or choose a folder.
+- **Settings screen** exposes two distinct folder actions:
+  - **Move data folder** — relocates the current folder (and its backups) to a new destination. Copies, verifies the copy, then removes the old contents; blocked if the destination already contains a valid save (no silent overwrite/merge).
+  - **Open a different folder** — points at an existing folder elsewhere without touching the current one (e.g. restoring a save, switching machines). An empty/non-matching folder is treated as fresh (a new database is created and migrated there); a folder containing a `ma-banque.sqlite` that fails validation is rejected with an explicit error.
+- **Migrations** run automatically forward on startup whenever the opened database's schema is older than the app expects. Before migrating, a timestamped backup of the database is written into the same folder; the last **3** backups are kept (oldest dropped first).
+- If the opened database's schema is **newer** than the app supports (e.g. a rollback to an older app version), the app refuses to open it and shows an explicit blocking error — no migration attempt, no automatic fallback prompt.
+
 ### 2.4 Performance
 
 - Pagination of entries on the Rust side (batched queries).
@@ -207,7 +218,7 @@ Dedicated screen for editing an existing account, distinct from the global setti
 
 ### 4.6 Settings screen
 
-- Data file location (editable)
+- Data folder location — "Move data folder" and "Open a different folder" actions (see §2.3.1)
 - Date display format
 - Currency display format
 - Theme (light / dark / system)

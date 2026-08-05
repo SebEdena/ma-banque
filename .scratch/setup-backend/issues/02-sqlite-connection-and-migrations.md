@@ -23,3 +23,5 @@ Scope, per `docs/spec/01-setup-backend.md`:
 **Implementation notes:**
 - First real migration (`migrations/0001_create_settings.sql`) creates a `settings` key/value table — the schema ticket 03's data-file-location setting needs, per the spec's "decided when that ticket starts" note.
 - Startup connection lives at `{app_data_dir}/ma-banque.sqlite`, opened and migrated in `lib.rs`'s `.setup()` hook, then `app.manage()`d as `tauri::State<SharedConnection>`.
+
+**Amendment (2026-08-05):** business requirements §2.3.1 and `01-setup-backend.md` now require the connection path to come from ticket 03's folder pointer (not a hardcoded `{app_data_dir}/ma-banque.sqlite`), plus pre-migration backups and a downgrade guard. That follow-up work is scoped separately in ticket `04-migration-backup-and-downgrade-guard.md` rather than reopening this ticket's original (still valid) scope.
