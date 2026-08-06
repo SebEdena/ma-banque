@@ -42,7 +42,8 @@ pub fn run() {
                 // user directories, so local runs and e2e tests never touch
                 // (or get polluted by) a real user profile — delete
                 // `.dev-data/` to reset. Release builds are untouched.
-                let dev_data_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../.dev-data");
+                let dev_data_dir =
+                    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../.dev-data");
                 (dev_data_dir.join("config"), dev_data_dir.join("data"))
             } else {
                 (app.path().app_config_dir()?, app.path().app_data_dir()?)

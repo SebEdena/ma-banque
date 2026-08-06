@@ -1,0 +1,35 @@
+name: E2E
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  e2e:
+    name: WebdriverIO smoke test
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Install tauri-cli
+        run: cargo install tauri-cli --version "^2" --locked
+      - name: Install tauri-driver
+        run: cargo install tauri-driver --locked
+      - name: Install msedgedriver (matches the runner's WebView2/Edge version)
+        run: |
+          cargo install --git https://github.com/chippers/msedgedriver-tool
+          & "$HOME/.cargo/bin/msedgedriver-tool.exe"
+          $PWD.Path >> $env:GITHUB_PATH
+      - name: Build debug binary (no bundle)
+        working-directory: src-tauri
+        run: cargo tauri build --debug --no-bundle
+      - name: Run e2e suite
+        run: npm run e2e
