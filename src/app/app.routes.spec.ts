@@ -3,13 +3,21 @@ import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 
 vi.mock('@tauri-apps/api/core', () => ({
-  invoke: vi.fn().mockResolvedValue(null),
+  invoke: vi.fn(),
 }));
+
+import { invoke } from '@tauri-apps/api/core';
 
 import { routes } from './app.routes';
 
 describe('app routes', () => {
   beforeEach(() => {
+    // Vitest's Angular test runner shares the mocked module across spec
+    // files within a worker, so the default set in the vi.mock factory
+    // above can be clobbered by another file's afterEach (see home.spec.ts)
+    // depending on run order — set it fresh before every test instead of
+    // relying on the factory-level default.
+    vi.mocked(invoke).mockResolvedValue(null);
     TestBed.configureTestingModule({
       providers: [provideRouter(routes)],
     });
