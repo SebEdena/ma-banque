@@ -6,8 +6,39 @@ on:
   pull_request:
 
 jobs:
+  changes:
+    name: Detect changed paths
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    outputs:
+      rust: ${{ steps.filter.outputs.rust }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            rust:
+              - 'src-tauri/**'
+              - '.github/workflows/ci.yml'
+            frontend:
+              - 'src/**'
+              - 'e2e/**'
+              - 'public/**'
+              - 'wdio.conf.ts'
+              - 'angular.json'
+              - 'eslint.config.js'
+              - 'tsconfig*.json'
+              - 'package.json'
+              - 'package-lock.json'
+              - '.github/workflows/ci.yml'
+
   rust-checks:
     name: Rust (fmt, clippy, test)
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
@@ -34,6 +65,8 @@ jobs:
 
   rust-windows-build:
     name: Rust build (windows-latest)
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
     runs-on: windows-latest
     steps:
       - uses: actions/checkout@v5
@@ -50,6 +83,8 @@ jobs:
 
   frontend-checks:
     name: Frontend (eslint, vitest, tsc)
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
