@@ -33,6 +33,9 @@ pub fn run() {
                         .level(log::LevelFilter::Info)
                         .build(),
                 )?;
+                // Enables the WebdriverIO e2e suite's execute()/mock() API and log
+                // forwarding (see wdio.conf.ts). Never registered in release builds.
+                app.handle().plugin(tauri_plugin_wdio::init())?;
             }
 
             let (config_dir, data_dir) = if cfg!(debug_assertions) {
