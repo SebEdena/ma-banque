@@ -44,5 +44,18 @@ jobs:
       - name: Build debug binary (no bundle)
         working-directory: src-tauri
         run: cargo tauri build --debug --no-bundle
+      - name: Work around WebView2 150 elevated-host remote-debugging-port regression
+        # windows-latest runners execute elevated (admin). WebView2 Runtime 150
+        # deliberately ignores WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS and HKCU policy
+        # for elevated host processes (confirmed "by design" security hardening), which
+        # breaks tauri-driver/msedgedriver's CDP handshake ("DevToolsActivePort file
+        # doesn't exist" / session-creation timeout). Only an HKLM policy survives
+        # elevation, so set it here for the app binary until wry passes the debug port
+        # via the WebView2 API directly.
+        # See https://github.com/MicrosoftEdge/WebView2Feedback/issues/5640 and
+        # https://github.com/tauri-apps/wry/issues/1782 (upstream fix pending).
+        run: |
+          New-Item -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Edge\WebView2\AdditionalBrowserArguments' -Force | Out-Null
+          Set-ItemProperty -Path 'HKLM:\SOFTWARE\Policies\Microsoft\Edge\WebView2\AdditionalBrowserArguments' -Name 'ma-banque.exe' -Value '--remote-debugging-port=0'
       - name: Run e2e suite
         run: npm run e2e
