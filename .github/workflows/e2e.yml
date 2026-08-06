@@ -19,13 +19,26 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
+      - name: Cache cargo-installed CLI tools
+        id: cargo-tools-cache
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.cargo/bin/cargo-tauri.exe
+            ~/.cargo/bin/tauri-driver.exe
+            ~/.cargo/bin/msedgedriver-tool.exe
+          key: windows-cargo-tools-tauri-cli-2-tauri-driver-msedgedriver-tool-v1
       - name: Install tauri-cli
+        if: steps.cargo-tools-cache.outputs.cache-hit != 'true'
         run: cargo install tauri-cli --version "^2" --locked
       - name: Install tauri-driver
+        if: steps.cargo-tools-cache.outputs.cache-hit != 'true'
         run: cargo install tauri-driver --locked
-      - name: Install msedgedriver (matches the runner's WebView2/Edge version)
+      - name: Install msedgedriver-tool
+        if: steps.cargo-tools-cache.outputs.cache-hit != 'true'
+        run: cargo install --git https://github.com/chippers/msedgedriver-tool
+      - name: Download msedgedriver matching the runner's WebView2/Edge version
         run: |
-          cargo install --git https://github.com/chippers/msedgedriver-tool
           & "$HOME/.cargo/bin/msedgedriver-tool.exe"
           $PWD.Path >> $env:GITHUB_PATH
       - name: Build debug binary (no bundle)

@@ -1,9 +1,16 @@
+import { platform } from 'node:os';
+
 import type { TauriCapabilities } from '@wdio/tauri-service';
+
+const applicationPath =
+  platform() === 'win32'
+    ? './src-tauri/target/debug/ma-banque.exe'
+    : './src-tauri/target/debug/ma-banque';
 
 const tauriCapabilities: TauriCapabilities = {
   browserName: 'tauri',
   'tauri:options': {
-    application: './src-tauri/target/debug/ma-banque',
+    application: applicationPath,
   },
 };
 
