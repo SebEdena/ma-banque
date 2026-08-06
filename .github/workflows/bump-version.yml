@@ -1,0 +1,88 @@
+name: Bump version
+
+on:
+  workflow_dispatch:
+    inputs:
+      bump:
+        description: Which part of the version to bump
+        required: true
+        type: choice
+        options:
+          - patch
+          - minor
+          - major
+
+jobs:
+  bump-version:
+    name: Bump version and tag release
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - name: Require running from main
+        if: github.ref != 'refs/heads/main'
+        run: |
+          echo "::error::This workflow must be run from main, not ${{ github.ref }}."
+          exit 1
+      - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: src-tauri
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci
+      - name: Configure git identity
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+      - name: Compute new version
+        run: |
+          current=$(jq -r .version src-tauri/tauri.conf.json)
+          IFS='.' read -r major minor patch <<< "$current"
+
+          case "${{ inputs.bump }}" in
+            major)
+              major=$((major + 1)); minor=0; patch=0
+              ;;
+            minor)
+              minor=$((minor + 1)); patch=0
+              ;;
+            patch)
+              patch=$((patch + 1))
+              ;;
+          esac
+
+          new_version="$major.$minor.$patch"
+          echo "Bumping $current -> $new_version (${{ inputs.bump }})"
+          echo "NEW_VERSION=$new_version" >> "$GITHUB_ENV"
+      - name: Update tauri.conf.json
+        run: |
+          jq --arg v "$NEW_VERSION" '.version = $v' src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp
+          mv src-tauri/tauri.conf.json.tmp src-tauri/tauri.conf.json
+      - name: Update Cargo.toml
+        run: |
+          sed -i "0,/^version = /s/^version = .*/version = \"$NEW_VERSION\"/" src-tauri/Cargo.toml
+      - name: Update Cargo.lock
+        working-directory: src-tauri
+        run: cargo update -p ma-banque --precise "$NEW_VERSION"
+      - name: Update package.json / package-lock.json
+        run: npm version "$NEW_VERSION" --no-git-tag-version --allow-same-version
+      - name: Generate changelog
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --tag v${{ env.NEW_VERSION }}
+        env:
+          OUTPUT: CHANGELOG.md
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Commit and tag
+        run: |
+          git add package.json package-lock.json src-tauri/tauri.conf.json src-tauri/Cargo.toml src-tauri/Cargo.lock CHANGELOG.md
+          git commit -m "chore(release): bump version to v$NEW_VERSION"
+          git tag "v$NEW_VERSION"
+          git push origin main --follow-tags

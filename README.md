@@ -103,9 +103,14 @@ npx lint-staged
 ### Versioning
 
 `src-tauri/tauri.conf.json`'s `version` field is the single source of truth
-for the app version. Bump it manually before tagging a release
-(`vX.Y.Z`); the tag-triggered release workflow (see
-`docs/spec/02-setup-frontend-ci.md`) builds from that value.
+for the app version. Run the **Bump version** workflow from the Actions tab
+(`workflow_dispatch`, choosing `patch`/`minor`/`major`) to bump it — it syncs
+`src-tauri/tauri.conf.json`, `src-tauri/Cargo.toml`/`Cargo.lock`, and
+`package.json`/`package-lock.json`, commits to `main`, and pushes the
+matching `vX.Y.Z` tag, which triggers the release workflow (see
+`docs/spec/02-setup-frontend-ci.md`) to build from that value. The same run
+regenerates `CHANGELOG.md` from conventional commit history via
+[`git-cliff`](https://git-cliff.org) (config: `cliff.toml`).
 
 ### CI/CD
 

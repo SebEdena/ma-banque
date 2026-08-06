@@ -103,7 +103,7 @@ Dedicated workflow using **`tauri-apps/tauri-action`** on `windows-latest`:
 - Build + bundle the installer (`.msi`/`.exe`)
 - Create a draft GitHub Release with the installer as an asset
 - No signing/notarization in v1 (personal app, not mass-distributed — an "unrecognized publisher" warning is acceptable)
-- Version source of truth: `tauri.conf.json`, bumped manually before tagging
+- Version source of truth: `tauri.conf.json`, bumped by the manually-triggered `bump-version.yml` workflow (`patch`/`minor`/`major` choice), which syncs `Cargo.toml`/`Cargo.lock` and `package.json`/`package-lock.json`, regenerates `CHANGELOG.md` from conventional commits via `git-cliff` (config: `cliff.toml`), commits to `main`, and pushes the `vX.Y.Z` tag that triggers this release workflow
 
 ---
 
