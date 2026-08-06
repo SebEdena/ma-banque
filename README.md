@@ -106,3 +106,11 @@ npx lint-staged
 for the app version. Bump it manually before tagging a release
 (`vX.Y.Z`); the tag-triggered release workflow (see
 `docs/spec/02-setup-frontend-ci.md`) builds from that value.
+
+### CI/CD
+
+GitHub Actions runs on every push/PR (Rust fmt/clippy/test, `windows-latest`
+compile check, Angular eslint/vitest/tsc), a Windows e2e job on PRs
+targeting `main`, and a release workflow on `vX.Y.Z` tags. See
+`docs/architecture/technical-architecture.md` §3 and
+`.github/workflows/`.
