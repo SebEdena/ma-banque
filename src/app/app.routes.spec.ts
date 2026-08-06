@@ -2,25 +2,22 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 
-vi.mock('@tauri-apps/api/core', () => ({
-  invoke: vi.fn(),
-}));
-
-import { invoke } from '@tauri-apps/api/core';
-
 import { routes } from './app.routes';
 
 describe('app routes', () => {
   beforeEach(() => {
-    // Vitest's Angular test runner shares the mocked module across spec
-    // files within a worker, so the default set in the vi.mock factory
-    // above can be clobbered by another file's afterEach (see home.spec.ts)
-    // depending on run order — set it fresh before every test instead of
-    // relying on the factory-level default.
-    vi.mocked(invoke).mockResolvedValue(null);
+    // The home route lazy-loads Home, which calls the real @tauri-apps/api
+    // invoke() — stub the global it reads from rather than mocking the
+    // module itself, since module-level vi.mock doesn't reliably apply to
+    // this lazily-loaded chunk.
+    vi.stubGlobal('__TAURI_INTERNALS__', { invoke: vi.fn().mockResolvedValue(null) });
     TestBed.configureTestingModule({
       providers: [provideRouter(routes)],
     });
+  });
+
+  afterEach(() => {
+    vi.unstubAllGlobals();
   });
 
   it('redirects the empty path to home', async () => {

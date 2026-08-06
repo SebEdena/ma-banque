@@ -1,12 +1,10 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-vi.mock('@tauri-apps/api/core', () => ({
-  invoke: vi.fn(),
-}));
-
-import { invoke } from '@tauri-apps/api/core';
-
 import { Home } from './home';
+
+function stubTauriInvoke(invoke: ReturnType<typeof vi.fn>): void {
+  vi.stubGlobal('__TAURI_INTERNALS__', { invoke });
+}
 
 async function createHome(): Promise<ComponentFixture<Home>> {
   await TestBed.configureTestingModule({
@@ -20,11 +18,11 @@ async function createHome(): Promise<ComponentFixture<Home>> {
 
 describe('Home', () => {
   afterEach(() => {
-    vi.mocked(invoke).mockReset();
+    vi.unstubAllGlobals();
   });
 
   it('should create', async () => {
-    vi.mocked(invoke).mockResolvedValue(null);
+    stubTauriInvoke(vi.fn().mockResolvedValue(null));
 
     const fixture = await createHome();
 
@@ -32,7 +30,7 @@ describe('Home', () => {
   });
 
   it('renders its placeholder content', async () => {
-    vi.mocked(invoke).mockResolvedValue(null);
+    stubTauriInvoke(vi.fn().mockResolvedValue(null));
 
     const fixture = await createHome();
     const compiled = fixture.nativeElement as HTMLElement;
@@ -41,17 +39,18 @@ describe('Home', () => {
   });
 
   it('displays the data folder returned by the get-current-folder command', async () => {
-    vi.mocked(invoke).mockResolvedValue('/home/user/saves');
+    const invoke = vi.fn().mockResolvedValue('/home/user/saves');
+    stubTauriInvoke(invoke);
 
     const fixture = await createHome();
     const compiled = fixture.nativeElement as HTMLElement;
 
-    expect(invoke).toHaveBeenCalledWith('get_current_data_folder');
+    expect(invoke).toHaveBeenCalledWith('get_current_data_folder', {}, undefined);
     expect(compiled.textContent).toContain('/home/user/saves');
   });
 
   it('displays a "no folder set" state when the command returns null', async () => {
-    vi.mocked(invoke).mockResolvedValue(null);
+    stubTauriInvoke(vi.fn().mockResolvedValue(null));
 
     const fixture = await createHome();
     const compiled = fixture.nativeElement as HTMLElement;
@@ -62,7 +61,7 @@ describe('Home', () => {
   it('logs and does not throw when the command rejects', async () => {
     const consoleError = vi.spyOn(console, 'error').mockImplementation(() => undefined);
     const error = new Error('backend failure');
-    vi.mocked(invoke).mockRejectedValue(error);
+    stubTauriInvoke(vi.fn().mockRejectedValue(error));
 
     const fixture = await createHome();
     const compiled = fixture.nativeElement as HTMLElement;
