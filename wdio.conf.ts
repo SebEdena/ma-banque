@@ -20,7 +20,7 @@ export const config: WebdriverIO.Config = {
   maxInstances: 1,
   capabilities: [tauriCapabilities],
   services: [['tauri', { driverProvider: 'external' }]],
-  logLevel: 'info',
+  logLevel: 'warn',
   waitforTimeout: 10000,
   connectionRetryTimeout: 120000,
   connectionRetryCount: 3,
