@@ -92,17 +92,17 @@ describe('parseDataFolderLocationError', () => {
     expect(message).toBe('permission denied');
   });
 
-  it('returns a fixed message for InvalidExistingSave, matching the backend text verbatim', () => {
+  it('returns a French message for InvalidExistingSave', () => {
     const message = parseDataFolderLocationError({ kind: 'InvalidExistingSave' });
-    expect(message).toBe('the folder contains an invalid or incompatible save');
+    expect(message).toBe('le dossier contient une sauvegarde invalide ou incompatible');
   });
 
-  it('returns a fixed message for DestinationOccupied, matching the backend text verbatim', () => {
+  it('returns a French message for DestinationOccupied', () => {
     const message = parseDataFolderLocationError({ kind: 'DestinationOccupied' });
-    expect(message).toBe('the destination folder already contains a save');
+    expect(message).toBe('le dossier de destination contient déjà une sauvegarde');
   });
 
-  it('returns a French message for NoPointerSet (not one of the two verbatim-required errors)', () => {
+  it('returns a French message for NoPointerSet', () => {
     const message = parseDataFolderLocationError({ kind: 'NoPointerSet' });
     expect(message).toBe("aucun dossier de données n'est configuré");
   });

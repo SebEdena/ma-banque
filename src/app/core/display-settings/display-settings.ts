@@ -22,8 +22,16 @@ export class DisplaySettingsService {
   readonly dateFormat = this.dateFormatSignal.asReadonly();
   readonly currencyFormat = this.currencyFormatSignal.asReadonly();
 
+  /**
+   * Resolves once the initial load (constructor-triggered) has settled,
+   * success or failure — exposed so callers (and tests) can wait
+   * deterministically instead of guessing how many microtasks the internal
+   * `.then()`/`.catch()` chain takes to flush.
+   */
+  readonly loaded: Promise<void>;
+
   constructor() {
-    this.settingsApi
+    this.loaded = this.settingsApi
       .getDisplaySettings()
       .then((settings) => this.applyLocally(settings))
       .catch((error: unknown) => {

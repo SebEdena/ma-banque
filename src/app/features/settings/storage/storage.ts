@@ -6,18 +6,18 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { parseDataFolderLocationError, SettingsApi } from '../../../core/settings-api/settings-api';
 
 /**
- * The Settings screen's "Stockage" tab (`docs/spec/05-settings-remainder.md`):
- * shows the current data folder and the two folder actions already built
- * and tested in `01-setup-backend.md` — "Move data folder" (relocates the
- * current folder) and "Open a different folder" (points at another one
- * without touching the current one).
+ * The Settings screen's "Stockage" (storage) tab
+ * (`docs/spec/05-settings-remainder.md`): shows the current data folder and
+ * the two folder actions already built and tested in `01-setup-backend.md`
+ * — "Move data folder" (relocates the current folder) and "Open a different
+ * folder" (points at another one without touching the current one).
  */
 @Component({
-  selector: 'app-stockage',
+  selector: 'app-storage',
   imports: [...HlmButtonImports],
-  templateUrl: './stockage.html',
+  templateUrl: './storage.html',
 })
-export class Stockage {
+export class Storage {
   private readonly settingsApi = inject(SettingsApi);
 
   protected readonly currentFolder = signal<string | null>(null);

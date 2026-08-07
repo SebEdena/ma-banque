@@ -38,13 +38,21 @@ export class SettingsApi {
 }
 
 /**
- * The wire shape of `DataFolderLocationError` (see
- * `src-tauri/src/domain/data_folder_location.rs`), serialized with
- * `#[serde(tag = "kind", content = "message")]` — `message` is only present
+ * The `kind` discriminants `DataFolderLocationError` serializes to (see
+ * `src-tauri/src/domain/data_folder_location.rs`'s
+ * `#[serde(tag = "kind", content = "message")]`) — kept as a named union
+ * rather than inline string literals so every call site (the wire
+ * interface, the type guard, the switch below) shares one source of truth.
+ */
+type DataFolderLocationErrorKind =
+  'NoPointerSet' | 'InvalidExistingSave' | 'DestinationOccupied' | 'Io';
+
+/**
+ * The wire shape of `DataFolderLocationError` — `message` is only present
  * for the `Io` variant, since the other variants carry no payload.
  */
 interface DataFolderLocationErrorWire {
-  kind: string;
+  kind: DataFolderLocationErrorKind;
   message?: string;
 }
 
@@ -58,15 +66,15 @@ function isDataFolderLocationErrorWire(error: unknown): error is DataFolderLocat
 }
 
 /**
- * Turns a rejected `DataFolderLocationError` into the toast text to show.
- *
- * The app's shipped UI is French (see `technical-architecture.md` §4 /
- * project memory), and that's the default here too. The one deliberate
- * exception: `docs/spec/05-settings-remainder.md`'s "Error display" section
- * calls out the destination-occupied (move) and invalid-database (open)
- * errors specifically as surfaced **verbatim, no rewording** — so for
- * exactly those two variants this returns the same English text as their
- * Rust `#[error("...")]` attribute, unlike everything else here.
+ * Turns a rejected `DataFolderLocationError` into the toast text to show —
+ * French throughout, matching the shipped UI's language (see
+ * `technical-architecture.md` §4 / project memory). User-facing error text
+ * is never left in English, including the two folder-action errors
+ * (destination-occupied, invalid-database) that `docs/spec/05-settings-remainder.md`'s
+ * "Error display" section originally called out as verbatim-English
+ * exceptions — that carve-out was reversed on PR review (see
+ * https://github.com/SebEdena/ma-banque/pull/2 review comments); the spec
+ * doc should be updated to match.
  */
 export function parseDataFolderLocationError(error: unknown): string {
   if (!isDataFolderLocationErrorWire(error)) {
@@ -76,12 +84,10 @@ export function parseDataFolderLocationError(error: unknown): string {
   switch (error.kind) {
     case 'NoPointerSet':
       return "aucun dossier de données n'est configuré";
-    // Verbatim per docs/spec/05-settings-remainder.md's "Error display"
-    // section — not translated, matching the Rust `#[error("...")]` text.
     case 'InvalidExistingSave':
-      return 'the folder contains an invalid or incompatible save';
+      return 'le dossier contient une sauvegarde invalide ou incompatible';
     case 'DestinationOccupied':
-      return 'the destination folder already contains a save';
+      return 'le dossier de destination contient déjà une sauvegarde';
     case 'Io':
       return error.message ?? 'une erreur du système de fichiers est survenue';
     default:
@@ -90,11 +96,18 @@ export function parseDataFolderLocationError(error: unknown): string {
 }
 
 /**
- * The wire shape of `SettingsError` (see `src-tauri/src/domain/settings.rs`),
- * serialized the same way as `DataFolderLocationError` above.
+ * The `kind` discriminants `SettingsError` serializes to (see
+ * `src-tauri/src/domain/settings.rs`).
+ */
+type SettingsErrorKind = 'InvalidStoredValue' | 'Io';
+
+/**
+ * The wire shape of `SettingsError` (from `get_display_settings`/
+ * `update_display_settings`), serialized the same way as
+ * `DataFolderLocationError` above.
  */
 interface SettingsErrorWire {
-  kind: string;
+  kind: SettingsErrorKind;
   message?: string;
 }
 
@@ -108,10 +121,9 @@ function isSettingsErrorWire(error: unknown): error is SettingsErrorWire {
 }
 
 /**
- * Turns a rejected `SettingsError` (from `get_display_settings`/
- * `update_display_settings`) into the toast text to show — French, per the
- * shipped UI's language (no "verbatim" carve-out applies to this error
- * type, unlike `parseDataFolderLocationError`'s two named exceptions).
+ * Turns a rejected `SettingsError` into the toast text to show — French,
+ * per the shipped UI's language; this error type never had a
+ * verbatim-English carve-out.
  */
 export function parseSettingsError(error: unknown): string {
   if (!isSettingsErrorWire(error)) {

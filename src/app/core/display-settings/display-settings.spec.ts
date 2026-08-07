@@ -27,8 +27,7 @@ describe('DisplaySettingsService', () => {
     });
 
     const service = TestBed.inject(DisplaySettingsService);
-    await Promise.resolve();
-    await Promise.resolve();
+    await service.loaded;
 
     expect(service.dateFormat()).toBe('YMD');
     expect(service.currencyFormat()).toBe('ISO_CODE');
@@ -88,11 +87,22 @@ describe('DisplaySettingsService', () => {
         .mockResolvedValue({ date_format: 'DMY', currency_format: 'ISO_CODE' }),
     });
     const service = TestBed.inject(DisplaySettingsService);
-    await Promise.resolve();
-    await Promise.resolve();
+    await service.loaded;
 
     // The formatting itself is covered by format.spec.ts — this only
     // checks the service forwards the loaded currency format correctly.
     expect(service.formatAmount(1234.56)).toBe(formatAmount(1234.56, 'ISO_CODE'));
+  });
+
+  it('defaults to DMY/SYMBOL_AFTER and does not throw when the initial load rejects', async () => {
+    const { toast } = await import('@spartan-ng/brain/sonner');
+    configure({ getDisplaySettings: vi.fn().mockRejectedValue({ kind: 'Io', message: 'boom' }) });
+
+    const service = TestBed.inject(DisplaySettingsService);
+    await service.loaded;
+
+    expect(service.dateFormat()).toBe('DMY');
+    expect(service.currencyFormat()).toBe('SYMBOL_AFTER');
+    expect(toast.error).toHaveBeenCalledWith('boom');
   });
 });
