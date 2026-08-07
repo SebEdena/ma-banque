@@ -1,6 +1,6 @@
 import { TestBed } from '@angular/core/testing';
 
-import { SettingsApi, parseDataFolderLocationError } from './settings-api';
+import { SettingsApi, parseDataFolderLocationError, parseSettingsError } from './settings-api';
 
 function stubTauriInvoke(invoke: ReturnType<typeof vi.fn>): void {
   vi.stubGlobal('__TAURI_INTERNALS__', { invoke });
@@ -43,6 +43,29 @@ describe('SettingsApi', () => {
     expect(invoke).toHaveBeenCalledWith('open_data_folder', { path: '/chosen/path' }, undefined);
     expect(folder).toBe('/chosen/path');
   });
+
+  it('getDisplaySettings invokes get_display_settings', async () => {
+    const settings = { date_format: 'DMY', currency_format: 'SYMBOL_AFTER' } as const;
+    const invoke = vi.fn().mockResolvedValue(settings);
+    stubTauriInvoke(invoke);
+
+    const api = TestBed.inject(SettingsApi);
+    const result = await api.getDisplaySettings();
+
+    expect(invoke).toHaveBeenCalledWith('get_display_settings', {}, undefined);
+    expect(result).toEqual(settings);
+  });
+
+  it('updateDisplaySettings invokes update_display_settings with the new settings', async () => {
+    const settings = { date_format: 'YMD', currency_format: 'ISO_CODE' } as const;
+    const invoke = vi.fn().mockResolvedValue(undefined);
+    stubTauriInvoke(invoke);
+
+    const api = TestBed.inject(SettingsApi);
+    await api.updateDisplaySettings(settings);
+
+    expect(invoke).toHaveBeenCalledWith('update_display_settings', { settings }, undefined);
+  });
 });
 
 describe('parseDataFolderLocationError', () => {
@@ -74,5 +97,24 @@ describe('parseDataFolderLocationError', () => {
       "une erreur inattendue s'est produite",
     );
     expect(parseDataFolderLocationError(null)).toBe("une erreur inattendue s'est produite");
+  });
+});
+
+describe('parseSettingsError', () => {
+  it('returns the Io variant message verbatim', () => {
+    expect(parseSettingsError({ kind: 'Io', message: 'disk full' })).toBe('disk full');
+  });
+
+  it('returns a French message for InvalidStoredValue', () => {
+    expect(parseSettingsError({ kind: 'InvalidStoredValue' })).toBe(
+      'une valeur enregistrée est invalide',
+    );
+  });
+
+  it('falls back to a French generic message for anything unrecognized', () => {
+    expect(parseSettingsError(new Error('network down'))).toBe(
+      "une erreur inattendue s'est produite",
+    );
+    expect(parseSettingsError(null)).toBe("une erreur inattendue s'est produite");
   });
 });

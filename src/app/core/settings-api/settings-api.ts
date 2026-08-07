@@ -1,10 +1,13 @@
 import { Service } from '@angular/core';
 import { invoke } from '@tauri-apps/api/core';
 
+import type { DisplaySettings } from '../display-settings/display-settings.types';
+
 /**
  * Wraps `invoke()` for the data-folder-location Tauri commands (built in
- * `01-setup-backend.md`) so components never call `invoke()` directly — the
- * seam later tickets' tests mock instead of `invoke()` itself (see
+ * `01-setup-backend.md`) and the display-settings commands (built in
+ * `01-settings-backend.md`) so components never call `invoke()` directly —
+ * the seam later tickets' tests mock instead of `invoke()` itself (see
  * `docs/spec/05-settings-remainder.md`).
  */
 @Service()
@@ -19,6 +22,14 @@ export class SettingsApi {
 
   openDataFolder(path: string): Promise<string> {
     return invoke<string>('open_data_folder', { path });
+  }
+
+  getDisplaySettings(): Promise<DisplaySettings> {
+    return invoke<DisplaySettings>('get_display_settings');
+  }
+
+  updateDisplaySettings(settings: DisplaySettings): Promise<void> {
+    return invoke<void>('update_display_settings', { settings });
   }
 }
 
@@ -67,6 +78,45 @@ export function parseDataFolderLocationError(error: unknown): string {
       return 'the folder contains an invalid or incompatible save';
     case 'DestinationOccupied':
       return 'the destination folder already contains a save';
+    case 'Io':
+      return error.message ?? 'une erreur du système de fichiers est survenue';
+    default:
+      return "une erreur inattendue s'est produite";
+  }
+}
+
+/**
+ * The wire shape of `SettingsError` (see `src-tauri/src/domain/settings.rs`),
+ * serialized the same way as `DataFolderLocationError` above.
+ */
+interface SettingsErrorWire {
+  kind: string;
+  message?: string;
+}
+
+function isSettingsErrorWire(error: unknown): error is SettingsErrorWire {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'kind' in error &&
+    typeof (error as { kind: unknown }).kind === 'string'
+  );
+}
+
+/**
+ * Turns a rejected `SettingsError` (from `get_display_settings`/
+ * `update_display_settings`) into the toast text to show — French, per the
+ * shipped UI's language (no "verbatim" carve-out applies to this error
+ * type, unlike `parseDataFolderLocationError`'s two named exceptions).
+ */
+export function parseSettingsError(error: unknown): string {
+  if (!isSettingsErrorWire(error)) {
+    return "une erreur inattendue s'est produite";
+  }
+
+  switch (error.kind) {
+    case 'InvalidStoredValue':
+      return 'une valeur enregistrée est invalide';
     case 'Io':
       return error.message ?? 'une erreur du système de fichiers est survenue';
     default:

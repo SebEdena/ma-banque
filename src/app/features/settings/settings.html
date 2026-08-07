@@ -1,2 +1,28 @@
-<p>Paramètres — à venir</p>
-<router-outlet />
+<div class="flex min-h-screen">
+  <nav class="flex w-40 flex-col gap-1 border-r p-4">
+    <a
+      routerLink="categories"
+      routerLinkActive="bg-muted text-foreground font-semibold"
+      class="hover:bg-muted rounded-md px-2 py-1.5 text-sm"
+    >
+      Postes
+    </a>
+    <a
+      routerLink="affichage"
+      routerLinkActive="bg-muted text-foreground font-semibold"
+      class="hover:bg-muted rounded-md px-2 py-1.5 text-sm"
+    >
+      Affichage
+    </a>
+    <a
+      routerLink="stockage"
+      routerLinkActive="bg-muted text-foreground font-semibold"
+      class="hover:bg-muted rounded-md px-2 py-1.5 text-sm"
+    >
+      Stockage
+    </a>
+  </nav>
+  <div class="flex-1">
+    <router-outlet />
+  </div>
+</div>
