@@ -1,1 +1,15 @@
-<router-outlet />
+@switch (dataFolderState()) {
+  @case ('ready') {
+    <router-outlet />
+  }
+  @case ('blocked') {
+    <app-folder-prompt (resolved)="onFolderResolved()" />
+  }
+  @case ('loading') {
+    <div class="flex h-screen items-center justify-center">
+      <p class="text-muted-foreground text-sm">Chargement…</p>
+    </div>
+  }
+}
+
+<hlm-toaster richColors />
