@@ -13,8 +13,10 @@ mod usecases;
 use tauri::Manager;
 
 use domain::data_folder_location::{DataFolderLocationRepository, DynDataFolderLocationRepository};
+use domain::settings::DynSettingsRepository;
 use infra::data_folder_location::FsDataFolderLocationRepository;
 use infra::db::StartupDbError;
+use infra::settings::SqliteSettingsRepository;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
@@ -25,6 +27,8 @@ pub fn run() {
             commands::data_folder_location::open_data_folder,
             commands::data_folder_location::move_data_folder,
             commands::db::get_startup_db_error,
+            commands::settings::get_display_settings,
+            commands::settings::update_display_settings,
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {
@@ -63,6 +67,8 @@ pub fn run() {
                 let db_path = folder.join(infra::DB_FILE_NAME);
                 match infra::db::open_and_migrate(&db_path) {
                     Ok(shared_conn) => {
+                        let settings_repo = SqliteSettingsRepository::new(shared_conn.clone());
+                        app.manage(Box::new(settings_repo) as DynSettingsRepository);
                         app.manage(shared_conn);
                     }
                     Err(err) => {

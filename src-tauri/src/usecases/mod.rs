@@ -5,3 +5,4 @@
 //! SQLite connection directly — repositories are consumed as `&dyn Trait`.
 
 pub mod data_folder_location;
+pub mod settings;
