@@ -1,0 +1,56 @@
+# Spec — Settings Screen & First-Launch Folder Prompt
+
+Complements [00-business-requirements.md](./00-business-requirements.md) and [technical-architecture.md](../architecture/technical-architecture.md). Builds on [01-setup-backend.md](./01-setup-backend.md) (data-folder commands: `get_current_data_folder`, `set_default_data_folder`, `open_data_folder`, `move_data_folder`) and [02-setup-frontend-ci.md](./02-setup-frontend-ci.md) (theme signal/service). Can be built in parallel with [03-accounts.md](./03-accounts.md) and [04-categories.md](./04-categories.md) — none of the three depends on the others.
+
+## Problem Statement
+
+The backend already exposes data-folder management commands (`01-setup-backend.md`) and the frontend already has a theme mechanism (`02-setup-frontend-ci.md`), but neither has real UI: the home screen just prints the raw data-folder value as a debugging proof, there's no first-launch prompt when no folder is configured yet, the Settings screen is an empty placeholder, and there's nowhere to set date/currency display format or manually override the theme.
+
+## Solution
+
+Build the Settings screen (business requirements §4.6) — data folder location display with "Move data folder" / "Open a different folder" actions, date display format, currency display format, and theme override — and the first-launch/unreachable-folder prompt (§2.3.1) that appears before the rest of the app is usable when no valid data folder is configured. Retire the home screen's temporary plain-text data-folder proof from `02-setup-frontend-ci.md`.
+
+## User Stories
+
+1. As a user, on first launch, I want to be prompted to either use the default data location or choose my own folder, so that I'm in control of where my financial data lives before any database is created.
+2. As a user, if my configured data folder becomes unreachable (moved, deleted, drive unplugged), I want to see the same choice again the next time I launch the app, so that the app never silently recreates or loses my data.
+3. As a user, I want the first-launch/unreachable prompt to block the rest of the app until resolved, so that I can't end up in a screen that assumes a working database when there isn't one.
+4. As a user, I want the Settings screen to show my current data folder location, so that I always know where my file lives.
+5. As a user, I want a "Move data folder" action that relocates my current folder (and its backups) to a new destination, so that I can move my data without losing anything.
+6. As a user, I want "Move data folder" to fail with a clear message if the destination already contains a valid save, so that I never silently overwrite or merge two databases.
+7. As a user, I want an "Open a different folder" action that points the app at another folder without touching my current one, so that I can restore a save or switch to data from another machine.
+8. As a user, I want "Open a different folder" to start a fresh database when I point it at an empty folder, and to be rejected with a clear error when I point it at a folder with an invalid `ma-banque.sqlite`, so that the action behaves predictably either way.
+9. As a user, I want to set how dates are displayed throughout the app (e.g. day/month/year ordering), so that the display matches my convention.
+10. As a user, I want to set how currency amounts are displayed (e.g. symbol placement, decimal separator), so that amounts read naturally to me.
+11. As a user, I want a manual light/dark/system theme toggle in Settings, so that I can override the OS-detected preference established in `02-setup-frontend-ci.md`.
+12. As a user, I want my date/currency/theme preferences to persist across app restarts, so that I don't have to reconfigure them every time I open the app.
+13. As a developer, I want the date/currency format settings stored in the SQLite database (a small `settings` table), so that display preferences travel with the data folder they belong to, consistent with currency being a "global setting" of a given book per business requirements §2.3.
+14. As a developer, I want the data-folder actions in Settings to call the exact commands already built in `01-setup-backend.md` with no backend changes required, so that this spec is purely a UI layer on top of already-proven business logic.
+
+## Implementation Decisions
+
+- **Schema**: new `settings` table (single row, or key/value rows — implementer's call) holding `date_format` and `currency_format`, created via a `rusqlite_migration` file with sensible defaults (e.g. ISO-ish date format, symbol-and-two-decimals currency format) inserted at creation time. Theme is **not** stored here — it stays a frontend-only preference (see below).
+- **Module layout (backend)**: `domain::settings` (`DisplaySettings`, `SettingsError` if any), `usecases::settings` (`get_display_settings`, `update_display_settings`), `infra::settings` (`SqliteSettingsRepository`), `commands::settings`. No changes to `commands::data_folder_location` — this spec only consumes it from the frontend.
+- **Theme persistence**: the theme override (light/dark/system) is stored client-side (e.g. `localStorage`, or a Tauri-store plugin if already available) rather than in SQLite, since it must be readable before any database is opened (it affects the first-launch prompt's own rendering) and it's a device preference, not book data — this is a deliberate asymmetry from date/currency format, called out explicitly to avoid it looking like an oversight.
+- **First-launch / unreachable-folder flow**: a top-level guard (e.g. an Angular route guard or an app-root resolver, implementer's call) calls `get_current_data_folder` before rendering the routed shell; on `null`/error it renders a blocking prompt component (not a route) offering "Use default location" (→ `set_default_data_folder`) or "Choose a folder" (→ `open_data_folder`, via the OS folder picker through Tauri's dialog plugin). Once resolved, normal routing proceeds. This replaces the `Home` component's temporary `invoke('get_current_data_folder')` call from `02-setup-frontend-ci.md` entirely — `Home` no longer touches this command at all (see `03-accounts.md`, which gives `Home` its real job).
+- **Frontend**: `SettingsApi` injectable service wraps `invoke()` for `get_display_settings`, `update_display_settings`, `get_current_data_folder`, `move_data_folder`, `open_data_folder`, `set_default_data_folder`. `Settings` (settings.ts) renders: current folder path + the two folder actions (each opening a native folder-picker dialog via Tauri, with the destination-occupied / invalid-database errors from `01-setup-backend.md` surfaced verbatim), date format control, currency format control, theme radio/select bound to the existing theme service/signal from `02-setup-frontend-ci.md`.
+- **Format application**: `date_format`/`currency_format` are exposed as a signal-backed service (e.g. `DisplaySettingsService`) that other features read to render dates/amounts consistently; this spec builds the service and the Settings-screen control for it, but since no other screen with real dates/amounts exists yet (accounts/entries land in parallel/later specs), actual formatting call-sites are wired in by those specs as they're built, not retrofitted here.
+
+## Testing Decisions
+
+- Use case tests (`get_display_settings`, `update_display_settings`) against a hand-written in-memory fake `SettingsRepository` — no `mockall`, per `technical-architecture.md` §1.5.
+- SQLite integration tests for `SqliteSettingsRepository`: default row present on a fresh database, update persists and is re-readable.
+- Angular component tests (Vitest) for the first-launch/unreachable-folder prompt (renders when `get_current_data_folder` resolves to `null`/rejects, calls the right `SettingsApi` method per choice) and for `Settings` (folder actions call the right `SettingsApi` methods and surface returned errors verbatim, format controls call `update_display_settings`, theme control drives the existing theme service). Mock `SettingsApi`, not `invoke()` directly, per the seam agreed for this and the other layer-1 specs.
+- An e2e scenario (WebdriverIO) covering "fresh `.dev-data/` → app launches → first-launch prompt appears → choosing default location proceeds to the shell" is a reasonable addition here, since `02-setup-frontend-ci.md` only proved the shell renders, not that the folder-selection gate works against a real Tauri backend — implementer's call whether it lands in this spec or is deferred.
+
+## Out of Scope
+
+- Any account/category/entry data — this spec touches only the `settings` table and the already-existing data-folder commands.
+- Actually reformatting dates/amounts on the account, entry, or statistics screens — those screens read `DisplaySettingsService` as they're each built (`03-accounts.md` onward), not retrofitted by this spec.
+- Any change to the data-folder backend commands or their tested behavior (backups, downgrade guard, move/open semantics) — all of that is already covered and frozen by `01-setup-backend.md`.
+- Application-level lock (password/PIN) — explicitly out of scope for v1 per business requirements §2.6.
+
+## Further Notes
+
+- This spec is the natural place to finally remove the `02-setup-frontend-ci.md` vertical-slice proof code from `Home` (the raw `invoke('get_current_data_folder')` call) — it should not survive in `Home` once both this spec and `03-accounts.md` have landed, whichever lands second should do the removal.
+- The theme-vs-settings-table asymmetry (client-side theme, SQLite date/currency format) is intentional, not an inconsistency — see Implementation Decisions.
