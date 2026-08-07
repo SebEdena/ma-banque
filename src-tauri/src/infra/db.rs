@@ -26,7 +26,7 @@ pub struct StartupDbError(pub Mutex<Option<DbOpenError>>);
 /// Number of `.sql` files embedded in [`migrations`] — kept in sync with
 /// that function so the downgrade guard can tell "older than this" apart
 /// from "newer than this" without a public accessor on `Migrations`.
-const MIGRATION_COUNT: usize = 1;
+const MIGRATION_COUNT: usize = 2;
 
 /// How many pre-migration backups to keep (oldest dropped first).
 const MAX_BACKUPS: usize = 3;
@@ -41,9 +41,10 @@ pub enum DbOpenError {
 }
 
 fn migrations() -> Migrations<'static> {
-    let ms = vec![M::up(include_str!(
-        "../../migrations/0001_create_settings.sql"
-    ))];
+    let ms = vec![
+        M::up(include_str!("../../migrations/0001_create_settings.sql")),
+        M::up(include_str!("../../migrations/0002_settings_defaults.sql")),
+    ];
     debug_assert_eq!(ms.len(), MIGRATION_COUNT);
     Migrations::new(ms)
 }
