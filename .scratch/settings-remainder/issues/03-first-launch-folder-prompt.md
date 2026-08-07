@@ -13,7 +13,7 @@ Out of scope: the Settings screen's Stockage tab and its Move/Open-a-different-f
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] A top-level guard/resolver calls `get_current_data_folder` before the routed shell renders
 - [ ] On `null`/error, a blocking prompt component renders instead of the routed shell, offering "Use default location" and "Choose a folder"
