@@ -40,13 +40,13 @@ describe('app routes', () => {
     expect(harness.routeNativeElement?.textContent).toContain('Catégories');
   });
 
-  it('renders the Affichage tab at /settings/affichage', async () => {
-    const harness = await RouterTestingHarness.create('/settings/affichage');
+  it('renders the Affichage (display-format) tab at /settings/display-format', async () => {
+    const harness = await RouterTestingHarness.create('/settings/display-format');
     expect(harness.routeNativeElement?.textContent).toContain('Format de date');
   });
 
-  it('renders the Stockage tab placeholder at /settings/stockage', async () => {
-    const harness = await RouterTestingHarness.create('/settings/stockage');
-    expect(harness.routeNativeElement?.textContent).toContain('Stockage');
+  it('renders the Stockage (storage) tab at /settings/storage', async () => {
+    const harness = await RouterTestingHarness.create('/settings/storage');
+    expect(harness.routeNativeElement?.textContent).toContain('Emplacement actuel');
   });
 });

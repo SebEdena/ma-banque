@@ -106,7 +106,7 @@ describe('FolderPrompt', () => {
     expect(resolved).toBe(false);
   });
 
-  it('"choose a folder" surfaces a rejected command error as a toast, verbatim', async () => {
+  it('"choose a folder" surfaces a rejected command error as a toast, in French', async () => {
     const { open } = await import('@tauri-apps/plugin-dialog');
     const { toast } = await import('@spartan-ng/brain/sonner');
     vi.mocked(open).mockResolvedValue('/bad/path');
@@ -115,6 +115,8 @@ describe('FolderPrompt', () => {
 
     await clickButton(fixture, 'Choisir un dossier');
 
-    expect(toast.error).toHaveBeenCalledWith('the folder contains an invalid or incompatible save');
+    expect(toast.error).toHaveBeenCalledWith(
+      'le dossier contient une sauvegarde invalide ou incompatible',
+    );
   });
 });

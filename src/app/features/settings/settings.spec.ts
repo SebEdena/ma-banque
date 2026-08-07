@@ -38,7 +38,7 @@ describe('Settings', () => {
     const hrefs = links.map((link) => link.getAttribute('routerLink'));
 
     expect(hrefs).toContain('categories');
-    expect(hrefs).toContain('affichage');
-    expect(hrefs).toContain('stockage');
+    expect(hrefs).toContain('display-format');
+    expect(hrefs).toContain('storage');
   });
 });

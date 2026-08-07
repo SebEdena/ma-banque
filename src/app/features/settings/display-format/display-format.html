@@ -9,7 +9,7 @@
           [variant]="displaySettings.dateFormat() === option.value ? 'default' : 'outline'"
           (click)="selectDateFormat(option.value)"
         >
-          {{ option.label }} — {{ exampleDate(option.value) }}
+          {{ option.label }} — {{ exampleDate | dateFormat: option.value }}
         </button>
       }
     </div>
@@ -25,7 +25,7 @@
           [variant]="displaySettings.currencyFormat() === option.value ? 'default' : 'outline'"
           (click)="selectCurrencyFormat(option.value)"
         >
-          {{ option.label }} — {{ exampleAmount(option.value) }}
+          {{ option.label }} — {{ exampleAmount | currencyFormat: option.value }}
         </button>
       }
     </div>

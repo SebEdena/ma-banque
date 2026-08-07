@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { SettingsApi } from '../../../core/settings-api/settings-api';
-import { Stockage } from './stockage';
+import { Storage } from './storage';
 
 vi.mock('@tauri-apps/plugin-dialog', () => ({
   open: vi.fn(),
@@ -11,22 +11,22 @@ vi.mock('@spartan-ng/brain/sonner', () => ({
   toast: { error: vi.fn() },
 }));
 
-async function createStockage(
+async function createStorage(
   settingsApi: Partial<SettingsApi>,
-): Promise<ComponentFixture<Stockage>> {
+): Promise<ComponentFixture<Storage>> {
   await TestBed.configureTestingModule({
-    imports: [Stockage],
+    imports: [Storage],
     providers: [{ provide: SettingsApi, useValue: settingsApi }],
   }).compileComponents();
 
-  const fixture = TestBed.createComponent(Stockage);
+  const fixture = TestBed.createComponent(Storage);
   fixture.detectChanges();
   await fixture.whenStable();
   fixture.detectChanges();
   return fixture;
 }
 
-async function clickButton(fixture: ComponentFixture<Stockage>, text: string): Promise<void> {
+async function clickButton(fixture: ComponentFixture<Storage>, text: string): Promise<void> {
   const buttons = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button'));
   const button = buttons.find((b) => b.textContent?.includes(text));
   if (!button) {
@@ -37,13 +37,13 @@ async function clickButton(fixture: ComponentFixture<Stockage>, text: string): P
   fixture.detectChanges();
 }
 
-describe('Stockage', () => {
+describe('Storage', () => {
   afterEach(() => {
     vi.restoreAllMocks();
   });
 
   it('displays the current data folder path', async () => {
-    const fixture = await createStockage({
+    const fixture = await createStorage({
       getCurrentDataFolder: vi.fn().mockResolvedValue('/home/user/saves'),
     });
 
@@ -54,7 +54,7 @@ describe('Stockage', () => {
     const { open } = await import('@tauri-apps/plugin-dialog');
     vi.mocked(open).mockResolvedValue('/new/home');
     const moveDataFolder = vi.fn().mockResolvedValue('/new/home');
-    const fixture = await createStockage({
+    const fixture = await createStorage({
       getCurrentDataFolder: vi.fn().mockResolvedValue('/home/user/saves'),
       moveDataFolder,
     });
@@ -69,7 +69,7 @@ describe('Stockage', () => {
     const { open } = await import('@tauri-apps/plugin-dialog');
     vi.mocked(open).mockResolvedValue('/other/folder');
     const openDataFolder = vi.fn().mockResolvedValue('/other/folder');
-    const fixture = await createStockage({
+    const fixture = await createStorage({
       getCurrentDataFolder: vi.fn().mockResolvedValue('/home/user/saves'),
       openDataFolder,
     });
@@ -84,7 +84,7 @@ describe('Stockage', () => {
     const { open } = await import('@tauri-apps/plugin-dialog');
     vi.mocked(open).mockResolvedValue(null);
     const moveDataFolder = vi.fn();
-    const fixture = await createStockage({
+    const fixture = await createStorage({
       getCurrentDataFolder: vi.fn().mockResolvedValue('/home/user/saves'),
       moveDataFolder,
     });
@@ -94,33 +94,37 @@ describe('Stockage', () => {
     expect(moveDataFolder).not.toHaveBeenCalled();
   });
 
-  it('surfaces the destination-occupied move error as a toast, verbatim', async () => {
+  it('surfaces the destination-occupied move error as a toast, in French', async () => {
     const { open } = await import('@tauri-apps/plugin-dialog');
     const { toast } = await import('@spartan-ng/brain/sonner');
     vi.mocked(open).mockResolvedValue('/occupied');
     const moveDataFolder = vi.fn().mockRejectedValue({ kind: 'DestinationOccupied' });
-    const fixture = await createStockage({
+    const fixture = await createStorage({
       getCurrentDataFolder: vi.fn().mockResolvedValue('/home/user/saves'),
       moveDataFolder,
     });
 
     await clickButton(fixture, 'Déplacer le dossier de données');
 
-    expect(toast.error).toHaveBeenCalledWith('the destination folder already contains a save');
+    expect(toast.error).toHaveBeenCalledWith(
+      'le dossier de destination contient déjà une sauvegarde',
+    );
   });
 
-  it('surfaces the invalid-database open error as a toast, verbatim', async () => {
+  it('surfaces the invalid-database open error as a toast, in French', async () => {
     const { open } = await import('@tauri-apps/plugin-dialog');
     const { toast } = await import('@spartan-ng/brain/sonner');
     vi.mocked(open).mockResolvedValue('/bad/save');
     const openDataFolder = vi.fn().mockRejectedValue({ kind: 'InvalidExistingSave' });
-    const fixture = await createStockage({
+    const fixture = await createStorage({
       getCurrentDataFolder: vi.fn().mockResolvedValue('/home/user/saves'),
       openDataFolder,
     });
 
     await clickButton(fixture, 'Ouvrir un autre dossier');
 
-    expect(toast.error).toHaveBeenCalledWith('the folder contains an invalid or incompatible save');
+    expect(toast.error).toHaveBeenCalledWith(
+      'le dossier contient une sauvegarde invalide ou incompatible',
+    );
   });
 });

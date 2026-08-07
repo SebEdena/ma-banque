@@ -3,26 +3,26 @@ import { signal } from '@angular/core';
 
 import { DisplaySettingsService } from '../../../core/display-settings/display-settings';
 import { Theme } from '../../../core/theme/theme';
-import { Affichage } from './affichage';
+import { DisplayFormat } from './display-format';
 
-async function createAffichage(
+async function createDisplayFormat(
   displaySettings: Partial<DisplaySettingsService>,
   theme: Partial<Theme>,
-): Promise<ComponentFixture<Affichage>> {
+): Promise<ComponentFixture<DisplayFormat>> {
   await TestBed.configureTestingModule({
-    imports: [Affichage],
+    imports: [DisplayFormat],
     providers: [
       { provide: DisplaySettingsService, useValue: displaySettings },
       { provide: Theme, useValue: theme },
     ],
   }).compileComponents();
 
-  const fixture = TestBed.createComponent(Affichage);
+  const fixture = TestBed.createComponent(DisplayFormat);
   fixture.detectChanges();
   return fixture;
 }
 
-function clickButtonContaining(fixture: ComponentFixture<Affichage>, text: string): void {
+function clickButtonContaining(fixture: ComponentFixture<DisplayFormat>, text: string): void {
   const buttons = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('button'));
   const button = buttons.find((b) => b.textContent?.includes(text));
   if (!button) {
@@ -31,9 +31,9 @@ function clickButtonContaining(fixture: ComponentFixture<Affichage>, text: strin
   button.click();
 }
 
-describe('Affichage', () => {
+describe('DisplayFormat', () => {
   it('renders the three date-format presets with a live example', async () => {
-    const fixture = await createAffichage(
+    const fixture = await createDisplayFormat(
       { dateFormat: signal('DMY'), currencyFormat: signal('SYMBOL_AFTER') },
       { mode: signal('system') },
     );
@@ -45,7 +45,7 @@ describe('Affichage', () => {
   });
 
   it('renders the three currency-format presets with a live example', async () => {
-    const fixture = await createAffichage(
+    const fixture = await createDisplayFormat(
       { dateFormat: signal('DMY'), currencyFormat: signal('SYMBOL_AFTER') },
       { mode: signal('system') },
     );
@@ -56,7 +56,7 @@ describe('Affichage', () => {
   });
 
   it('renders the Clair/Sombre/Système theme control', async () => {
-    const fixture = await createAffichage(
+    const fixture = await createDisplayFormat(
       { dateFormat: signal('DMY'), currencyFormat: signal('SYMBOL_AFTER') },
       { mode: signal('system') },
     );
@@ -69,7 +69,7 @@ describe('Affichage', () => {
 
   it('selecting a date-format preset calls DisplaySettingsService.update with the new preset', async () => {
     const update = vi.fn().mockResolvedValue(undefined);
-    const fixture = await createAffichage(
+    const fixture = await createDisplayFormat(
       { dateFormat: signal('DMY'), currencyFormat: signal('SYMBOL_AFTER'), update },
       { mode: signal('system') },
     );
@@ -81,7 +81,7 @@ describe('Affichage', () => {
 
   it('selecting a currency-format preset calls DisplaySettingsService.update with the new preset', async () => {
     const update = vi.fn().mockResolvedValue(undefined);
-    const fixture = await createAffichage(
+    const fixture = await createDisplayFormat(
       { dateFormat: signal('DMY'), currencyFormat: signal('SYMBOL_AFTER'), update },
       { mode: signal('system') },
     );
@@ -93,7 +93,7 @@ describe('Affichage', () => {
 
   it('selecting a theme option calls Theme.setTheme', async () => {
     const setTheme = vi.fn();
-    const fixture = await createAffichage(
+    const fixture = await createDisplayFormat(
       { dateFormat: signal('DMY'), currencyFormat: signal('SYMBOL_AFTER') },
       { mode: signal('system'), setTheme },
     );

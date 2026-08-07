@@ -1,13 +1,14 @@
 import { Component, inject } from '@angular/core';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 
+import { CurrencyFormatPipe } from '../../../core/display-settings/currency-format.pipe';
+import { DateFormatPipe } from '../../../core/display-settings/date-format.pipe';
+import { DisplaySettingsService } from '../../../core/display-settings/display-settings';
 import {
   CurrencyFormat,
   DateFormat,
   DisplaySettings,
 } from '../../../core/display-settings/display-settings.types';
-import { DisplaySettingsService } from '../../../core/display-settings/display-settings';
-import { formatAmount, formatDate } from '../../../core/display-settings/format';
 import { Theme, ThemeMode } from '../../../core/theme/theme';
 
 interface Option<T> {
@@ -16,20 +17,21 @@ interface Option<T> {
 }
 
 /**
- * The Settings screen's "Affichage" tab (`docs/spec/05-settings-remainder.md`):
- * date/currency-format presets and the light/dark/system theme control.
+ * The Settings screen's "Affichage" (display format) tab
+ * (`docs/spec/05-settings-remainder.md`): date/currency-format presets and
+ * the light/dark/system theme control.
  */
 @Component({
-  selector: 'app-affichage',
-  imports: [...HlmButtonImports],
-  templateUrl: './affichage.html',
+  selector: 'app-display-format',
+  imports: [...HlmButtonImports, DateFormatPipe, CurrencyFormatPipe],
+  templateUrl: './display-format.html',
 })
-export class Affichage {
+export class DisplayFormat {
   protected readonly displaySettings = inject(DisplaySettingsService);
   protected readonly theme = inject(Theme);
 
-  private readonly today = new Date();
-  private readonly sampleAmount = 1234.56;
+  protected readonly exampleDate = new Date();
+  protected readonly exampleAmount = 1234.56;
 
   protected readonly dateFormatOptions: Option<DateFormat>[] = [
     { value: 'DMY', label: 'JJ/MM/AAAA' },
@@ -48,14 +50,6 @@ export class Affichage {
     { value: 'dark', label: 'Sombre' },
     { value: 'system', label: 'Système' },
   ];
-
-  protected exampleDate(format: DateFormat): string {
-    return formatDate(this.today, format);
-  }
-
-  protected exampleAmount(format: CurrencyFormat): string {
-    return formatAmount(this.sampleAmount, format);
-  }
 
   protected selectDateFormat(format: DateFormat): void {
     this.updateDisplaySettings({ date_format: format });

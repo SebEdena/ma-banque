@@ -21,14 +21,13 @@ export const routes: Routes = [
         loadComponent: () => import('./features/categories/categories').then((m) => m.Categories),
       },
       {
-        path: 'affichage',
+        path: 'display-format',
         loadComponent: () =>
-          import('./features/settings/affichage/affichage').then((m) => m.Affichage),
+          import('./features/settings/display-format/display-format').then((m) => m.DisplayFormat),
       },
       {
-        path: 'stockage',
-        loadComponent: () =>
-          import('./features/settings/stockage/stockage').then((m) => m.Stockage),
+        path: 'storage',
+        loadComponent: () => import('./features/settings/storage/storage').then((m) => m.Storage),
       },
     ],
   },
