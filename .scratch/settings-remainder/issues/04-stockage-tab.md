@@ -13,7 +13,7 @@ Out of scope: the first-launch/unreachable-folder prompt (ticket 03, though both
 
 **Blocked by:** 02 — Settings screen shell + Affichage tab
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] Stockage tab displays the current data folder path
 - [ ] "Move data folder" opens a folder picker and calls `move_data_folder`
