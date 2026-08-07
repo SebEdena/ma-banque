@@ -14,7 +14,26 @@ The user will provide you with a specific feature located in the specs folder `@
 
 - If no issue files exist yet for the feature, do not go further and ask the user to generate them.
 - If every issue file's `**Status:**` is `done`, inform the user and provide a summary of the existing implementation.
-- If any issue file's `**Status:**` is not `done`, proceed with the steps outlined in the workflow.
+- If any issue file's `**Status:**` is not `done`, first apply the resume check below to see whether this feature is already partway through a prior run, then proceed with the steps outlined in the workflow.
+
+# Resuming interrupted work
+
+A user re-asking for a feature is not necessarily asking you to start it — a prior run may have been interrupted (session closed, agent killed, machine restarted) partway through. Never assume a clean start; reconstruct state from disk first, since it's the only durable record once a session is gone.
+
+- **Worktree/branch**: run `git worktree list` and `git branch --list <feature-slug>*`. If a worktree/branch for this feature already exists, reuse it — never create a second worktree or branch for the same feature.
+- **Issue progress**: re-read every issue file's `**Status:**` and `**Blocked by:**` under `.scratch/<feature>/issues/` — don't trust memory or a prior summary. Issues already `done` are implemented and committed; never re-run `/implement` on them. Resume from the first issue that is not `done` and passes the Safeguards above.
+- **In-flight work inside the worktree**: before resuming, check the worktree's `git status` and `git log` for uncommitted changes, staged-but-uncommitted work, or a commit that doesn't match any issue's expected scope — a mid-`/implement` interruption can leave the tree in a half-finished state that isn't reflected in any issue's `Status:`. Investigate and reconcile (finish, discard, or re-stage as appropriate) before continuing, rather than layering new work on top blindly.
+- **Pull request**: run `gh pr list --head <feature-branch>`. If an open PR already exists for the branch, don't create a duplicate — resume by spawning a pr-agent for the existing PR. If it's already merged, treat the feature as complete and report that instead of resuming implementation.
+- Once state is reconstructed, re-spawn a feature agent (and pr-agent, if applicable) with this context and continue the Workflow below from the first non-`done`, startable issue — do not restart the feature from its first issue.
+
+# Safeguards
+
+Before starting any unit of work — a feature or an issue — check whether it's actually startable. Never start something blocked or not yet triaged for agent work; skip it and move on, or stop and report if nothing is left to do.
+
+- **Feature-level blocking**: before creating a feature's worktree or spawning its feature agent, read that feature's spec header (`docs/spec/<NN>-<slug>.md`) for a "Blocked by" declaration. If the feature is blocked by another feature, do not create its worktree or spawn its agent until every issue in the blocking feature's `.scratch/<feature>/issues/` is `done` **and** that feature's pull request is merged — a blocking feature isn't finished just because its issues say `done` if the PR itself is still open.
+- **Issue-level status**: an issue is startable only if its `**Status:**` is `ready-for-agent` (or an in-progress status already set by a prior run of this workflow) — see `docs/agents/triage-labels.md`. Never run `/implement` on an issue whose status is `needs-triage`, `needs-info`, `ready-for-human`, `wontfix`, or anything else outside the startable set; skip it.
+- **Issue-level blocking**: an issue is startable only if every ticket named in its `**Blocked by:**` line (see `docs/agents/issue-tracker.md`) — whether in this feature's own issue list or another feature's — is `done`. If any blocker isn't `done` yet, skip that issue and re-check it after the next issue completes, rather than starting it out of order.
+- If every remaining issue for a feature is either blocked or not in a startable status, the feature agent stops and reports this to the manager instead of looping or forcing a start.
 
 # Actors
 
@@ -26,14 +45,14 @@ The user will provide you with a specific feature located in the specs folder `@
 # Workflow
 
 - manager: Make sure the local repository is up to date with the remote repository.
-- manager: For each feature the user wants built, run the following in parallel with any other feature currently in progress:
-  - manager: Create a new git worktree for the feature with the name of the feature, and create a new branch for the feature. Do not switch to the new branch.
+- manager: For each feature the user wants built, apply the feature-level blocking safeguard above. Run every feature that's actually startable in parallel with any other feature currently in progress; leave blocked features unstarted and re-check them each time another feature's PR merges.
+  - manager: Create a new git worktree for the feature with the name of the feature, and create a new branch for the feature — or reuse the existing worktree/branch/PR if the resume check above found this feature already in progress. Do not switch to the new branch.
   - manager: Spawn a new all-purpose agent to handle the feature implementation on the new worktree and the new branch. A feature consists of multiple issues.
-    - agent: For each issue file in `@.scratch/<feature>/issues/` whose `**Status:**` is not `done`, in order:
+    - agent: For each issue file in `@.scratch/<feature>/issues/` whose `**Status:**` is not `done`, in order, applying the issue-level safeguards above (status must be startable, `Blocked by:` must all be `done`):
       - agent: Run `/implement` on that issue (it runs `/tdd`, `/code-review`, and commits with Conventional Commits format on your behalf).
       - agent: Format and lint the code according to the project's standards.
       - agent: Update the issue file's `**Status:**` to `done` once `/implement` completes for it, and push the commit to the remote repository.
-    - agent: Repeat until every issue file for the feature has `**Status:** done`.
+    - agent: Repeat until every issue file for the feature has `**Status:** done`, or until every remaining issue is blocked/not startable (see Safeguards).
     - agent: Create a pull request for the feature branch and notify you, the manager, that the feature is ready for review. Report to the manager the link to the pull request and a summary of the implementation.
   - manager: Spawn a pr-agent to monitor that feature's pull request once the feature agent reports it is open.
   - manager: Keep that feature's feature-agent session alive (idle, not terminated) so it can be resumed with full context when its pr-agent reports comments or requested changes.
