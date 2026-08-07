@@ -44,6 +44,21 @@ describe('SettingsApi', () => {
     expect(folder).toBe('/chosen/path');
   });
 
+  it('moveDataFolder invokes move_data_folder with the chosen destination', async () => {
+    const invoke = vi.fn().mockResolvedValue('/new/home');
+    stubTauriInvoke(invoke);
+
+    const api = TestBed.inject(SettingsApi);
+    const folder = await api.moveDataFolder('/new/home');
+
+    expect(invoke).toHaveBeenCalledWith(
+      'move_data_folder',
+      { destination: '/new/home' },
+      undefined,
+    );
+    expect(folder).toBe('/new/home');
+  });
+
   it('getDisplaySettings invokes get_display_settings', async () => {
     const settings = { date_format: 'DMY', currency_format: 'SYMBOL_AFTER' } as const;
     const invoke = vi.fn().mockResolvedValue(settings);
