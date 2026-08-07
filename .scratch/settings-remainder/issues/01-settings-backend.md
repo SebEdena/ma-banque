@@ -13,7 +13,7 @@ Out of scope: any Settings screen UI (ticket 02), the first-launch/unreachable-f
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] `settings` table has a default row (or default key/value rows) present on a fresh database, inserted via a migration
 - [ ] `domain::settings` defines `DisplaySettings` (date/currency format as enum-like values) and any needed error type
