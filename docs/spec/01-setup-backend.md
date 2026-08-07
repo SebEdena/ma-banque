@@ -23,8 +23,8 @@ Set up the Tauri/Rust backend skeleton in line with the architecture described i
 9. As a developer, I want SQLite repository integration tests running against a fresh `:memory:` database per test, so that repository tests are isolated and fast.
 10. As a developer, I want `cargo fmt --check` and `cargo clippy -- -D warnings` enforced, so that code style stays consistent from the very first commit.
 11. As a developer, I want a mechanism to configure and persist the SQLite data **folder** location (via an external pointer, independent of the database itself), so that the app doesn't hardcode its database path and the future Settings screen has a real backend to build on.
-11a. As a user, I want the app to ask me where to keep my data on first launch (or if the configured folder becomes unreachable), so that I'm never surprised by a silently created or silently missing database.
-11b. As a user, I want my database automatically backed up before any migration runs, and to be blocked with a clear error if my save is newer than my installed app supports, so that upgrading the app (or accidentally opening an old save) can't silently corrupt or lose my data.
+    11a. As a user, I want the app to ask me where to keep my data on first launch (or if the configured folder becomes unreachable), so that I'm never surprised by a silently created or silently missing database.
+    11b. As a user, I want my database automatically backed up before any migration runs, and to be blocked with a clear error if my save is newer than my installed app supports, so that upgrading the app (or accidentally opening an old save) can't silently corrupt or lose my data.
 12. As a developer, I want `tauri.conf.json` established as the single source of truth for the app version, so that release tagging follows a documented, unambiguous process.
 13. As a developer, I want `cargo test` (unit + integration) passing locally, so that the scaffolding is provably solid before it's built on.
 14. As a developer, I want the crate to compile via `cargo check`/`cargo build`, so that the target platform (Windows) is validated from day one.
@@ -49,11 +49,11 @@ Set up the Tauri/Rust backend skeleton in line with the architecture described i
 
 - A good test asserts observable behavior (e.g. "calling this command returns X", "after migration, this table/columns exist", "this use case, given this fake repository state, returns this result") — not internal implementation details of a layer.
 - **Domain**: classic unit tests once any domain logic exists (none yet in this spec beyond scaffolding — kept minimal).
-- **Use cases**: unit tests against hand-written in-memory fakes (`Vec`/`HashMap`-backed) implementing the repository traits — no `mockall`, per `technical-architecture.md` §1.5.
+- **Use cases**: unit tests against hand-written in-memory fakes (`Vec`/`HashMap`-backed) implementing the repository traits — no `mockall`, per `technical-architecture.md` §1.6.
 - **SQLite repositories**: integration tests against a fresh `:memory:` connection + migrations per test, full isolation.
 - **The one vertical-slice command**: tested via its use case call path, proving `commands → usecases → infra → SQLite → back` end-to-end.
 - **Folder/pointer/backup logic**: unit/integration tests cover — missing pointer (first launch), unreachable folder, "Move" into an occupied destination (rejected), "Open a different folder" onto an empty folder (creates fresh) vs. an invalid `ma-banque.sqlite` (rejected), backup file creation + 3-backup rotation before a migration, and the downgrade guard (newer schema than supported → explicit error, no migration attempt).
-- No prior art exists in this greenfield codebase; follow the patterns already documented in `technical-architecture.md` §1.5.
+- No prior art exists in this greenfield codebase; follow the patterns already documented in `technical-architecture.md` §1.6.
 
 ## Out of Scope
 

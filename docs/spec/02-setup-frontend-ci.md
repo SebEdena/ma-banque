@@ -51,7 +51,7 @@ Set up the Angular frontend as a pure presentation shell (`spartan/ui` + Tailwin
 
 - A good test asserts observable behavior: the theme class applied to the DOM under a given system preference, a placeholder route rendering its expected content, the home screen displaying the value returned by the (mocked) Tauri command — not a component's internal wiring.
 - **Modules tested**: theme detection service (unit), routing shell (component tests per route), home screen's `invoke()` call (component test with a mocked Tauri API), plus at least one true e2e smoke test that launches the compiled app and asserts the shell renders.
-- No prior art exists in this greenfield codebase; Vitest is the default test runner per `technical-architecture.md` §2.2 (see version note above — Karma/Jasmine are fully retired as of Angular 22, not merely deprecated). The CI workflow structure follows `technical-architecture.md` §3 directly.
+- No prior art exists in this greenfield codebase; Vitest is the default test runner per `technical-architecture.md` §2.3 (see version note above — Karma/Jasmine are fully retired as of Angular 22, not merely deprecated). The CI workflow structure follows `technical-architecture.md` §3 directly.
 
 ## Out of Scope
 

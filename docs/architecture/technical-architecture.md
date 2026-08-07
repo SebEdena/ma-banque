@@ -24,20 +24,26 @@ A multi-crate workspace would give a stricter compilation boundary, but adds fri
 - **`thiserror`** for business errors (domain/use cases): explicit enums (e.g. `AccountError::HasEntries`), serialized via `serde::Serialize` to surface cleanly to Angular and allow differentiated display per case.
 - **`anyhow`** for technical errors in the infrastructure layer (I/O, SQLite), converted to a generic error at the Tauri command level.
 
-### 1.3 Data access
+### 1.3 Monetary amounts
+
+All amounts (`opening_balance`, entry `amount`, statement `bank_balance`, and any derived sum) are stored and computed **internally as `i64` minor units (cents)**, never `f64`/SQLite `REAL`. Repeated float addition across many entries would silently drift by fractions of a cent — unacceptable for a ledger balance; all storage, sums, and comparisons happen in integer cents.
+
+The float ↔ cents conversion, in **both directions**, is a calculation, and per business requirements' "Rust owns all business logic ... calculations", it stays entirely in Rust — Angular never multiplies, divides, or rounds an amount itself. Each Tauri command that returns an amount divides once, at the boundary — `cents as f64 / 100.0` — right before serializing, so the wire value (e.g. `1234.56`) is already correct; Angular receives a plain number and only reformats it for presentation (symbol position, thousands/decimal separators per `currency_format`, `05-settings-remainder.md`). Each Tauri command that accepts an amount as input takes the raw major-unit `f64` exactly as the user typed it (e.g. from the opening-balance field) and does the `f64 → cents` conversion itself — `(value * 100.0).round() as i64` — plus any resulting validation (e.g. rejecting a value that doesn't round cleanly to cents), before that value ever touches domain logic or storage. Angular's only job on the input side is passing the typed number through unmodified; it must not pre-round or pre-multiply it into cents itself, since that would silently duplicate Rust's rounding decision at a second, unsynchronized site. This applies uniformly from `03-accounts.md` onward — every spec introducing a monetary column follows this rule without restating it.
+
+### 1.4 Data access
 
 - **`rusqlite`** (synchronous), not `sqlx` (async) nor `tauri-plugin-sql` (the latter is designed to be driven from JS, which would break the "no direct SQLite access from Angular" rule).
 - No async runtime: the app is single-user, with no concurrent load justifying `tokio`. Tauri already runs each command on a thread pool.
 - **Migrations**: `rusqlite_migration`, versioned `.sql` files embedded via `include_str!`.
 - **Concurrency**: the connection is shared via **`Arc<Mutex<Connection>>`** in Tauri-managed state (`tauri::State`) — no `r2d2` pool. SQLite only allows one writer at a time; a pool would bring no value here.
 
-### 1.4 Repositories
+### 1.5 Repositories
 
 - Defined as **traits** in the domain (e.g. `trait AccountRepository`), concrete SQLite implementations in `infra/`.
 - Each concrete implementation holds an `Arc<Mutex<Connection>>` (cloned from Tauri state), and locks internally on each method call. This avoids any explicit lifetime parameter on traits or use cases — a classic Rust trap for this kind of architecture.
 - Use cases take `&dyn AccountRepository` (or a bounded generic), without ever knowing the SQLite connection exists.
 
-### 1.5 Tests
+### 1.6 Tests
 
 | Level               | Approach                                                                                                                                                                     |
 | ------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
@@ -45,7 +51,7 @@ A multi-crate workspace would give a stricter compilation boundary, but adds fri
 | SQLite repositories | Integration tests against an **`:memory:`** database, fresh connection + migrations for each test (full isolation, fast).                                                    |
 | Domain              | Classic unit tests (calculation rules, validations).                                                                                                                         |
 
-### 1.6 Local dev data
+### 1.7 Local dev data
 
 In debug builds (`cargo tauri dev`, and the `--debug` build the e2e suite
 runs against), the data-folder pointer file and the default `saves/` folder
@@ -67,12 +73,18 @@ use the real OS directories.
 - Dark mode handled natively via Tailwind (`dark:`), consistent with the light/dark/system requirement.
 - **Zoneless change detection by default** (no `zone.js` dependency), components in `OnPush` — `ng new`'s default behavior in v22, not an opt-in choice for the project.
 
-### 2.2 Tests
+### 2.2 Error display
+
+- **Action/command errors** (a `thiserror` enum variant rejected from an `invoke()` call — e.g. "account has entries", "destination folder occupied") surface as a **dismissible toast**, via `spartan/ui`'s toast component (already the chosen kit, §2.1), using the enum's message text verbatim so each case reads as the precise, differentiated message it was designed to be (§1.2).
+- **Field-level validation** (e.g. empty name, invalid amount) is **inline** next to the offending field, not a toast — it must persist while the user corrects the field, which a transient toast can't do.
+- This is the default pattern for every spec from `03-accounts.md` onward; a spec only needs to call out error display if it deviates from this split.
+
+### 2.3 Tests
 
 - **Vitest** for unit and component tests (default runner scaffolded by `ng new` since Angular 22, Karma/Jasmine fully removed).
 - **E2E**: WebdriverIO + `@wdio/tauri-service` (drives `tauri-driver`), run on `windows-latest` only (see §3).
 
-### 2.3 Code style
+### 2.4 Code style
 
 - `angular-eslint` + `Prettier`.
 - Pre-commit hook (Husky + lint-staged) to auto-format/lint modified files before each commit.
