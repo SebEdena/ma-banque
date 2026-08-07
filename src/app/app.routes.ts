@@ -20,6 +20,16 @@ export const routes: Routes = [
         path: 'categories',
         loadComponent: () => import('./features/categories/categories').then((m) => m.Categories),
       },
+      {
+        path: 'affichage',
+        loadComponent: () =>
+          import('./features/settings/affichage/affichage').then((m) => m.Affichage),
+      },
+      {
+        path: 'stockage',
+        loadComponent: () =>
+          import('./features/settings/stockage/stockage').then((m) => m.Stockage),
+      },
     ],
   },
 ];

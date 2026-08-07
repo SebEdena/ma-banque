@@ -16,14 +16,29 @@ describe('Settings', () => {
     fixture = TestBed.createComponent(Settings);
     component = fixture.componentInstance;
     await fixture.whenStable();
+    fixture.detectChanges();
   });
 
   it('should create', () => {
     expect(component).toBeTruthy();
   });
 
-  it('renders its placeholder content', () => {
+  it('renders a left sub-nav with Postes / Affichage / Stockage entries', () => {
     const compiled = fixture.nativeElement as HTMLElement;
-    expect(compiled.textContent).toContain('Paramètres');
+
+    expect(compiled.textContent).toContain('Postes');
+    expect(compiled.textContent).toContain('Affichage');
+    expect(compiled.textContent).toContain('Stockage');
+  });
+
+  it('links each sub-nav entry to its child route', () => {
+    const links = Array.from(
+      (fixture.nativeElement as HTMLElement).querySelectorAll('a'),
+    ) as HTMLAnchorElement[];
+    const hrefs = links.map((link) => link.getAttribute('routerLink'));
+
+    expect(hrefs).toContain('categories');
+    expect(hrefs).toContain('affichage');
+    expect(hrefs).toContain('stockage');
   });
 });

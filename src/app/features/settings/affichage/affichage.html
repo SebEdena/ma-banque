@@ -1,0 +1,49 @@
+<section class="flex flex-col gap-8 p-6">
+  <div>
+    <h2 class="text-sm font-semibold">Format de date</h2>
+    <div class="mt-2 flex flex-wrap gap-2">
+      @for (option of dateFormatOptions; track option.value) {
+        <button
+          hlmBtn
+          type="button"
+          [variant]="displaySettings.dateFormat() === option.value ? 'default' : 'outline'"
+          (click)="selectDateFormat(option.value)"
+        >
+          {{ option.label }} — {{ exampleDate(option.value) }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <div>
+    <h2 class="text-sm font-semibold">Format de devise</h2>
+    <div class="mt-2 flex flex-wrap gap-2">
+      @for (option of currencyFormatOptions; track option.value) {
+        <button
+          hlmBtn
+          type="button"
+          [variant]="displaySettings.currencyFormat() === option.value ? 'default' : 'outline'"
+          (click)="selectCurrencyFormat(option.value)"
+        >
+          {{ option.label }} — {{ exampleAmount(option.value) }}
+        </button>
+      }
+    </div>
+  </div>
+
+  <div>
+    <h2 class="text-sm font-semibold">Thème</h2>
+    <div class="mt-2 flex gap-2">
+      @for (option of themeOptions; track option.value) {
+        <button
+          hlmBtn
+          type="button"
+          [variant]="theme.mode() === option.value ? 'default' : 'outline'"
+          (click)="selectTheme(option.value)"
+        >
+          {{ option.label }}
+        </button>
+      }
+    </div>
+  </div>
+</section>
