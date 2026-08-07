@@ -24,6 +24,10 @@ export class SettingsApi {
     return invoke<string>('open_data_folder', { path });
   }
 
+  moveDataFolder(destination: string): Promise<string> {
+    return invoke<string>('move_data_folder', { destination });
+  }
+
   getDisplaySettings(): Promise<DisplaySettings> {
     return invoke<DisplaySettings>('get_display_settings');
   }
