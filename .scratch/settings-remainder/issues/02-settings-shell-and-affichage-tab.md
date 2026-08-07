@@ -15,7 +15,7 @@ Out of scope: the "Postes" tab's real content (`04-categories.md`), the "Stockag
 
 **Blocked by:** 01 — Settings backend: `settings` table + display-settings use cases
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] `Settings` renders a left sub-nav with Postes / Affichage / Stockage entries
 - [ ] The existing "Postes" (categories) placeholder is preserved as-is under the new shell
