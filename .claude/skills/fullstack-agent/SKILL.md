@@ -63,14 +63,17 @@ Before starting any unit of work — a feature or an issue — check whether it'
       - agent: Run `/implement` on that issue (it runs `/tdd`, `/code-review`, and commits with Conventional Commits format on your behalf).
       - agent: Format and lint the code according to the project's standards.
       - agent: Update the issue file's `**Status:**` to `done` once `/implement` completes for it, and push the commit to the remote repository.
+      - agent: Before starting the next issue, write any decision from this issue that other issues will depend on (shared components, naming conventions, schema choices not obvious from the diff) as a bullet under `## Cross-issue notes` in `.scratch/<feature>/notes.md` (create the file if it doesn't exist yet). Then run `/compact` — the commit, the push, and the issue's `Status:` are already durable on disk, so nothing is lost.
     - agent: Repeat until every issue file for the feature has `**Status:** done`, or until every remaining issue is blocked/not startable (see Safeguards).
     - agent: Create a pull request for the feature branch and notify you, the manager, that the feature is ready for review. Report to the manager the link to the pull request and a summary of the implementation.
+    - agent: Before going idle, run `/compact`, retaining only the PR link, branch/worktree names, and a pointer to `.scratch/<feature>/notes.md`.
   - manager: Spawn a pr-agent to monitor that feature's pull request once the feature agent reports it is open.
-  - manager: Keep that feature's feature-agent session alive (idle, not terminated) so it can be resumed with full context when its pr-agent reports comments or requested changes.
+  - manager: Keep that feature's feature-agent session alive (idle, not terminated) so it can be resumed — from its compacted context plus `.scratch/<feature>/notes.md` — when its pr-agent reports comments or requested changes.
   - manager: Record the feature's worktree, branch, feature-agent, and pr-agent so you can act on this feature later without disturbing any other feature in progress.
 - manager: Give the user a summary of each feature's implementation and the link to its pull request for review, as each becomes ready.
 - manager: Let humans review and comment on the pull requests.
 - manager: Listen to each feature's pr-agent for comments, requested changes, and status on its pull request. When a pull request is merged, delete that feature's worktree and branch and stop that feature's agents. Continue tracking any other features still in progress.
+  - agent: After addressing reviewer feedback and pushing the fix, run `/compact` again before returning to idle, keeping only the PR link and outstanding-comment state.
 
 # Worktree cleanup
 
