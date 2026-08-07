@@ -1,18 +1,93 @@
-import { TestBed } from '@angular/core/testing';
+import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+
 import { App } from './app';
+import { FolderPrompt } from './core/folder-prompt/folder-prompt';
+import { SettingsApi } from './core/settings-api/settings-api';
+
+async function createApp(settingsApi: Partial<SettingsApi>): Promise<ComponentFixture<App>> {
+  await TestBed.configureTestingModule({
+    imports: [App],
+    providers: [provideRouter([]), { provide: SettingsApi, useValue: settingsApi }],
+  }).compileComponents();
+
+  const fixture = TestBed.createComponent(App);
+  await fixture.whenStable();
+  fixture.detectChanges();
+  return fixture;
+}
+
+function queryFolderPrompt(fixture: ComponentFixture<App>) {
+  return fixture.debugElement.query((n) => n.componentInstance instanceof FolderPrompt);
+}
 
 describe('App', () => {
-  beforeEach(async () => {
-    await TestBed.configureTestingModule({
-      imports: [App],
-      providers: [provideRouter([])],
-    }).compileComponents();
+  it('should create the app', async () => {
+    const fixture = await createApp({
+      getCurrentDataFolder: vi.fn().mockResolvedValue('/home/user/saves'),
+    });
+
+    expect(fixture.componentInstance).toBeTruthy();
   });
 
-  it('should create the app', () => {
+  it('renders a loading state while the data folder check is pending', async () => {
+    let resolveFolder!: (folder: string | null) => void;
+    const pending = new Promise<string | null>((resolve) => (resolveFolder = resolve));
+
+    await TestBed.configureTestingModule({
+      imports: [App],
+      providers: [
+        provideRouter([]),
+        { provide: SettingsApi, useValue: { getCurrentDataFolder: () => pending } },
+      ],
+    }).compileComponents();
     const fixture = TestBed.createComponent(App);
-    const app = fixture.componentInstance;
-    expect(app).toBeTruthy();
+    fixture.detectChanges();
+
+    expect(queryFolderPrompt(fixture)).toBe(null);
+    expect(fixture.nativeElement.querySelector('router-outlet')).toBe(null);
+
+    resolveFolder('/home/user/saves');
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('router-outlet')).not.toBe(null);
+  });
+
+  it('renders the routed shell once a data folder is configured', async () => {
+    const fixture = await createApp({
+      getCurrentDataFolder: vi.fn().mockResolvedValue('/home/user/saves'),
+    });
+
+    expect(queryFolderPrompt(fixture)).toBe(null);
+    expect(fixture.nativeElement.querySelector('router-outlet')).not.toBe(null);
+  });
+
+  it('renders the blocking folder prompt when no data folder is configured', async () => {
+    const fixture = await createApp({
+      getCurrentDataFolder: vi.fn().mockResolvedValue(null),
+    });
+
+    expect(queryFolderPrompt(fixture)).not.toBe(null);
+  });
+
+  it('renders the blocking folder prompt when get_current_data_folder rejects', async () => {
+    const fixture = await createApp({
+      getCurrentDataFolder: vi.fn().mockRejectedValue({ kind: 'Io', message: 'boom' }),
+    });
+
+    expect(queryFolderPrompt(fixture)).not.toBe(null);
+  });
+
+  it('proceeds to the routed shell once the folder prompt resolves', async () => {
+    const fixture = await createApp({
+      getCurrentDataFolder: vi.fn().mockResolvedValue(null),
+    });
+
+    const promptDebugElement = queryFolderPrompt(fixture);
+    (promptDebugElement!.componentInstance as FolderPrompt).resolved.emit();
+    fixture.detectChanges();
+
+    expect(queryFolderPrompt(fixture)).toBe(null);
+    expect(fixture.nativeElement.querySelector('router-outlet')).not.toBe(null);
   });
 });

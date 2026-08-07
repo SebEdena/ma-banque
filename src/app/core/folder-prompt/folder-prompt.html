@@ -1,0 +1,13 @@
+<div class="flex h-screen flex-col items-center justify-center gap-4 p-8 text-center">
+  <h1 class="text-lg font-semibold">Bienvenue dans Ma Banque</h1>
+  <p class="text-muted-foreground text-sm">Choisissez où stocker vos données pour commencer.</p>
+
+  <div class="flex flex-col gap-2 sm:flex-row">
+    <button hlmBtn [disabled]="busy()" (click)="useDefaultLocation()">
+      Utiliser l’emplacement par défaut
+    </button>
+    <button hlmBtn variant="outline" [disabled]="busy()" (click)="chooseFolder()">
+      Choisir un dossier
+    </button>
+  </div>
+</div>
