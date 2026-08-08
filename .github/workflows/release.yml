@@ -22,15 +22,6 @@ jobs:
           node-version: 24
           cache: npm
       - run: npm ci
-      - name: Cache cargo-installed CLI tools
-        id: cargo-tools-cache
-        uses: actions/cache@v5
-        with:
-          path: ~/.cargo/bin/cargo-tauri.exe
-          key: windows-cargo-tools-tauri-cli-2-v1
-      - name: Install tauri-cli
-        if: steps.cargo-tools-cache.outputs.cache-hit != 'true'
-        run: cargo install tauri-cli --version "^2" --locked
       - uses: tauri-apps/tauri-action@v1
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

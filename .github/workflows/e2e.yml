@@ -36,12 +36,17 @@ jobs:
     needs: changes
     if: needs.changes.outputs.e2e == 'true'
     runs-on: windows-latest
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          # Shared with ci.yml's rust-windows-build job so both jobs reuse the
+          # same Windows target/ dir instead of each compiling src-tauri from
+          # scratch and caching a separate ~1GB copy of it.
+          shared-key: windows-src-tauri
       - uses: actions/setup-node@v5
         with:
           node-version: 24
@@ -52,13 +57,9 @@ jobs:
         uses: actions/cache@v5
         with:
           path: |
-            ~/.cargo/bin/cargo-tauri.exe
             ~/.cargo/bin/tauri-driver.exe
             ~/.cargo/bin/msedgedriver-tool.exe
-          key: windows-cargo-tools-tauri-cli-2-tauri-driver-msedgedriver-tool-v1
-      - name: Install tauri-cli
-        if: steps.cargo-tools-cache.outputs.cache-hit != 'true'
-        run: cargo install tauri-cli --version "^2" --locked
+          key: windows-cargo-tools-tauri-driver-msedgedriver-tool-v2
       - name: Install tauri-driver
         if: steps.cargo-tools-cache.outputs.cache-hit != 'true'
         run: cargo install tauri-driver --locked
@@ -77,7 +78,7 @@ jobs:
         # @wdio/tauri-plugin in src/main.ts — without this the e2e run would
         # build the same frontend bundle as a release, and the plugin (along
         # with tauri_plugin_wdio's execute()/mock() API) would never activate.
-        run: cargo tauri build --debug --no-bundle --config '{"build":{"beforeBuildCommand":"npm run build -- --configuration development"}}'
+        run: npx tauri build --debug --no-bundle --config '{"build":{"beforeBuildCommand":"npm run build -- --configuration development"}}'
       - name: Work around WebView2 150 elevated-host remote-debugging-port regression
         # windows-latest runners execute elevated (admin). WebView2 Runtime 150
         # deliberately ignores WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS and HKCU policy

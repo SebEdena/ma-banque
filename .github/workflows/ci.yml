@@ -75,6 +75,10 @@ jobs:
       - uses: Swatinem/rust-cache@v2
         with:
           workspaces: src-tauri
+          # Shared with e2e.yml's e2e job so both jobs reuse the same Windows
+          # target/ dir instead of each compiling src-tauri from scratch and
+          # caching a separate ~1GB copy of it.
+          shared-key: windows-src-tauri
       - name: cargo check
         working-directory: src-tauri
         run: cargo check
