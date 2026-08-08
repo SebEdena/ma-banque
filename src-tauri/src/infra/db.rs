@@ -64,6 +64,33 @@ pub fn is_schema_supported(conn: &Connection) -> bool {
 /// newer than the app supports and backing up the file before applying any
 /// pending migration.
 pub fn open_and_migrate(db_path: &Path) -> Result<SharedConnection, DbOpenError> {
+    Ok(Arc::new(Mutex::new(open_and_migrate_connection(db_path)?)))
+}
+
+/// Points `shared` at a freshly opened connection to `db_path`, replacing
+/// whatever connection it held — every repository holding a clone of
+/// `shared` sees the new connection on their very next `.lock()`, with no
+/// need to re-register any `tauri::State`. Used by the data-folder-location
+/// commands so switching folders while the app is running takes effect
+/// immediately, instead of requiring a restart.
+pub fn reopen(shared: &SharedConnection, db_path: &Path) -> Result<(), DbOpenError> {
+    let fresh = open_and_migrate_connection(db_path)?;
+    *shared.lock().unwrap() = fresh;
+    Ok(())
+}
+
+/// An unmigrated in-memory connection used as `shared_conn`'s initial value
+/// before any real data folder is available (first launch, or a startup
+/// open failure) — `reopen` replaces it once one is. Never queried before
+/// that: the frontend blocks routing to any screen that reads/writes
+/// settings until `get_current_data_folder` resolves to a real folder.
+pub fn placeholder_connection() -> SharedConnection {
+    Arc::new(Mutex::new(
+        Connection::open_in_memory().expect("in-memory sqlite connection should always open"),
+    ))
+}
+
+fn open_and_migrate_connection(db_path: &Path) -> Result<Connection, DbOpenError> {
     let existed_before = db_path.is_file();
 
     let mut conn = Connection::open(db_path).map_err(io_err)?;
@@ -85,7 +112,7 @@ pub fn open_and_migrate(db_path: &Path) -> Result<SharedConnection, DbOpenError>
 
     migrations().to_latest(&mut conn).map_err(io_err)?;
 
-    Ok(Arc::new(Mutex::new(conn)))
+    Ok(conn)
 }
 
 fn io_err<E: std::fmt::Display>(e: E) -> DbOpenError {
@@ -226,6 +253,42 @@ mod tests {
             .filter(|e| e.file_name().to_string_lossy().contains(".bak-"))
             .collect();
         assert_eq!(backups.len(), MAX_BACKUPS);
+    }
+
+    #[test]
+    fn reopen_points_every_clone_of_shared_at_the_new_database() {
+        let dir = tempdir().unwrap();
+        let old_path = dir.path().join("old.sqlite");
+        let new_path = dir.path().join("new.sqlite");
+
+        let shared = open_and_migrate(&old_path).expect("should open cleanly");
+        let cloned = shared.clone();
+
+        reopen(&shared, &new_path).expect("should reopen cleanly");
+
+        // A clone taken before the reopen sees the new connection too —
+        // it's the same `Arc<Mutex<Connection>>`, not a new one.
+        let conn = cloned.lock().unwrap();
+        let db_file: String = conn
+            .query_row("PRAGMA database_list", [], |row| row.get(2))
+            .unwrap();
+        assert!(db_file.ends_with("new.sqlite"), "got {db_file}");
+    }
+
+    #[test]
+    fn reopen_surfaces_the_same_errors_as_open_and_migrate() {
+        let dir = tempdir().unwrap();
+        let db_path = dir.path().join("ma-banque.sqlite");
+        open_and_migrate(&db_path).unwrap();
+        {
+            let conn = Connection::open(&db_path).unwrap();
+            conn.pragma_update(None, "user_version", MIGRATION_COUNT + 1)
+                .unwrap();
+        }
+
+        let shared = placeholder_connection();
+        let err = reopen(&shared, &db_path).unwrap_err();
+        assert!(matches!(err, DbOpenError::SchemaNewerThanSupported));
     }
 
     #[test]

@@ -50,8 +50,10 @@ pub fn run() {
                 // user directories, so local runs and e2e tests never touch
                 // (or get polluted by) a real user profile — delete
                 // `.dev-data/` to reset. Release builds are untouched.
-                let dev_data_dir =
-                    std::path::Path::new(env!("CARGO_MANIFEST_DIR")).join("../.dev-data");
+                let dev_data_dir = std::path::Path::new(env!("CARGO_MANIFEST_DIR"))
+                    .parent()
+                    .expect("CARGO_MANIFEST_DIR has a parent")
+                    .join(".dev-data");
                 (dev_data_dir.join("config"), dev_data_dir.join("data"))
             } else {
                 (app.path().app_config_dir()?, app.path().app_data_dir()?)
@@ -61,23 +63,34 @@ pub fn run() {
             // No folder configured yet (first launch, or the previously
             // configured folder is unreachable): don't decide unilaterally.
             // The frontend prompts the user (default vs. choose a folder),
-            // which then calls back through the commands above — no
-            // connection is opened here in that case.
+            // which then calls back through the data-folder-location
+            // commands — those `infra::db::reopen` the placeholder below
+            // once a real folder is available, rather than a connection
+            // being opened here in that case.
             let mut startup_error = None;
-            if let Some(folder) = folder_repo.get_current_folder()? {
-                let db_path = folder.join(infra::DB_FILE_NAME);
-                match infra::db::open_and_migrate(&db_path) {
-                    Ok(shared_conn) => {
-                        let settings_repo = SqliteSettingsRepository::new(shared_conn.clone());
-                        app.manage(Box::new(settings_repo) as DynSettingsRepository);
-                        app.manage(shared_conn);
-                    }
-                    Err(err) => {
-                        log::error!("failed to open the configured data folder: {err}");
-                        startup_error = Some(err);
+            let shared_conn = match folder_repo.get_current_folder()? {
+                Some(folder) => {
+                    let db_path = folder.join(infra::DB_FILE_NAME);
+                    match infra::db::open_and_migrate(&db_path) {
+                        Ok(shared_conn) => shared_conn,
+                        Err(err) => {
+                            log::error!("failed to open the configured data folder: {err}");
+                            startup_error = Some(err);
+                            infra::db::placeholder_connection()
+                        }
                     }
                 }
-            }
+                None => infra::db::placeholder_connection(),
+            };
+
+            // Managed once, for the app's whole lifetime — the data-folder-
+            // location commands swap the `Connection` this `Arc<Mutex<_>>`
+            // wraps (via `infra::db::reopen`) instead of the app ever
+            // re-managing this state, which Tauri doesn't support past the
+            // first `manage()` call for a given type.
+            let settings_repo = SqliteSettingsRepository::new(shared_conn.clone());
+            app.manage(Box::new(settings_repo) as DynSettingsRepository);
+            app.manage(shared_conn);
 
             app.manage(StartupDbError(std::sync::Mutex::new(startup_error)));
             app.manage(Box::new(folder_repo) as DynDataFolderLocationRepository);
