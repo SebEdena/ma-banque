@@ -1,33 +1,45 @@
-<div class="flex min-h-screen">
-  <nav class="flex w-40 flex-col gap-1 border-r p-4">
+<div class="flex items-start gap-5 p-9">
+  <nav class="flex w-56 flex-shrink-0 flex-col gap-0.5 rounded-2xl border bg-card p-2.5">
+    <span
+      class="px-2.5 pt-1.5 pb-3 text-xs font-bold tracking-wide text-muted-foreground uppercase"
+    >
+      Paramètres
+    </span>
     <a
       routerLink="categories"
-      routerLinkActive="bg-muted text-foreground font-semibold"
-      class="hover:bg-muted rounded-md px-2 py-1.5 text-sm"
+      routerLinkActive="bg-primary/10 text-primary font-bold hover:bg-primary/10"
+      class="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13.5px] font-medium text-muted-foreground hover:bg-muted"
     >
+      <ng-icon name="lucideLayoutGrid" size="16" />
       Postes
     </a>
     <a
       routerLink="display-format"
-      routerLinkActive="bg-muted text-foreground font-semibold"
-      class="hover:bg-muted rounded-md px-2 py-1.5 text-sm"
+      routerLinkActive="bg-primary/10 text-primary font-bold hover:bg-primary/10"
+      class="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13.5px] font-medium text-muted-foreground hover:bg-muted"
     >
+      <ng-icon name="lucideList" size="16" />
       Affichage
     </a>
     <a
       routerLink="storage"
-      routerLinkActive="bg-muted text-foreground font-semibold"
-      class="hover:bg-muted rounded-md px-2 py-1.5 text-sm"
+      routerLinkActive="bg-primary/10 text-primary font-bold hover:bg-primary/10"
+      class="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13.5px] font-medium text-muted-foreground hover:bg-muted"
     >
+      <ng-icon name="lucideFolder" size="16" />
       Stockage
     </a>
 
     <!-- TEMPORARY demo link back to Home — see the class doc on `Settings`. -->
-    <a routerLink="/home" class="text-muted-foreground mt-4 px-2 py-1.5 text-sm underline">
+    <a
+      routerLink="/home"
+      class="mt-4 flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13.5px] text-muted-foreground underline hover:bg-muted"
+    >
+      <ng-icon name="lucideHouse" size="16" />
       Accueil
     </a>
   </nav>
-  <div class="flex-1">
+  <div class="min-w-0 flex-1 rounded-2xl border bg-card p-6">
     <router-outlet />
   </div>
 </div>

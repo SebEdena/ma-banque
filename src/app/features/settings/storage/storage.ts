@@ -2,6 +2,8 @@ import { Component, inject, signal } from '@angular/core';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { toast } from '@spartan-ng/brain/sonner';
 import { open } from '@tauri-apps/plugin-dialog';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideFolder } from '@ng-icons/lucide';
 
 import { parseDataFolderLocationError, SettingsApi } from '../../../core/settings-api/settings-api';
 
@@ -14,7 +16,8 @@ import { parseDataFolderLocationError, SettingsApi } from '../../../core/setting
  */
 @Component({
   selector: 'app-storage',
-  imports: [...HlmButtonImports],
+  imports: [...HlmButtonImports, NgIcon],
+  providers: [provideIcons({ lucideFolder })],
   templateUrl: './storage.html',
 })
 export class Storage {
