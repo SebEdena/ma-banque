@@ -2,6 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 
 import { DisplaySettingsService } from '../../../core/display-settings/display-settings';
+import { formatDate } from '../../../core/display-settings/format';
 import { Theme } from '../../../core/theme/theme';
 import { DisplayFormat } from './display-format';
 
@@ -31,6 +32,14 @@ function clickButtonContaining(fixture: ComponentFixture<DisplayFormat>, text: s
   button.click();
 }
 
+function clickOptionValue(fixture: ComponentFixture<DisplayFormat>, value: string): void {
+  const button = (fixture.nativeElement as HTMLElement).querySelector(`[data-value="${value}"]`);
+  if (!button) {
+    throw new Error(`no button found with data-value="${value}"`);
+  }
+  (button as HTMLButtonElement).click();
+}
+
 describe('DisplayFormat', () => {
   it('renders the three date-format presets with a live example', async () => {
     const fixture = await createDisplayFormat(
@@ -38,10 +47,11 @@ describe('DisplayFormat', () => {
       { mode: signal('system') },
     );
     const text = (fixture.nativeElement as HTMLElement).textContent ?? '';
+    const today = new Date();
 
-    expect(text).toContain('JJ/MM/AAAA');
-    expect(text).toContain('AAAA-MM-JJ');
-    expect(text).toContain('MM/JJ/AAAA');
+    expect(text).toContain(formatDate(today, 'DMY'));
+    expect(text).toContain(formatDate(today, 'YMD'));
+    expect(text).toContain(formatDate(today, 'MDY'));
   });
 
   it('renders the three currency-format presets with a live example', async () => {
@@ -74,7 +84,7 @@ describe('DisplayFormat', () => {
       { mode: signal('system') },
     );
 
-    clickButtonContaining(fixture, 'AAAA-MM-JJ');
+    clickOptionValue(fixture, 'YMD');
 
     expect(update).toHaveBeenCalledWith({ date_format: 'YMD', currency_format: 'SYMBOL_AFTER' });
   });
@@ -86,7 +96,7 @@ describe('DisplayFormat', () => {
       { mode: signal('system') },
     );
 
-    clickButtonContaining(fixture, 'EUR');
+    clickOptionValue(fixture, 'ISO_CODE');
 
     expect(update).toHaveBeenCalledWith({ date_format: 'DMY', currency_format: 'ISO_CODE' });
   });

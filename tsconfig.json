@@ -14,7 +14,8 @@
     "paths": {
       "@spartan-ng/helm/button": ["./src/app/ui/button/src/index.ts"],
       "@spartan-ng/helm/utils": ["./src/app/ui/utils/src/index.ts"],
-      "@spartan-ng/helm/sonner": ["./src/app/ui/sonner/src/index.ts"]
+      "@spartan-ng/helm/sonner": ["./src/app/ui/sonner/src/index.ts"],
+      "@spartan-ng/helm/tooltip": ["./src/app/ui/tooltip/src/index.ts"]
     }
   },
   "angularCompilerOptions": {
