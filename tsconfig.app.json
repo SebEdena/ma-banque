@@ -3,6 +3,6 @@
   "compilerOptions": {
     "types": []
   },
-  "include": ["src/**/*.ts", "src/app/ui/**/src/**/*.ts"],
+  "include": ["src/**/*.ts", "src/app/shared/components/ui/**/src/**/*.ts"],
   "exclude": ["src/**/*.spec.ts"]
 }

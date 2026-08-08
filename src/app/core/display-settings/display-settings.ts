@@ -1,7 +1,7 @@
 import { Service, inject, signal } from '@angular/core';
 import { toast } from '@spartan-ng/brain/sonner';
 
-import { parseSettingsError, SettingsApi } from '../settings-api/settings-api';
+import { parseSettingsError, SettingsApi } from '@core/settings-api/settings-api';
 import type { CurrencyFormat, DateFormat, DisplaySettings } from './display-settings.types';
 import { formatAmount } from './format';
 

@@ -1,7 +1,7 @@
 import { Service } from '@angular/core';
 import { invoke } from '@tauri-apps/api/core';
 
-import type { DisplaySettings } from '../display-settings/display-settings.types';
+import type { DisplaySettings } from '@core/display-settings/display-settings.types';
 
 /**
  * Wraps `invoke()` for the data-folder-location Tauri commands (built in

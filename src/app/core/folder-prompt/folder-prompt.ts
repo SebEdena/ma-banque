@@ -3,7 +3,7 @@ import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { toast } from '@spartan-ng/brain/sonner';
 import { open } from '@tauri-apps/plugin-dialog';
 
-import { parseDataFolderLocationError, SettingsApi } from '../settings-api/settings-api';
+import { parseDataFolderLocationError, SettingsApi } from '@core/settings-api/settings-api';
 
 /**
  * Blocking first-launch / unreachable-folder prompt (business requirements
