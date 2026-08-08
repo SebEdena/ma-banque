@@ -18,6 +18,8 @@ jobs:
     runs-on: ubuntu-latest
     permissions:
       contents: write
+    outputs:
+      new_version: ${{ steps.compute-version.outputs.version }}
     steps:
       - name: Require running from main
         if: github.ref != 'refs/heads/main'
@@ -42,6 +44,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
       - name: Compute new version
+        id: compute-version
         run: |
           current=$(jq -r .version src-tauri/tauri.conf.json)
           IFS='.' read -r major minor patch <<< "$current"
@@ -61,6 +64,7 @@ jobs:
           new_version="$major.$minor.$patch"
           echo "Bumping $current -> $new_version (${{ inputs.bump }})"
           echo "NEW_VERSION=$new_version" >> "$GITHUB_ENV"
+          echo "version=$new_version" >> "$GITHUB_OUTPUT"
       - name: Update tauri.conf.json
         run: |
           jq --arg v "$NEW_VERSION" '.version = $v' src-tauri/tauri.conf.json > src-tauri/tauri.conf.json.tmp
@@ -92,6 +96,8 @@ jobs:
     name: Warm release build cache
     needs: bump-version
     runs-on: windows-latest
+    permissions:
+      actions: write
     steps:
       - uses: actions/checkout@v5
         with:
@@ -111,3 +117,7 @@ jobs:
       - name: cargo build --release
         working-directory: src-tauri
         run: cargo build --release
+      - name: Trigger release build
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: gh workflow run release.yml --ref "v${{ needs.bump-version.outputs.new_version }}"
