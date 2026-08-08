@@ -5,6 +5,18 @@ import { App } from './app';
 import { FolderPrompt } from './core/folder-prompt/folder-prompt';
 import { SettingsApi } from './core/settings-api/settings-api';
 
+function stubMatchMedia(): void {
+  vi.stubGlobal(
+    'matchMedia',
+    vi.fn().mockReturnValue({
+      matches: false,
+      media: '(prefers-color-scheme: dark)',
+      addEventListener: vi.fn(),
+      removeEventListener: vi.fn(),
+    }),
+  );
+}
+
 async function createApp(settingsApi: Partial<SettingsApi>): Promise<ComponentFixture<App>> {
   await TestBed.configureTestingModule({
     imports: [App],
@@ -22,6 +34,10 @@ function queryFolderPrompt(fixture: ComponentFixture<App>) {
 }
 
 describe('App', () => {
+  beforeEach(() => {
+    stubMatchMedia();
+  });
+
   it('should create the app', async () => {
     const fixture = await createApp({
       getCurrentDataFolder: vi.fn().mockResolvedValue('/home/user/saves'),
