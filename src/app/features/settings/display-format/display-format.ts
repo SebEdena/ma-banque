@@ -2,16 +2,16 @@ import { Component, inject } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideMonitor, lucideMoon, lucideSun } from '@ng-icons/lucide';
 
-import { CurrencyFormatPipe } from '../../../core/display-settings/currency-format.pipe';
-import { DateFormatPipe } from '../../../core/display-settings/date-format.pipe';
-import { DisplaySettingsService } from '../../../core/display-settings/display-settings';
+import { CurrencyFormatPipe } from '@core/display-settings/currency-format.pipe';
+import { DateFormatPipe } from '@core/display-settings/date-format.pipe';
+import { DisplaySettingsService } from '@core/display-settings/display-settings';
 import {
   CurrencyFormat,
   DateFormat,
   DisplaySettings,
-} from '../../../core/display-settings/display-settings.types';
-import { formatAmount, formatDate } from '../../../core/display-settings/format';
-import { Theme, ThemeMode } from '../../../core/theme/theme';
+} from '@core/display-settings/display-settings.types';
+import { formatAmount, formatDate } from '@core/display-settings/format';
+import { Theme, ThemeMode } from '@core/theme/theme';
 import { OptionToggleGroup, ToggleOption } from './option-toggle-group/option-toggle-group';
 
 interface Option<T> {

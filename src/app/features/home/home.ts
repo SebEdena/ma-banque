@@ -1,9 +1,9 @@
 import { Component, inject } from '@angular/core';
 import { RouterLink } from '@angular/router';
 
-import { CurrencyFormatPipe } from '../../core/display-settings/currency-format.pipe';
-import { DateFormatPipe } from '../../core/display-settings/date-format.pipe';
-import { DisplaySettingsService } from '../../core/display-settings/display-settings';
+import { CurrencyFormatPipe } from '@core/display-settings/currency-format.pipe';
+import { DateFormatPipe } from '@core/display-settings/date-format.pipe';
+import { DisplaySettingsService } from '@core/display-settings/display-settings';
 
 /**
  * TEMPORARY demo scaffolding, not the real home screen — `03-accounts.md`

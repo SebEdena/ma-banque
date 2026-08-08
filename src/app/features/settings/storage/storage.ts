@@ -5,7 +5,7 @@ import { open } from '@tauri-apps/plugin-dialog';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideFolder } from '@ng-icons/lucide';
 
-import { parseDataFolderLocationError, SettingsApi } from '../../../core/settings-api/settings-api';
+import { parseDataFolderLocationError, SettingsApi } from '@core/settings-api/settings-api';
 
 /**
  * The Settings screen's "Stockage" (storage) tab
