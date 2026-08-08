@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.2.1] - 2026-08-08
+
+### CI/CD
+
+- Warm the release cache in bump-version, revert to bundling both installers
+
 ## [0.2.0] - 2026-08-08
 
 ### Bug Fixes
@@ -12,6 +18,8 @@ All notable changes to this project are documented in this file.
 ### CI/CD
 
 - Stop compiling tauri-cli from source, dedupe Windows Rust builds
+- Push with RELEASE_PAT so tag push triggers Release
+- Bundle NSIS installer only
 
 ### Documentation
 
