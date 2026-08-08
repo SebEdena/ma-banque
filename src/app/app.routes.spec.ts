@@ -42,11 +42,11 @@ describe('app routes', () => {
 
   it('renders the Affichage (display-format) tab at /settings/display-format', async () => {
     const harness = await RouterTestingHarness.create('/settings/display-format');
-    expect(harness.routeNativeElement?.textContent).toContain('Format de date');
+    expect(harness.routeNativeElement?.textContent).toContain('Date · aperçu');
   });
 
   it('renders the Stockage (storage) tab at /settings/storage', async () => {
     const harness = await RouterTestingHarness.create('/settings/storage');
-    expect(harness.routeNativeElement?.textContent).toContain('Emplacement actuel');
+    expect(harness.routeNativeElement?.textContent).toContain('Emplacement du fichier de données');
   });
 });
