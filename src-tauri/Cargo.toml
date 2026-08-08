@@ -1,6 +1,6 @@
 [package]
 name = "ma-banque"
-version = "0.1.1"
+version = "0.2.0"
 description = "Personal banking management app"
 authors = ["Sebastien Viguier"]
 license = "UNLICENSED"
