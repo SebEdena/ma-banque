@@ -1,5 +1,6 @@
 import { Component, inject } from '@angular/core';
-import { HlmButtonImports } from '@spartan-ng/helm/button';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideMonitor, lucideMoon, lucideSun } from '@ng-icons/lucide';
 
 import { CurrencyFormatPipe } from '../../../core/display-settings/currency-format.pipe';
 import { DateFormatPipe } from '../../../core/display-settings/date-format.pipe';
@@ -9,7 +10,9 @@ import {
   DateFormat,
   DisplaySettings,
 } from '../../../core/display-settings/display-settings.types';
+import { formatAmount, formatDate } from '../../../core/display-settings/format';
 import { Theme, ThemeMode } from '../../../core/theme/theme';
+import { OptionToggleGroup, ToggleOption } from './option-toggle-group/option-toggle-group';
 
 interface Option<T> {
   value: T;
@@ -23,7 +26,8 @@ interface Option<T> {
  */
 @Component({
   selector: 'app-display-format',
-  imports: [...HlmButtonImports, DateFormatPipe, CurrencyFormatPipe],
+  imports: [OptionToggleGroup, DateFormatPipe, CurrencyFormatPipe, NgIcon],
+  providers: [provideIcons({ lucideSun, lucideMoon, lucideMonitor })],
   templateUrl: './display-format.html',
 })
 export class DisplayFormat {
@@ -33,22 +37,34 @@ export class DisplayFormat {
   protected readonly exampleDate = new Date();
   protected readonly exampleAmount = 1234.56;
 
-  protected readonly dateFormatOptions: Option<DateFormat>[] = [
-    { value: 'DMY', label: 'JJ/MM/AAAA' },
-    { value: 'YMD', label: 'AAAA-MM-JJ' },
-    { value: 'MDY', label: 'MM/JJ/AAAA' },
-  ];
+  protected readonly dateFormatOptions: ToggleOption<DateFormat>[] = (
+    [
+      { value: 'DMY', label: 'JJ/MM/AAAA' },
+      { value: 'YMD', label: 'AAAA-MM-JJ' },
+      { value: 'MDY', label: 'MM/JJ/AAAA' },
+    ] as const
+  ).map((option) => ({
+    value: option.value,
+    label: formatDate(this.exampleDate, option.value),
+    tooltip: option.label,
+  }));
 
-  protected readonly currencyFormatOptions: Option<CurrencyFormat>[] = [
-    { value: 'SYMBOL_AFTER', label: 'Montant puis symbole' },
-    { value: 'SYMBOL_BEFORE', label: 'Symbole puis montant' },
-    { value: 'ISO_CODE', label: 'Code ISO' },
-  ];
+  protected readonly currencyFormatOptions: ToggleOption<CurrencyFormat>[] = (
+    [
+      { value: 'SYMBOL_AFTER', label: 'Montant puis symbole' },
+      { value: 'SYMBOL_BEFORE', label: 'Symbole puis montant' },
+      { value: 'ISO_CODE', label: 'Code ISO' },
+    ] as const
+  ).map((option) => ({
+    value: option.value,
+    label: formatAmount(this.exampleAmount, option.value),
+    tooltip: option.label,
+  }));
 
-  protected readonly themeOptions: Option<ThemeMode>[] = [
-    { value: 'light', label: 'Clair' },
-    { value: 'dark', label: 'Sombre' },
-    { value: 'system', label: 'Système' },
+  protected readonly themeOptions: (Option<ThemeMode> & { icon: string })[] = [
+    { value: 'light', label: 'Clair', icon: 'lucideSun' },
+    { value: 'dark', label: 'Sombre', icon: 'lucideMoon' },
+    { value: 'system', label: 'Système', icon: 'lucideMonitor' },
   ];
 
   protected selectDateFormat(format: DateFormat): void {

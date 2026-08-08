@@ -1,46 +1,40 @@
-<section class="flex flex-col gap-8 p-6">
+<section class="flex flex-col gap-6">
   <div>
-    <h2 class="text-sm font-semibold">Format de date</h2>
-    <div class="mt-2 flex flex-wrap gap-2">
-      @for (option of dateFormatOptions; track option.value) {
-        <button
-          hlmBtn
-          type="button"
-          [variant]="displaySettings.dateFormat() === option.value ? 'default' : 'outline'"
-          (click)="selectDateFormat(option.value)"
-        >
-          {{ option.label }} — {{ exampleDate | dateFormat: option.value }}
-        </button>
-      }
-    </div>
+    <h2 class="mb-2 text-[12.5px] font-semibold text-muted-foreground">
+      Date · aperçu {{ exampleDate | dateFormat: displaySettings.dateFormat() }}
+    </h2>
+    <app-option-toggle-group
+      [options]="dateFormatOptions"
+      [active]="displaySettings.dateFormat()"
+      (optionSelected)="selectDateFormat($event)"
+    />
   </div>
 
   <div>
-    <h2 class="text-sm font-semibold">Format de devise</h2>
-    <div class="mt-2 flex flex-wrap gap-2">
-      @for (option of currencyFormatOptions; track option.value) {
-        <button
-          hlmBtn
-          type="button"
-          [variant]="displaySettings.currencyFormat() === option.value ? 'default' : 'outline'"
-          (click)="selectCurrencyFormat(option.value)"
-        >
-          {{ option.label }} — {{ exampleAmount | currencyFormat: option.value }}
-        </button>
-      }
-    </div>
+    <h2 class="mb-2 text-[12.5px] font-semibold text-muted-foreground">
+      Monétaire · aperçu {{ exampleAmount | currencyFormat: displaySettings.currencyFormat() }}
+    </h2>
+    <app-option-toggle-group
+      [options]="currencyFormatOptions"
+      [active]="displaySettings.currencyFormat()"
+      (optionSelected)="selectCurrencyFormat($event)"
+    />
   </div>
 
   <div>
-    <h2 class="text-sm font-semibold">Thème</h2>
-    <div class="mt-2 flex gap-2">
+    <h2 class="mb-2 text-[12.5px] font-semibold text-muted-foreground">Thème</h2>
+    <div class="flex gap-1 rounded-[10px] bg-muted p-1">
       @for (option of themeOptions; track option.value) {
         <button
-          hlmBtn
           type="button"
-          [variant]="theme.mode() === option.value ? 'default' : 'outline'"
+          class="flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2.5 text-[13px] font-semibold"
+          [class]="{
+            'bg-card text-foreground shadow-sm': theme.mode() === option.value,
+            'text-muted-foreground': theme.mode() !== option.value,
+          }"
           (click)="selectTheme(option.value)"
         >
+          <ng-icon [name]="option.icon" size="15" />
           {{ option.label }}
         </button>
       }
