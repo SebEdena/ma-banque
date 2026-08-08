@@ -9,8 +9,16 @@ describe('app routes', () => {
     // The home route lazy-loads Home, which calls the real @tauri-apps/api
     // invoke() — stub the global it reads from rather than mocking the
     // module itself, since module-level vi.mock doesn't reliably apply to
-    // this lazily-loaded chunk.
-    vi.stubGlobal('__TAURI_INTERNALS__', { invoke: vi.fn().mockResolvedValue(null) });
+    // this lazily-loaded chunk. get_display_settings needs a real-shaped
+    // response (unlike the other commands, `null` isn't a valid
+    // DisplaySettings and makes DisplaySettingsService's constructor throw).
+    vi.stubGlobal('__TAURI_INTERNALS__', {
+      invoke: vi.fn((cmd: string) =>
+        cmd === 'get_display_settings'
+          ? Promise.resolve({ date_format: 'DMY', currency_format: 'SYMBOL_AFTER' })
+          : Promise.resolve(null),
+      ),
+    });
     TestBed.configureTestingModule({
       providers: [provideRouter(routes)],
     });
