@@ -17,12 +17,12 @@ Out of scope: the "Postes" tab's real content (`04-categories.md`), the "Stockag
 
 **Status:** done
 
-- [ ] `Settings` renders a left sub-nav with Postes / Affichage / Stockage entries
-- [ ] The existing "Postes" (categories) placeholder is preserved as-is under the new shell
-- [ ] `SettingsApi` wraps `get_display_settings`/`update_display_settings` (and is ready for ticket 04 to extend with the folder commands)
-- [ ] Affichage tab shows 3 date presets and 3 currency presets, each with a live-formatted example, and selecting one persists via `update_display_settings`
-- [ ] Theme service supports an explicit "system" mode in addition to light/dark
-- [ ] Affichage tab's Clair/Sombre/Système control is bound to the theme service
-- [ ] `DisplaySettingsService` exposes signal-backed `date_format`/`currency_format` and an amount-formatting function operating on already-decimal numbers
-- [ ] Component tests (Vitest) with mocked `SettingsApi`: format controls call `update_display_settings`, theme control drives the theme service
-- [ ] Folder-action and settings-update errors surface as toasts, not silent failures
+- [x] `Settings` renders a left sub-nav with Postes / Affichage / Stockage entries
+- [x] The existing "Postes" (categories) placeholder is preserved as-is under the new shell
+- [x] `SettingsApi` wraps `get_display_settings`/`update_display_settings` (and is ready for ticket 04 to extend with the folder commands)
+- [x] Affichage tab shows 3 date presets and 3 currency presets, each with a live-formatted example, and selecting one persists via `update_display_settings`
+- [x] Theme service supports an explicit "system" mode in addition to light/dark
+- [x] Affichage tab's Clair/Sombre/Système control is bound to the theme service
+- [x] `DisplaySettingsService` exposes signal-backed `date_format`/`currency_format` and an amount-formatting function operating on already-decimal numbers
+- [x] Component tests (Vitest) with mocked `SettingsApi`: format controls call `update_display_settings`, theme control drives the theme service
+- [x] Folder-action and settings-update errors surface as toasts, not silent failures

@@ -15,11 +15,11 @@ Out of scope: the Settings screen's Stockage tab and its Move/Open-a-different-f
 
 **Status:** done
 
-- [ ] A top-level guard/resolver calls `get_current_data_folder` before the routed shell renders
-- [ ] On `null`/error, a blocking prompt component renders instead of the routed shell, offering "Use default location" and "Choose a folder"
-- [ ] "Use default location" calls `set_default_data_folder`; "Choose a folder" opens the OS folder picker (Tauri dialog plugin) and calls `open_data_folder`
-- [ ] Once either action succeeds, normal routing proceeds to the shell
-- [ ] Errors from either command surface as a toast
-- [ ] `Home`'s temporary `invoke('get_current_data_folder')` proof and its plain-text rendering are removed
-- [ ] Component test (Vitest): prompt renders when `get_current_data_folder` resolves to `null`/rejects, and each choice calls the right `SettingsApi`/folder command
-- [ ] e2e scenario (WebdriverIO): fresh `.dev-data/` → app launches → prompt appears → choosing default location proceeds to the shell
+- [x] A top-level guard/resolver calls `get_current_data_folder` before the routed shell renders
+- [x] On `null`/error, a blocking prompt component renders instead of the routed shell, offering "Use default location" and "Choose a folder"
+- [x] "Use default location" calls `set_default_data_folder`; "Choose a folder" opens the OS folder picker (Tauri dialog plugin) and calls `open_data_folder`
+- [x] Once either action succeeds, normal routing proceeds to the shell
+- [x] Errors from either command surface as a toast
+- [x] `Home`'s temporary `invoke('get_current_data_folder')` proof and its plain-text rendering are removed
+- [x] Component test (Vitest): prompt renders when `get_current_data_folder` resolves to `null`/rejects, and each choice calls the right `SettingsApi`/folder command
+- [x] e2e scenario (WebdriverIO): fresh `.dev-data/` → app launches → prompt appears → choosing default location proceeds to the shell
