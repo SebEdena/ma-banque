@@ -15,9 +15,9 @@ Out of scope: the first-launch/unreachable-folder prompt (ticket 03, though both
 
 **Status:** done
 
-- [ ] Stockage tab displays the current data folder path
-- [ ] "Move data folder" opens a folder picker and calls `move_data_folder`
-- [ ] "Open a different folder" opens a folder picker and calls `open_data_folder`
-- [ ] The destination-occupied error (move) and invalid-database error (open) surface as toasts, verbatim
-- [ ] `SettingsApi` is extended with the folder commands
-- [ ] Component tests (Vitest) with mocked `SettingsApi`: each action calls the right method and surfaces returned errors verbatim
+- [x] Stockage tab displays the current data folder path
+- [x] "Move data folder" opens a folder picker and calls `move_data_folder`
+- [x] "Open a different folder" opens a folder picker and calls `open_data_folder`
+- [x] The destination-occupied error (move) and invalid-database error (open) surface as toasts, verbatim
+- [x] `SettingsApi` is extended with the folder commands
+- [x] Component tests (Vitest) with mocked `SettingsApi`: each action calls the right method and surfaces returned errors verbatim

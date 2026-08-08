@@ -15,11 +15,11 @@ Out of scope: any Settings screen UI (ticket 02), the first-launch/unreachable-f
 
 **Status:** done
 
-- [ ] `settings` table has a default row (or default key/value rows) present on a fresh database, inserted via a migration
-- [ ] `domain::settings` defines `DisplaySettings` (date/currency format as enum-like values) and any needed error type
-- [ ] `usecases::settings` exposes `get_display_settings` and `update_display_settings`, tested against a hand-written in-memory fake repository (no `mockall`)
-- [ ] `infra::settings::SqliteSettingsRepository` implements the domain repository trait against SQLite
-- [ ] `commands::settings` exposes Tauri commands for get/update, calling the use cases
-- [ ] SQLite integration tests: default row present on a fresh database, update persists and is re-readable
-- [ ] `cargo fmt --check`, `cargo clippy -- -D warnings`, and `cargo test` all pass locally
-- [ ] No business entities or unrelated modules are touched
+- [x] `settings` table has a default row (or default key/value rows) present on a fresh database, inserted via a migration
+- [x] `domain::settings` defines `DisplaySettings` (date/currency format as enum-like values) and any needed error type
+- [x] `usecases::settings` exposes `get_display_settings` and `update_display_settings`, tested against a hand-written in-memory fake repository (no `mockall`)
+- [x] `infra::settings::SqliteSettingsRepository` implements the domain repository trait against SQLite
+- [x] `commands::settings` exposes Tauri commands for get/update, calling the use cases
+- [x] SQLite integration tests: default row present on a fresh database, update persists and is re-readable
+- [x] `cargo fmt --check`, `cargo clippy -- -D warnings`, and `cargo test` all pass locally
+- [x] No business entities or unrelated modules are touched
