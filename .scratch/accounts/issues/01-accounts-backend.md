@@ -16,16 +16,16 @@ Out of scope: any home-screen or modal UI (tickets 03/04), the archived-view res
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `accounts` and minimal `entries` tables exist via migrations, with `opening_balance`/`amount` as cents `INTEGER`
-- [ ] `domain::account`/`usecases::account`/`infra::account`/`commands::account` implement create/update/archive/unarchive/delete/list_active/list_archived
-- [ ] `create_account` writes the account and its system entry in one transaction
-- [ ] `update_account` rejects an opening-date change landing on/after the first non-system entry, and otherwise updates the system entry's date/amount alongside the account row
-- [ ] `delete_account` returns `AccountError::HasNonSystemEntries` when non-system entries exist, and succeeds otherwise
-- [ ] Balance = signed sum of entries for the account
-- [ ] `AccountError` is a `thiserror` enum, `#[derive(Serialize)]`
-- [ ] Commands convert cents↔major-unit at the boundary; use cases (not Angular) own the `f64 → cents` rounding decision
-- [ ] Use-case tests against hand-written in-memory fakes (no `mockall`), covering create, opening-date validation, archive/unarchive, delete guard (blocked and allowed cases)
-- [ ] SQLite integration tests for `SqliteAccountRepository` and the minimal entry repository methods
-- [ ] `cargo fmt --check`, `cargo clippy -- -D warnings`, and `cargo test` all pass locally
+- [x] `accounts` and minimal `entries` tables exist via migrations, with `opening_balance`/`amount` as cents `INTEGER`
+- [x] `domain::account`/`usecases::account`/`infra::account`/`commands::account` implement create/update/archive/unarchive/delete/list_active/list_archived
+- [x] `create_account` writes the account and its system entry in one transaction
+- [x] `update_account` rejects an opening-date change landing on/after the first non-system entry, and otherwise updates the system entry's date/amount alongside the account row
+- [x] `delete_account` returns `AccountError::HasNonSystemEntries` when non-system entries exist, and succeeds otherwise
+- [x] Balance = signed sum of entries for the account
+- [x] `AccountError` is a `thiserror` enum, `#[derive(Serialize)]`
+- [x] Commands convert cents↔major-unit at the boundary; use cases (not Angular) own the `f64 → cents` rounding decision
+- [x] Use-case tests against hand-written in-memory fakes (no `mockall`), covering create, opening-date validation, archive/unarchive, delete guard (blocked and allowed cases)
+- [x] SQLite integration tests for `SqliteAccountRepository` and the minimal entry repository methods
+- [x] `cargo fmt --check`, `cargo clippy -- -D warnings`, and `cargo test` all pass locally

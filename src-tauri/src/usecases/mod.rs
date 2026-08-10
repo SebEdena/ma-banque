@@ -4,5 +4,6 @@
 //! must never depend on `infra` or `commands`, and must never reference a
 //! SQLite connection directly — repositories are consumed as `&dyn Trait`.
 
+pub mod account;
 pub mod data_folder_location;
 pub mod settings;
