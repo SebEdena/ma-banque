@@ -26,7 +26,7 @@ pub struct StartupDbError(pub Mutex<Option<DbOpenError>>);
 /// Number of `.sql` files embedded in [`migrations`] — kept in sync with
 /// that function so the downgrade guard can tell "older than this" apart
 /// from "newer than this" without a public accessor on `Migrations`.
-const MIGRATION_COUNT: usize = 2;
+const MIGRATION_COUNT: usize = 4;
 
 /// How many pre-migration backups to keep (oldest dropped first).
 const MAX_BACKUPS: usize = 3;
@@ -44,6 +44,8 @@ fn migrations() -> Migrations<'static> {
     let ms = vec![
         M::up(include_str!("../../migrations/0001_create_settings.sql")),
         M::up(include_str!("../../migrations/0002_settings_defaults.sql")),
+        M::up(include_str!("../../migrations/0003_create_accounts.sql")),
+        M::up(include_str!("../../migrations/0004_create_entries.sql")),
     ];
     debug_assert_eq!(ms.len(), MIGRATION_COUNT);
     Migrations::new(ms)
@@ -88,6 +90,17 @@ pub fn placeholder_connection() -> SharedConnection {
     Arc::new(Mutex::new(
         Connection::open_in_memory().expect("in-memory sqlite connection should always open"),
     ))
+}
+
+/// A fresh, fully migrated in-memory database — one per call, so repository
+/// integration tests never share state.
+#[cfg(test)]
+pub fn migrated_in_memory_connection() -> SharedConnection {
+    let mut conn = Connection::open_in_memory().expect("in-memory sqlite connection should open");
+    migrations()
+        .to_latest(&mut conn)
+        .expect("migrations should apply cleanly");
+    Arc::new(Mutex::new(conn))
 }
 
 fn open_and_migrate_connection(db_path: &Path) -> Result<Connection, DbOpenError> {

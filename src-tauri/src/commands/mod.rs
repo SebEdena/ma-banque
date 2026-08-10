@@ -6,6 +6,7 @@
 //! serialized back to Angular — no internal error details should leak past
 //! this boundary.
 
+pub mod account;
 pub mod data_folder_location;
 pub mod db;
 pub mod settings;

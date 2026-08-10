@@ -12,10 +12,14 @@ mod usecases;
 
 use tauri::Manager;
 
+use domain::account::DynAccountRepository;
 use domain::data_folder_location::{DataFolderLocationRepository, DynDataFolderLocationRepository};
+use domain::entry::DynEntryRepository;
 use domain::settings::DynSettingsRepository;
+use infra::account::SqliteAccountRepository;
 use infra::data_folder_location::FsDataFolderLocationRepository;
 use infra::db::StartupDbError;
+use infra::entry::SqliteEntryRepository;
 use infra::settings::SqliteSettingsRepository;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -27,6 +31,13 @@ pub fn run() {
             commands::data_folder_location::set_default_data_folder,
             commands::data_folder_location::open_data_folder,
             commands::data_folder_location::move_data_folder,
+            commands::account::list_active_accounts,
+            commands::account::list_archived_accounts,
+            commands::account::create_account,
+            commands::account::update_account,
+            commands::account::archive_account,
+            commands::account::unarchive_account,
+            commands::account::delete_account,
             commands::db::get_startup_db_error,
             commands::settings::get_display_settings,
             commands::settings::update_display_settings,
@@ -90,6 +101,10 @@ pub fn run() {
             // first `manage()` call for a given type.
             let settings_repo = SqliteSettingsRepository::new(shared_conn.clone());
             app.manage(Box::new(settings_repo) as DynSettingsRepository);
+            let account_repo = SqliteAccountRepository::new(shared_conn.clone());
+            app.manage(Box::new(account_repo) as DynAccountRepository);
+            let entry_repo = SqliteEntryRepository::new(shared_conn.clone());
+            app.manage(Box::new(entry_repo) as DynEntryRepository);
             app.manage(shared_conn);
 
             app.manage(StartupDbError(std::sync::Mutex::new(startup_error)));
