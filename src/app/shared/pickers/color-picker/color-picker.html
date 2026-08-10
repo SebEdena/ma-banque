@@ -1,0 +1,17 @@
+<div class="flex flex-wrap gap-2" role="group" aria-label="Couleur">
+  @for (swatch of swatches; track swatch.value) {
+    <button
+      type="button"
+      data-testid="color-swatch"
+      [attr.data-value]="swatch.value"
+      [attr.aria-label]="swatch.label"
+      [attr.aria-pressed]="swatch.value === value()"
+      [style.background-color]="swatch.value"
+      class="size-7 rounded-full outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px"
+      [class]="{
+        'ring-2 ring-foreground ring-offset-2 ring-offset-background': swatch.value === value(),
+      }"
+      (click)="selected.emit(swatch.value)"
+    ></button>
+  }
+</div>
