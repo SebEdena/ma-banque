@@ -24,7 +24,7 @@ A user re-asking for a feature is not necessarily asking you to start it — a p
 - **Issue progress**: re-read every issue file's `**Status:**` and `**Blocked by:**` under `.scratch/<feature>/issues/` — don't trust memory or a prior summary. Issues already `done` are implemented and committed; never re-run `/implement` on them. Resume from the first issue that is not `done` and passes the Safeguards above.
 - **In-flight work inside the worktree**: before resuming, check the worktree's `git status` and `git log` for uncommitted changes, staged-but-uncommitted work, or a commit that doesn't match any issue's expected scope — a mid-`/implement` interruption can leave the tree in a half-finished state that isn't reflected in any issue's `Status:`. Investigate and reconcile (finish, discard, or re-stage as appropriate) before continuing, rather than layering new work on top blindly.
 - **Pull request**: run `gh pr list --head <feature-branch>`. If an open PR already exists for the branch, don't create a duplicate — resume by spawning a pr-agent for the existing PR. If it's already merged, treat the feature as complete and report that instead of resuming implementation.
-- Once state is reconstructed, re-spawn a feature agent (and pr-agent, if applicable) with this context and continue the Workflow below from the first non-`done`, startable issue — do not restart the feature from its first issue.
+- Once state is reconstructed, continue the Workflow below from the first non-`done`, startable issue — do not restart the feature from its first issue. This always means spawning a **fresh** issue agent for that issue; issue agents are never kept alive between issues, so there is never a stale issue-agent session to resume. If all issues are `done` and a PR is already open, resume by spawning a pr-agent for it (and a fresh feature agent seeded from `.scratch/<feature>/notes.md`, if no feature-agent session for this feature is still alive to handle feedback).
 
 # Safeguards
 
@@ -33,13 +33,14 @@ Before starting any unit of work — a feature or an issue — check whether it'
 - **Feature-level blocking**: before creating a feature's worktree or spawning its feature agent, read that feature's spec header (`docs/spec/<NN>-<slug>.md`) for a "Blocked by" declaration. If the feature is blocked by another feature, do not create its worktree or spawn its agent until every issue in the blocking feature's `.scratch/<feature>/issues/` is `done` **and** that feature's pull request is merged — a blocking feature isn't finished just because its issues say `done` if the PR itself is still open.
 - **Issue-level status**: an issue is startable only if its `**Status:**` is `ready-for-agent` (or an in-progress status already set by a prior run of this workflow) — see `docs/agents/triage-labels.md`. Never run `/implement` on an issue whose status is `needs-triage`, `needs-info`, `ready-for-human`, `wontfix`, or anything else outside the startable set; skip it.
 - **Issue-level blocking**: an issue is startable only if every ticket named in its `**Blocked by:**` line (see `docs/agents/issue-tracker.md`) — whether in this feature's own issue list or another feature's — is `done`. If any blocker isn't `done` yet, skip that issue and re-check it after the next issue completes, rather than starting it out of order.
-- If every remaining issue for a feature is either blocked or not in a startable status, the feature agent stops and reports this to the manager instead of looping or forcing a start.
+- If every remaining issue for a feature is either blocked or not in a startable status, the manager stops spawning issue agents for that feature and reports this to the user instead of looping or forcing a start.
 
 # Actors
 
 - The user (user): you will exchange with him directly.
 - You, the managing agent (manager): you will manage the workflow and coordinate the work of the other agents.
-- The feature agent (agent): you will spawn a new all-purpose agent to handle the implementation of the feature. When multiple features are requested, spawn one feature agent per feature and run them concurrently.
+- The issue agent (agent): a short-lived all-purpose agent the manager spawns fresh for each single non-`done` issue in a feature. It implements exactly one issue, reports completion, and is then discarded — never reused for the next issue and never kept idle. This bounds its context to one issue's worth of work (spec + one issue file + `/implement`'s own review-subagent output), instead of accumulating across a whole feature. `/compact` is not available to subagents, so per-issue context has to be bounded this way rather than by compacting.
+- The feature agent (agent): a longer-lived all-purpose agent the manager spawns once per feature, only after every issue is `done` (or blocked/not-startable). Seeded with a pointer to `.scratch/<feature>/notes.md`, not a carried-over implementation history. It creates the pull request, then stays idle to be resumed for PR-feedback handling across that PR's review lifetime. When multiple features are requested, run each feature's issue-agent loop and feature agent independently and concurrently.
 - The pull request agent (pr-agent): you will spawn a small agent to monitor the pull requests, with the trigger contract below.
 
 ## Pr-agent trigger contract
@@ -58,22 +59,25 @@ Before starting any unit of work — a feature or an issue — check whether it'
 - manager: Make sure the local repository is up to date with the remote repository.
 - manager: For each feature the user wants built, apply the feature-level blocking safeguard above. Run every feature that's actually startable in parallel with any other feature currently in progress; leave blocked features unstarted and re-check them each time another feature's PR merges.
   - manager: Create a new git worktree for the feature with the name of the feature, and create a new branch for the feature — or reuse the existing worktree/branch/PR if the resume check above found this feature already in progress. Do not switch to the new branch.
-  - manager: Spawn a new all-purpose agent to handle the feature implementation on the new worktree and the new branch. A feature consists of multiple issues.
-    - agent: For each issue file in `@.scratch/<feature>/issues/` whose `**Status:**` is not `done`, in order, applying the issue-level safeguards above (status must be startable, `Blocked by:` must all be `done`):
+  - manager: A feature consists of multiple issues. For each issue file in `@.scratch/<feature>/issues/` whose `**Status:**` is not `done`, in order, applying the issue-level safeguards above (status must be startable, `Blocked by:` must all be `done`):
+    - manager: Spawn a fresh issue agent for that one issue, on the feature's worktree/branch. Seed its prompt with: the spec, the single issue file, and a pointer to `.scratch/<feature>/notes.md` (it must read this before starting, for decisions earlier issues left behind).
       - agent: Run `/implement` on that issue (it runs `/tdd`, `/code-review`, and commits with Conventional Commits format on your behalf).
       - agent: Format and lint the code according to the project's standards.
       - agent: Update the issue file's `**Status:**` to `done` once `/implement` completes for it, and push the commit to the remote repository.
-      - agent: Before starting the next issue, write any decision from this issue that other issues will depend on (shared components, naming conventions, schema choices not obvious from the diff) as a bullet under `## Cross-issue notes` in `.scratch/<feature>/notes.md` (create the file if it doesn't exist yet). Then run `/compact` — the commit, the push, and the issue's `Status:` are already durable on disk, so nothing is lost.
-    - agent: Repeat until every issue file for the feature has `**Status:** done`, or until every remaining issue is blocked/not startable (see Safeguards).
+      - agent: Write any decision from this issue that other issues will depend on (shared components, naming conventions, schema choices not obvious from the diff) as a bullet under `## Cross-issue notes` in `.scratch/<feature>/notes.md` (create the file if it doesn't exist yet).
+      - agent: Report completion to the manager. This issue agent's job is now finished — the manager does not keep it around or reuse it for the next issue.
+    - manager: Before spawning the next issue agent, verify on disk that the issue's `Status:` is `done` and the commit is on the remote branch — don't just trust the report.
+  - manager: Repeat until every issue file for the feature has `**Status:** done`, or until every remaining issue is blocked/not startable (see Safeguards).
+  - manager: Spawn the feature agent for this feature, seeded with a pointer to `.scratch/<feature>/notes.md` and the branch state — not a carried-over implementation history, since it wasn't the agent that did any of the issue work.
     - agent: Create a pull request for the feature branch and notify you, the manager, that the feature is ready for review. Report to the manager the link to the pull request and a summary of the implementation.
-    - agent: Before going idle, run `/compact`, retaining only the PR link, branch/worktree names, and a pointer to `.scratch/<feature>/notes.md`.
+    - agent: Go idle, ready to be resumed for PR feedback. No compaction step is needed here — the agent started fresh at spawn time, so there's nothing accumulated to compact.
   - manager: Spawn a pr-agent to monitor that feature's pull request once the feature agent reports it is open.
-  - manager: Keep that feature's feature-agent session alive (idle, not terminated) so it can be resumed — from its compacted context plus `.scratch/<feature>/notes.md` — when its pr-agent reports comments or requested changes.
+  - manager: Keep that feature's feature-agent session alive (idle, not terminated) so it can be resumed — from its own context plus `.scratch/<feature>/notes.md` — when its pr-agent reports comments or requested changes.
   - manager: Record the feature's worktree, branch, feature-agent, and pr-agent so you can act on this feature later without disturbing any other feature in progress.
 - manager: Give the user a summary of each feature's implementation and the link to its pull request for review, as each becomes ready.
 - manager: Let humans review and comment on the pull requests.
 - manager: Listen to each feature's pr-agent for comments, requested changes, and status on its pull request. When a pull request is merged, delete that feature's worktree and branch and stop that feature's agents. Continue tracking any other features still in progress.
-  - agent: After addressing reviewer feedback and pushing the fix, run `/compact` again before returning to idle, keeping only the PR link and outstanding-comment state.
+  - agent: After addressing reviewer feedback and pushing the fix, return to idle. No compaction step is needed — the feature agent's lifetime only ever spans PR-creation through this PR's review rounds, never the issues' implementation work, so its context stays bounded on its own.
 
 # Worktree cleanup
 
