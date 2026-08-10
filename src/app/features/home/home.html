@@ -1,11 +1,87 @@
-<p>Accueil — à venir</p>
+<header class="mb-5 flex items-center justify-between gap-4">
+  <h1 class="text-lg font-bold">{{ showingArchived() ? 'Comptes archivés' : 'Comptes' }}</h1>
 
-<!-- TEMPORARY demo block — see the class doc on `Home`. -->
-<section class="mt-4 flex flex-col items-start gap-2">
-  <p class="text-muted-foreground text-xs">Démo — aperçu des réglages d'affichage</p>
-  <p data-testid="demo-date">{{ sampleDate | dateFormat: displaySettings.dateFormat() }}</p>
-  <p data-testid="demo-amount">
-    {{ sampleAmount | currencyFormat: displaySettings.currencyFormat() }}
+  @if (archivedAccounts().length > 0 || showingArchived()) {
+    <button
+      type="button"
+      data-testid="archived-toggle"
+      class="rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground outline-none transition-all hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+      (click)="toggleArchived()"
+    >
+      @if (showingArchived()) {
+        Comptes actifs
+      } @else {
+        Comptes archivés ({{ archivedAccounts().length }})
+      }
+    </button>
+  }
+</header>
+
+@if (shownAccounts().length === 0) {
+  <p data-testid="accounts-empty" class="py-8 text-center text-sm text-muted-foreground">
+    @if (showingArchived()) {
+      Aucun compte archivé.
+    } @else {
+      Aucun compte pour l'instant.
+    }
   </p>
-  <a routerLink="/settings/display-format" class="text-sm underline">Réglages</a>
-</section>
+} @else {
+  <ul class="grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
+    @for (account of shownAccounts(); track account.id) {
+      <li
+        data-testid="account-card"
+        [attr.data-account-id]="account.id"
+        class="relative flex flex-col gap-3 rounded-[14px] border border-border bg-card p-4 transition-all focus-within:ring-3 focus-within:ring-ring/50 hover:border-ring"
+      >
+        <div class="flex items-center gap-2.5">
+          <span
+            class="flex size-8 shrink-0 items-center justify-center rounded-[10px] text-white"
+            [style.background-color]="account.color"
+            [attr.data-testid]="'account-icon'"
+          >
+            <ng-icon [name]="account.icon" size="16" />
+          </span>
+
+          <!--
+            Stretched over the whole card (`before:absolute before:inset-0`)
+            so clicking anywhere on the card navigates, while staying a real
+            link rather than a click handler on a div — the archive button
+            below sits above it via `relative`.
+          -->
+          <a
+            data-testid="account-link"
+            class="flex-1 truncate font-semibold outline-none before:absolute before:inset-0 before:content-['']"
+            [routerLink]="['/account', account.id]"
+          >
+            {{ account.name }}
+          </a>
+
+          @if (!account.archived) {
+            <button
+              type="button"
+              data-testid="archive-account"
+              aria-label="Archiver le compte"
+              class="relative rounded-lg p-1.5 text-muted-foreground outline-none transition-all hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+              (click)="archive(account.id)"
+            >
+              <ng-icon name="lucideArchive" size="15" />
+            </button>
+          }
+        </div>
+
+        <p data-testid="account-balance" class="font-mono text-xl font-semibold">
+          {{ account.balance | currencyFormat: displaySettings.currencyFormat() }}
+        </p>
+
+        <p data-testid="account-last-entry" class="text-xs text-muted-foreground">
+          @if (account.last_entry_date) {
+            Dernière écriture ·
+            {{ parseIsoDate(account.last_entry_date) | dateFormat: displaySettings.dateFormat() }}
+          } @else {
+            Aucune écriture
+          }
+        </p>
+      </li>
+    }
+  </ul>
+}

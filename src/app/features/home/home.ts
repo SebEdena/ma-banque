@@ -1,25 +1,55 @@
-import { Component, inject } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
+import { NgIcon, provideIcons } from '@ng-icons/core';
+import { lucideArchive } from '@ng-icons/lucide';
+import { toast } from '@spartan-ng/brain/sonner';
 
+import { parseAccountError, parseIsoDate } from '@core/accounts-api/accounts-api';
+import { AccountsStore } from '@core/accounts-api/accounts-store';
 import { CurrencyFormatPipe } from '@core/display-settings/currency-format.pipe';
 import { DateFormatPipe } from '@core/display-settings/date-format.pipe';
 import { DisplaySettingsService } from '@core/display-settings/display-settings';
+import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
 
 /**
- * TEMPORARY demo scaffolding, not the real home screen — `03-accounts.md`
- * owns that. The sample date/amount and the Settings link exist only so the
- * Affichage tab's presets can be seen taking effect outside Settings; delete
- * this component's body when the real home screen lands.
+ * The home screen (business requirements §4.1): every active account as a
+ * card, with archived accounts folded behind a count that toggles the list.
+ *
+ * Deliberately shows no reconciliation indicator — see the "No reconciliation
+ * indicator on the home screen" decision in `docs/spec/03-accounts.md`, which
+ * settles this against a literal reading of §4.1. Nothing later adds one.
  */
 @Component({
   selector: 'app-home',
-  imports: [RouterLink, DateFormatPipe, CurrencyFormatPipe],
+  imports: [RouterLink, NgIcon, DateFormatPipe, CurrencyFormatPipe],
   templateUrl: './home.html',
   styleUrl: './home.css',
+  providers: [provideCatalogIcons(), provideIcons({ lucideArchive })],
+  changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Home {
+  private readonly accounts = inject(AccountsStore);
+
   protected readonly displaySettings = inject(DisplaySettingsService);
 
-  protected readonly sampleDate = new Date(2026, 2, 5);
-  protected readonly sampleAmount = 1234.56;
+  protected readonly showingArchived = signal(false);
+  protected readonly activeAccounts = this.accounts.active;
+  protected readonly archivedAccounts = this.accounts.archived;
+  protected readonly shownAccounts = computed(() =>
+    this.showingArchived() ? this.archivedAccounts() : this.activeAccounts(),
+  );
+
+  protected readonly parseIsoDate = parseIsoDate;
+
+  protected toggleArchived(): void {
+    this.showingArchived.update((showing) => !showing);
+  }
+
+  protected async archive(id: number): Promise<void> {
+    try {
+      await this.accounts.archive(id);
+    } catch (error) {
+      toast.error(parseAccountError(error));
+    }
+  }
 }

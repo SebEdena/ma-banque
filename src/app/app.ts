@@ -4,13 +4,14 @@ import { HlmToasterImports } from '@spartan-ng/helm/sonner';
 
 import { FolderPrompt } from './core/folder-prompt/folder-prompt';
 import { SettingsApi } from './core/settings-api/settings-api';
+import { Sidebar } from './core/sidebar/sidebar';
 import { Theme } from './core/theme/theme';
 
 type DataFolderState = 'loading' | 'ready' | 'blocked';
 
 @Component({
   selector: 'app-root',
-  imports: [RouterOutlet, FolderPrompt, ...HlmToasterImports],
+  imports: [RouterOutlet, FolderPrompt, Sidebar, ...HlmToasterImports],
   templateUrl: './app.html',
   styleUrl: './app.css',
 })

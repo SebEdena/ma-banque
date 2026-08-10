@@ -64,3 +64,26 @@ Both pickers are `input` + `output` (not `model`), matching `OptionToggleGroup`'
 a `string | null` input, `selected` emits the chosen `string`. They are presentational and hold no form state —
 the consuming form owns the value. Test hooks: `data-testid="icon-search" | "icon-option" | "icon-empty"` and
 `data-testid="color-swatch"`, each option carrying `data-value` and `aria-pressed`.
+
+### From 03 — Home screen: account cards + archive toggle
+
+- **`core/accounts-api/accounts-api.ts`** — `AccountsApi` (the `invoke()` seam every test mocks, never `invoke()`
+  itself), the `Account` and `AccountInput` wire interfaces, `parseAccountError` (maps each error `kind` to French,
+  mirroring `parseSettingsError`), and `parseIsoDate` (backend ISO string → **local**-midnight `Date`; plain
+  `new Date('2026-01-15')` parses as UTC and renders a day early in negative-offset zones).
+- **`core/accounts-api/accounts-store.ts`** — `AccountsStore`, signal-backed: `active()`, `archived()`, `loaded`
+  (a promise, like `DisplaySettingsService.loaded` — await it in tests instead of guessing microtasks),
+  `reload()`, `archive(id)`. **Both the home screen and the sidebar rail read these same signals** rather than
+  fetching independently; that's what satisfies the spec's "the two navigation surfaces never disagree".
+  Mutations reload both lists. Tickets 04/05 extend `AccountsApi` + this store with create/update/unarchive/delete.
+- **A persistent navigation shell did not exist and was built here.** The spec calls the sidebar's account rail
+  "already part of the persistent navigation shell", but `app.html` rendered only a bare `<router-outlet/>`, and
+  `02-setup-frontend-ci.md` never built one. Added `core/sidebar/` (home link, one rail entry per active account,
+  settings link) and `App` now wraps the routed outlet in a flex shell. Kept to what the rail needs — no
+  breadcrumbs, no collapsing, no header.
+- Home's temporary data-folder proof is gone; `app.routes.spec.ts` now asserts on "Comptes" instead of "Accueil",
+  and its `__TAURI_INTERNALS__` stub answers the two list commands with arrays.
+- `app.spec.ts` now stubs `AccountsApi`, since the ready-state shell renders the sidebar.
+- Test hooks on Home: `account-card` (+`data-account-id`), `account-link`, `account-balance`,
+  `account-last-entry`, `archive-account`, `archived-toggle`, `accounts-empty`. On the sidebar:
+  `sidebar-account` (+`data-account-id`), `sidebar-home`, `sidebar-settings`.

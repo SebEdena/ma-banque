@@ -11,13 +11,20 @@ describe('app routes', () => {
     // module itself, since module-level vi.mock doesn't reliably apply to
     // this lazily-loaded chunk. get_display_settings needs a real-shaped
     // response (unlike the other commands, `null` isn't a valid
-    // DisplaySettings and makes DisplaySettingsService's constructor throw).
+    // DisplaySettings and makes DisplaySettingsService's constructor throw);
+    // the account-list commands likewise have to answer with arrays.
     vi.stubGlobal('__TAURI_INTERNALS__', {
-      invoke: vi.fn((cmd: string) =>
-        cmd === 'get_display_settings'
-          ? Promise.resolve({ date_format: 'DMY', currency_format: 'SYMBOL_AFTER' })
-          : Promise.resolve(null),
-      ),
+      invoke: vi.fn((cmd: string) => {
+        switch (cmd) {
+          case 'get_display_settings':
+            return Promise.resolve({ date_format: 'DMY', currency_format: 'SYMBOL_AFTER' });
+          case 'list_active_accounts':
+          case 'list_archived_accounts':
+            return Promise.resolve([]);
+          default:
+            return Promise.resolve(null);
+        }
+      }),
     });
     TestBed.configureTestingModule({
       providers: [provideRouter(routes)],
@@ -30,7 +37,7 @@ describe('app routes', () => {
 
   it('redirects the empty path to home', async () => {
     const harness = await RouterTestingHarness.create('/');
-    expect(harness.routeNativeElement?.textContent).toContain('Accueil');
+    expect(harness.routeNativeElement?.textContent).toContain('Comptes');
   });
 
   it('renders the account placeholder for a given account id', async () => {

@@ -2,8 +2,23 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
 import { App } from './app';
+import { AccountsApi } from './core/accounts-api/accounts-api';
 import { FolderPrompt } from './core/folder-prompt/folder-prompt';
 import { SettingsApi } from './core/settings-api/settings-api';
+
+/**
+ * The routed shell renders the sidebar, whose account rail reads the account
+ * lists — stubbed here so these tests stay about the data-folder gate.
+ */
+function stubAccountsApi() {
+  return {
+    provide: AccountsApi,
+    useValue: {
+      listActiveAccounts: vi.fn().mockResolvedValue([]),
+      listArchivedAccounts: vi.fn().mockResolvedValue([]),
+    },
+  };
+}
 
 function stubMatchMedia(): void {
   vi.stubGlobal(
@@ -20,7 +35,11 @@ function stubMatchMedia(): void {
 async function createApp(settingsApi: Partial<SettingsApi>): Promise<ComponentFixture<App>> {
   await TestBed.configureTestingModule({
     imports: [App],
-    providers: [provideRouter([]), { provide: SettingsApi, useValue: settingsApi }],
+    providers: [
+      provideRouter([]),
+      { provide: SettingsApi, useValue: settingsApi },
+      stubAccountsApi(),
+    ],
   }).compileComponents();
 
   const fixture = TestBed.createComponent(App);
@@ -55,6 +74,7 @@ describe('App', () => {
       providers: [
         provideRouter([]),
         { provide: SettingsApi, useValue: { getCurrentDataFolder: () => pending } },
+        stubAccountsApi(),
       ],
     }).compileComponents();
     const fixture = TestBed.createComponent(App);
