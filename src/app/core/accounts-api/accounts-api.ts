@@ -56,6 +56,14 @@ export class AccountsApi {
   archiveAccount(id: number): Promise<void> {
     return invoke<void>('archive_account', { id });
   }
+
+  unarchiveAccount(id: number): Promise<void> {
+    return invoke<void>('unarchive_account', { id });
+  }
+
+  deleteAccount(id: number): Promise<void> {
+    return invoke<void>('delete_account', { id });
+  }
 }
 
 /**

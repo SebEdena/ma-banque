@@ -72,6 +72,35 @@ describe('AccountsStore', () => {
     expect(store.archived().map((a) => a.id)).toEqual([1]);
   });
 
+  it('refetches both lists after restoring and after deleting', async () => {
+    const accountsApi = {
+      listActiveAccounts: vi.fn().mockResolvedValue([]),
+      listArchivedAccounts: vi.fn().mockResolvedValue([]),
+      unarchiveAccount: vi.fn().mockResolvedValue(undefined),
+      deleteAccount: vi.fn().mockResolvedValue(undefined),
+    };
+    const store = createStore(accountsApi);
+    await store.loaded;
+
+    await store.unarchive(1);
+    await store.delete(1);
+
+    expect(accountsApi.unarchiveAccount).toHaveBeenCalledWith(1);
+    expect(accountsApi.deleteAccount).toHaveBeenCalledWith(1);
+    expect(accountsApi.listArchivedAccounts).toHaveBeenCalledTimes(3);
+  });
+
+  it('propagates a refused delete, so the caller can surface the guard', async () => {
+    const store = createStore({
+      listActiveAccounts: vi.fn().mockResolvedValue([]),
+      listArchivedAccounts: vi.fn().mockResolvedValue([]),
+      deleteAccount: vi.fn().mockRejectedValue({ kind: 'HasNonSystemEntries' }),
+    });
+    await store.loaded;
+
+    await expect(store.delete(1)).rejects.toEqual({ kind: 'HasNonSystemEntries' });
+  });
+
   it('propagates an archive failure instead of swallowing it', async () => {
     const store = createStore({
       listActiveAccounts: vi.fn().mockResolvedValue([]),

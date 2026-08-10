@@ -12,11 +12,11 @@ Out of scope: the create/edit modal (ticket 04), any change to the deletion guar
 
 **Blocked by:** 01, 03
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Archived view shows a restore action per account, calling `unarchive_account`
-- [ ] Archived view shows a delete action per account, gated behind a confirmation dialog naming the account
-- [ ] Delete calls `delete_account` only after confirmation is accepted
-- [ ] `AccountError::HasNonSystemEntries` (or any other error) surfaces as a toast if returned
-- [ ] `AccountsApi` is extended with `unarchive_account`/`delete_account`
-- [ ] Component tests (Vitest) with mocked `AccountsApi`: restore calls `unarchive_account`, delete calls `delete_account` only after confirmation is accepted, not on the initial click
+- [x] Archived view shows a restore action per account, calling `unarchive_account`
+- [x] Archived view shows a delete action per account, gated behind a confirmation dialog naming the account
+- [x] Delete calls `delete_account` only after confirmation is accepted
+- [x] `AccountError::HasNonSystemEntries` (or any other error) surfaces as a toast if returned
+- [x] `AccountsApi` is extended with `unarchive_account`/`delete_account`
+- [x] Component tests (Vitest) with mocked `AccountsApi`: restore calls `unarchive_account`, delete calls `delete_account` only after confirmation is accepted, not on the initial click

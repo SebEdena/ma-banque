@@ -65,4 +65,19 @@ export class AccountsStore {
     await this.accountsApi.archiveAccount(id);
     await this.reload();
   }
+
+  async unarchive(id: number): Promise<void> {
+    await this.accountsApi.unarchiveAccount(id);
+    await this.reload();
+  }
+
+  /**
+   * Permanently removes an account. Rust refuses this for any account with
+   * entries beyond its opening balance, so the rejection is the guard — the
+   * caller only has to surface it.
+   */
+  async delete(id: number): Promise<void> {
+    await this.accountsApi.deleteAccount(id);
+    await this.reload();
+  }
 }

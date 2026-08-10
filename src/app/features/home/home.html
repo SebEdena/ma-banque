@@ -52,7 +52,26 @@
             {{ account.name }}
           </a>
 
-          @if (!account.archived) {
+          @if (account.archived) {
+            <button
+              type="button"
+              data-testid="restore-account"
+              aria-label="Restaurer le compte"
+              class="relative rounded-lg p-1.5 text-muted-foreground outline-none transition-all hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+              (click)="unarchive(account.id)"
+            >
+              <ng-icon name="lucideRotateCcw" size="15" />
+            </button>
+            <button
+              type="button"
+              data-testid="delete-account"
+              aria-label="Supprimer le compte"
+              class="relative rounded-lg p-1.5 text-muted-foreground outline-none transition-all hover:bg-muted hover:text-destructive focus-visible:ring-3 focus-visible:ring-ring/50"
+              (click)="deleting.set(account)"
+            >
+              <ng-icon name="lucideTrash2" size="15" />
+            </button>
+          } @else {
             <button
               type="button"
               data-testid="archive-account"
@@ -98,4 +117,18 @@
 
 @if (creating()) {
   <app-account-settings-modal (cancelled)="creating.set(false)" (saved)="creating.set(false)" />
+}
+
+@if (deleting(); as account) {
+  <app-confirm-dialog
+    title="Supprimer le compte"
+    [message]="
+      'Le compte « ' +
+      account.name +
+      ' » sera définitivement supprimé. Cette action est irréversible.'
+    "
+    confirmLabel="Supprimer"
+    (confirmed)="confirmDelete()"
+    (cancelled)="deleting.set(null)"
+  />
 }

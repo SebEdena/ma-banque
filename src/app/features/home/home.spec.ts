@@ -22,12 +22,31 @@ function account(overrides: Partial<Account> = {}): Account {
   };
 }
 
-function stubApi(active: Account[], archived: Account[] = []): Partial<AccountsApi> {
+function stubApi(
+  active: Account[],
+  archived: Account[] = [],
+  overrides: Partial<AccountsApi> = {},
+): Partial<AccountsApi> {
   return {
     listActiveAccounts: vi.fn().mockResolvedValue(active),
     listArchivedAccounts: vi.fn().mockResolvedValue(archived),
     archiveAccount: vi.fn().mockResolvedValue(undefined),
+    unarchiveAccount: vi.fn().mockResolvedValue(undefined),
+    deleteAccount: vi.fn().mockResolvedValue(undefined),
+    ...overrides,
   };
+}
+
+function click(fixture: ComponentFixture<Home>, testId: string): void {
+  (
+    (fixture.nativeElement as HTMLElement).querySelector(
+      `[data-testid="${testId}"]`,
+    ) as HTMLButtonElement
+  ).click();
+}
+
+function has(fixture: ComponentFixture<Home>, testId: string): boolean {
+  return (fixture.nativeElement as HTMLElement).querySelector(`[data-testid="${testId}"]`) !== null;
 }
 
 async function createHome(accountsApi: Partial<AccountsApi>): Promise<ComponentFixture<Home>> {
@@ -213,5 +232,90 @@ describe('Home', () => {
 
     expect(compiled.querySelector('[data-testid="demo-date"]')).toBeNull();
     expect(compiled.querySelector('[data-testid="demo-amount"]')).toBeNull();
+  });
+
+  describe('archived view', () => {
+    async function createArchivedView(
+      overrides: Partial<AccountsApi> = {},
+    ): Promise<[ComponentFixture<Home>, Partial<AccountsApi>]> {
+      const accountsApi = stubApi(
+        [],
+        [account({ id: 9, name: 'Vieux PEL', archived: true })],
+        overrides,
+      );
+      const fixture = await createHome(accountsApi);
+      await toggleArchived(fixture);
+      return [fixture, accountsApi];
+    }
+
+    it('restores an archived account', async () => {
+      const [fixture, accountsApi] = await createArchivedView();
+
+      click(fixture, 'restore-account');
+      await fixture.whenStable();
+
+      expect(accountsApi.unarchiveAccount).toHaveBeenCalledWith(9);
+    });
+
+    it('asks for confirmation, naming the account, before deleting anything', async () => {
+      const [fixture, accountsApi] = await createArchivedView();
+
+      click(fixture, 'delete-account');
+      fixture.detectChanges();
+      await fixture.whenStable();
+
+      expect(accountsApi.deleteAccount).not.toHaveBeenCalled();
+      expect(
+        (fixture.nativeElement as HTMLElement).querySelector('app-confirm-dialog')?.textContent,
+      ).toContain('Vieux PEL');
+    });
+
+    it('deletes only once the confirmation is accepted', async () => {
+      const [fixture, accountsApi] = await createArchivedView();
+      click(fixture, 'delete-account');
+      fixture.detectChanges();
+
+      click(fixture, 'confirm-accept');
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(accountsApi.deleteAccount).toHaveBeenCalledWith(9);
+      expect(has(fixture, 'confirm-accept')).toBe(false);
+    });
+
+    it('deletes nothing when the confirmation is dismissed', async () => {
+      const [fixture, accountsApi] = await createArchivedView();
+      click(fixture, 'delete-account');
+      fixture.detectChanges();
+
+      click(fixture, 'confirm-cancel');
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(accountsApi.deleteAccount).not.toHaveBeenCalled();
+      expect(has(fixture, 'confirm-accept')).toBe(false);
+    });
+
+    it('survives a delete the backend refuses', async () => {
+      const [fixture, accountsApi] = await createArchivedView({
+        deleteAccount: vi.fn().mockRejectedValue({ kind: 'HasNonSystemEntries' }),
+      });
+      click(fixture, 'delete-account');
+      fixture.detectChanges();
+
+      click(fixture, 'confirm-accept');
+      await fixture.whenStable();
+      fixture.detectChanges();
+
+      expect(accountsApi.deleteAccount).toHaveBeenCalledWith(9);
+      expect(cards(fixture)).toHaveLength(1);
+    });
+
+    it('offers neither restore nor delete on an active card', async () => {
+      const fixture = await createHome(stubApi([account({ id: 1 })]));
+
+      expect(has(fixture, 'restore-account')).toBe(false);
+      expect(has(fixture, 'delete-account')).toBe(false);
+    });
   });
 });
