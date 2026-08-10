@@ -76,11 +76,23 @@ the consuming form owns the value. Test hooks: `data-testid="icon-search" | "ico
   `reload()`, `archive(id)`. **Both the home screen and the sidebar rail read these same signals** rather than
   fetching independently; that's what satisfies the spec's "the two navigation surfaces never disagree".
   Mutations reload both lists. Tickets 04/05 extend `AccountsApi` + this store with create/update/unarchive/delete.
-- **A persistent navigation shell did not exist and was built here.** The spec calls the sidebar's account rail
-  "already part of the persistent navigation shell", but `app.html` rendered only a bare `<router-outlet/>`, and
-  `02-setup-frontend-ci.md` never built one. Added `core/sidebar/` (home link, one rail entry per active account,
-  settings link) and `App` now wraps the routed outlet in a flex shell. Kept to what the rail needs — no
-  breadcrumbs, no collapsing, no header.
+- **The persistent navigation shell did not exist and was built here — extend it, don't rebuild it.**
+  `business-requirements.md` §Navigation specifies the Slack-style sidebar as "the primary navigation structure
+  across all screens", but no prior spec built it: `app.html` rendered only a bare `<router-outlet/>`, and
+  `02-setup-frontend-ci.md` never mentions one. Confirmed as an unclaimed requirement, not scope creep, before
+  building it.
+  - **Location**: `src/app/core/sidebar/sidebar.ts` + `sidebar.html`, selector `app-sidebar`, no inputs or
+    outputs — it reads `AccountsStore` itself and is rendered once by `App`, which now wraps the routed outlet in
+    `<div class="flex h-screen"><app-sidebar /><main>…</main></div>` behind the data-folder gate.
+  - **Current rail**, top to bottom: home link → one entry per **active** account (colour-tinted, chosen icon,
+    links to `/account/:id`) → settings link. Deliberately minimal: no breadcrumbs, no collapsing, no header.
+  - **To add a destination** (categories' Postes tab, the statistics screen, anything later): add an `<a>` to
+    `sidebar.html` alongside the existing home/settings links, register its Lucide icon in the component's
+    `provideIcons({…})`, and give it a `data-testid` for tests. Do **not** introduce a second nav component or
+    move the rail into a feature folder — the account rail must keep reading the same `AccountsStore` signals the
+    home screen renders, which is what stops the two surfaces from disagreeing.
+  - Any component added to the rail that renders a user-chosen icon needs `provideCatalogIcons()` in its own
+    `providers` (see the From 02 note).
 - Home's temporary data-folder proof is gone; `app.routes.spec.ts` now asserts on "Comptes" instead of "Accueil",
   and its `__TAURI_INTERNALS__` stub answers the two list commands with arrays.
 - `app.spec.ts` now stubs `AccountsApi`, since the ready-state shell renders the sidebar.
