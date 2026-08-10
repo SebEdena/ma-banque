@@ -12,6 +12,7 @@ describe('app shell', () => {
     await useDefaultLocation.click();
 
     await expect($('router-outlet')).toExist();
-    await expect($('body')).toHaveText('Accueil', { containing: true });
+    await expect($('[data-testid="sidebar-home"]')).toExist();
+    await expect($('body')).toHaveText('Comptes', { containing: true });
   });
 });

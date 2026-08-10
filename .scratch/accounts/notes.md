@@ -16,19 +16,19 @@
   `recurring_rule_id INTEGER`. Plus `entries_account_date` index and a partial unique index
   `entries_one_system_per_account ON entries (account_id) WHERE is_system = 1`.
 - **`category_id` has NO `REFERENCES categories (id)` clause, deliberately.** This build of rusqlite ships SQLite
-  with foreign keys enforced by default, so a forward reference to a table that doesn't exist yet fails *every*
+  with foreign keys enforced by default, so a forward reference to a table that doesn't exist yet fails _every_
   insert into `entries` (verified: "no such table: main.categories"). **The categories feature should create its
   `categories` table with an `INTEGER PRIMARY KEY id`; whichever spec first writes a non-null `category_id` owns
   adding the constraint** (which in SQLite means a table rebuild). `recurring_rule_id` is reserved on the same terms.
 - **Money convention (first spec to introduce it):** stored and computed as `i64` cents. `domain::money::to_cents`
   / `to_major` are the only conversion sites. Commands divide once at the boundary; use cases own `f64 -> cents`
   rounding and reject anything finer than a cent. Angular never multiplies, divides, or rounds an amount.
-- **Dates are `domain::date::IsoDate`** — a validated `YYYY-MM-DD` newtype whose `Ord` *is* chronological order
+- **Dates are `domain::date::IsoDate`** — a validated `YYYY-MM-DD` newtype whose `Ord` _is_ chronological order
   (fixed-width ISO sorts lexicographically). Any later spec comparing dates should use it rather than raw strings.
 - **`AccountError` messages stay in English**, serialized as `{ kind, message }` like `SettingsError`. Angular maps
   each `kind` to French — follow `parseSettingsError` in `core/settings-api` when adding `parseAccountError`.
 - **`EntryRepository` (in `domain::entry`) departs from the spec's sketched method set on purpose** — documented on
-  the trait itself: the two system-entry *writes* are free functions in `infra::entry` over a `&Connection` (they
+  the trait itself: the two system-entry _writes_ are free functions in `infra::entry` over a `&Connection` (they
   must share a transaction with the account row, and both repos share one connection), `exists_non_system_before`
   is named `exists_non_system_on_or_before`, and `last_entry_date` was added for the home-screen cards.
   `06-entries.md` extends this trait rather than adding a second one.
@@ -38,7 +38,7 @@
   Create/update take `{ input: { name, color, icon, created_date, opening_balance } }` and `{ id }`;
   `created_date` crosses the wire as a raw ISO string so a bad date is an `AccountError`, not a deserialization
   failure. They return `AccountView { id, name, color, icon, created_date, opening_balance, balance, archived,
-  last_entry_date }` with amounts in **major units** and dates as ISO strings — snake_case on the wire, matching
+last_entry_date }` with amounts in **major units** and dates as ISO strings — snake_case on the wire, matching
   the existing `DisplaySettings` convention.
 
 ### From 02 — Shared icon & color pickers
@@ -126,10 +126,37 @@ the consuming form owns the value. Test hooks: `data-testid="icon-search" | "ico
   gives a backdrop, `cdkTrapFocus`, Escape-to-close and backdrop-click-to-close. The account settings modal was
   refactored onto it. **Any future modal (categories, entries) should use this rather than rolling its own.**
 - **`shared/confirm-dialog/confirm-dialog.ts`** — `<app-confirm-dialog [title] [message] [confirmLabel]
-  (confirmed) (cancelled) />`. `message` is the caller's to compose so it can name what's being acted on; test
+(confirmed) (cancelled) />`. `message` is the caller's to compose so it can name what's being acted on; test
   hooks `confirm-accept` / `confirm-cancel`.
 - `AccountsApi` gained `unarchiveAccount(id)` / `deleteAccount(id)`; `AccountsStore` gained `unarchive(id)` /
   `delete(id)`, both reloading afterwards. Home's archived cards carry `restore-account` and `delete-account`
   (active cards keep `archive-account`); delete opens the confirm dialog and only then calls through.
 - The deletion guard stays entirely server-side: the UI always offers delete on an archived card and surfaces
   `HasNonSystemEntries` as a toast if Rust refuses, rather than trying to predict the answer.
+
+### From PR review — why the async layer stays promise-based
+
+Reviewed on request ("use Angular resources & observables, Promises are not the go-to"). The conclusion was to
+keep `AccountsApi`/`AccountsStore` as they are; **don't reopen this without new evidence.**
+
+- **Nothing in this feature leaks a promise into template or component state.** Every async result already lands
+  in a signal before a template ever reads it — `AccountsStore`'s two list signals and the components' local
+  `signal()`s. The remaining promises sit at the `invoke()` boundary and on _command_ methods
+  (`create`/`update`/`archive`/`unarchive`/`delete`), which is where a promise is the right shape: a one-shot
+  action a click handler awaits, not a value a template renders.
+- **`httpResource` does not apply** — there is no HTTP anywhere in the app; all IO is Tauri IPC.
+- **RxJS does not apply** — `invoke()` is single-shot, not a stream. There is no polling, no socket, no Tauri
+  `listen()`. Wrapping it in `from()` would add an operator layer over a value that arrives exactly once.
+- **`resource()` was prototyped over the two lists and rejected.** Three concrete frictions, in order of weight:
+  1. `Resource.value()` **throws** `ResourceValueError` in the error state — _even when `defaultValue` is set_
+     (`_resource-chunk.mjs`, the `defaultValue`/`throw` branches). Home and the sidebar read those signals
+     directly, so any backend failure would throw out of a template instead of degrading to an empty list plus a
+     toast, which is the behaviour `03-accounts.md` asks for. Working around it means a `hasValue()` guard on
+     every read.
+  2. Tauri rejects with a bare `{ kind, message }`, which is not `Error`-like, so `resource` wraps it in a
+     `ResourceWrappedError`. `parseAccountError` would need to unwrap `.cause` at every call site.
+  3. `reload()` returns a boolean, not a promise, so the mutation methods lose their "both lists are fresh when I
+     resolve" guarantee — and it does not settle deterministically in a `TestBed` that has no rendered component,
+     which is exactly how `accounts-store.spec.ts` drives the store.
+- **`loaded` stays a promise**, matching `DisplaySettingsService.loaded`. It is the deterministic await point the
+  specs use; a resource offers no equivalent.
