@@ -106,3 +106,18 @@ the consuming form owns the value. Test hooks: `data-testid="icon-search" | "ico
   everything else comes back from Rust as a toast.
 - Test hooks: `account-name`, `account-opening-balance`, `account-created-date` (each with a matching
   `-error` element), `account-save`, `account-cancel`, `modal-backdrop`; on Home, `new-account`.
+
+### From 05 — Archived-accounts view: restore & delete
+
+- **`shared/modal-shell/modal-shell.ts`** — extracted when the confirm dialog would have been the second copy of
+  the same chrome. `<app-modal-shell [labelledBy]="…" [panelClass]="…" (dismissed)="…"><!-- content --></app-modal-shell>`
+  gives a backdrop, `cdkTrapFocus`, Escape-to-close and backdrop-click-to-close. The account settings modal was
+  refactored onto it. **Any future modal (categories, entries) should use this rather than rolling its own.**
+- **`shared/confirm-dialog/confirm-dialog.ts`** — `<app-confirm-dialog [title] [message] [confirmLabel]
+  (confirmed) (cancelled) />`. `message` is the caller's to compose so it can name what's being acted on; test
+  hooks `confirm-accept` / `confirm-cancel`.
+- `AccountsApi` gained `unarchiveAccount(id)` / `deleteAccount(id)`; `AccountsStore` gained `unarchive(id)` /
+  `delete(id)`, both reloading afterwards. Home's archived cards carry `restore-account` and `delete-account`
+  (active cards keep `archive-account`); delete opens the confirm dialog and only then calls through.
+- The deletion guard stays entirely server-side: the UI always offers delete on an archived card and surfaces
+  `HasNonSystemEntries` as a toast if Rust refuses, rather than trying to predict the answer.

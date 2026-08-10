@@ -1,4 +1,3 @@
-import { A11yModule } from '@angular/cdk/a11y';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -22,6 +21,7 @@ import { HlmButtonImports } from '@spartan-ng/helm/button';
 
 import { Account, AccountInput, parseAccountError } from '@core/accounts-api/accounts-api';
 import { AccountsStore } from '@core/accounts-api/accounts-store';
+import { ModalShell } from '@shared/modal-shell/modal-shell';
 import { ColorPicker } from '@shared/pickers/color-picker/color-picker';
 import { DEFAULT_COLOR } from '@shared/pickers/color-swatches';
 import { IconPicker } from '@shared/pickers/icon-picker/icon-picker';
@@ -45,7 +45,7 @@ function today(): string {
  */
 @Component({
   selector: 'app-account-settings-modal',
-  imports: [ReactiveFormsModule, A11yModule, IconPicker, ColorPicker, ...HlmButtonImports],
+  imports: [ReactiveFormsModule, ModalShell, IconPicker, ColorPicker, ...HlmButtonImports],
   templateUrl: './account-settings-modal.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -97,17 +97,6 @@ export class AccountSettingsModal implements OnInit {
     });
     this.icon.set(account.icon);
     this.color.set(account.color);
-  }
-
-  /**
-   * Closes only on a click that landed on the backdrop itself — a click
-   * inside the panel bubbles up to the same handler, and must not be
-   * mistaken for a click outside.
-   */
-  protected closeOnBackdrop(event: MouseEvent): void {
-    if (event.target === event.currentTarget) {
-      this.cancelled.emit();
-    }
   }
 
   protected showError(field: 'name' | 'openingBalance' | 'createdDate'): boolean {

@@ -1,15 +1,16 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideArchive, lucidePlus } from '@ng-icons/lucide';
+import { lucideArchive, lucidePlus, lucideRotateCcw, lucideTrash2 } from '@ng-icons/lucide';
 import { toast } from '@spartan-ng/brain/sonner';
 
-import { parseAccountError, parseIsoDate } from '@core/accounts-api/accounts-api';
+import { Account, parseAccountError, parseIsoDate } from '@core/accounts-api/accounts-api';
 import { AccountsStore } from '@core/accounts-api/accounts-store';
 import { CurrencyFormatPipe } from '@core/display-settings/currency-format.pipe';
 import { DateFormatPipe } from '@core/display-settings/date-format.pipe';
 import { DisplaySettingsService } from '@core/display-settings/display-settings';
 import { AccountSettingsModal } from '@shared/account-settings-modal/account-settings-modal';
+import { ConfirmDialog } from '@shared/confirm-dialog/confirm-dialog';
 import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
 
 /**
@@ -22,10 +23,20 @@ import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
  */
 @Component({
   selector: 'app-home',
-  imports: [RouterLink, NgIcon, DateFormatPipe, CurrencyFormatPipe, AccountSettingsModal],
+  imports: [
+    RouterLink,
+    NgIcon,
+    DateFormatPipe,
+    CurrencyFormatPipe,
+    AccountSettingsModal,
+    ConfirmDialog,
+  ],
   templateUrl: './home.html',
   styleUrl: './home.css',
-  providers: [provideCatalogIcons(), provideIcons({ lucideArchive, lucidePlus })],
+  providers: [
+    provideCatalogIcons(),
+    provideIcons({ lucideArchive, lucidePlus, lucideRotateCcw, lucideTrash2 }),
+  ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Home {
@@ -49,9 +60,33 @@ export class Home {
     this.showingArchived.update((showing) => !showing);
   }
 
+  /** The archived account awaiting delete confirmation, if any. */
+  protected readonly deleting = signal<Account | null>(null);
+
   protected async archive(id: number): Promise<void> {
+    await this.run(() => this.accounts.archive(id));
+  }
+
+  protected async unarchive(id: number): Promise<void> {
+    await this.run(() => this.accounts.unarchive(id));
+  }
+
+  protected async confirmDelete(): Promise<void> {
+    const account = this.deleting();
+    if (account === null) {
+      return;
+    }
+
+    this.deleting.set(null);
+    // Rust refuses to delete an account with entries beyond its opening
+    // balance, so a rejection here is the guard doing its job (a race, in
+    // practice) rather than something to pre-empt in the UI.
+    await this.run(() => this.accounts.delete(account.id));
+  }
+
+  private async run(action: () => Promise<void>): Promise<void> {
     try {
-      await this.accounts.archive(id);
+      await action();
     } catch (error) {
       toast.error(parseAccountError(error));
     }
