@@ -1,7 +1,7 @@
 import { Service, inject, signal } from '@angular/core';
 import { toast } from '@spartan-ng/brain/sonner';
 
-import { Account, AccountsApi, parseAccountError } from './accounts-api';
+import { Account, AccountInput, AccountsApi, parseAccountError } from './accounts-api';
 
 /**
  * Signal-backed source of truth for the account lists, shared by every
@@ -47,6 +47,18 @@ export class AccountsStore {
 
     this.activeSignal.set(active);
     this.archivedSignal.set(archived);
+  }
+
+  async create(input: AccountInput): Promise<Account> {
+    const created = await this.accountsApi.createAccount(input);
+    await this.reload();
+    return created;
+  }
+
+  async update(id: number, input: AccountInput): Promise<Account> {
+    const updated = await this.accountsApi.updateAccount(id, input);
+    await this.reload();
+    return updated;
   }
 
   async archive(id: number): Promise<void> {

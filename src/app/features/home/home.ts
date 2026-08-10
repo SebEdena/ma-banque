@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideArchive } from '@ng-icons/lucide';
+import { lucideArchive, lucidePlus } from '@ng-icons/lucide';
 import { toast } from '@spartan-ng/brain/sonner';
 
 import { parseAccountError, parseIsoDate } from '@core/accounts-api/accounts-api';
@@ -9,6 +9,7 @@ import { AccountsStore } from '@core/accounts-api/accounts-store';
 import { CurrencyFormatPipe } from '@core/display-settings/currency-format.pipe';
 import { DateFormatPipe } from '@core/display-settings/date-format.pipe';
 import { DisplaySettingsService } from '@core/display-settings/display-settings';
+import { AccountSettingsModal } from '@shared/account-settings-modal/account-settings-modal';
 import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
 
 /**
@@ -21,10 +22,10 @@ import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
  */
 @Component({
   selector: 'app-home',
-  imports: [RouterLink, NgIcon, DateFormatPipe, CurrencyFormatPipe],
+  imports: [RouterLink, NgIcon, DateFormatPipe, CurrencyFormatPipe, AccountSettingsModal],
   templateUrl: './home.html',
   styleUrl: './home.css',
-  providers: [provideCatalogIcons(), provideIcons({ lucideArchive })],
+  providers: [provideCatalogIcons(), provideIcons({ lucideArchive, lucidePlus })],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Home {
@@ -40,6 +41,9 @@ export class Home {
   );
 
   protected readonly parseIsoDate = parseIsoDate;
+
+  /** Whether the create/edit modal is open. Creation is its only mode here. */
+  protected readonly creating = signal(false);
 
   protected toggleArchived(): void {
     this.showingArchived.update((showing) => !showing);

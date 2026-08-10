@@ -175,10 +175,36 @@ describe('Home', () => {
     ).toBeNull();
   });
 
-  it('says so when there are no accounts at all', async () => {
-    const fixture = await createHome(stubApi([]));
+  it('says so when there are no archived accounts to show', async () => {
+    const fixture = await createHome(stubApi([account()], [account({ id: 2 })]));
+    await toggleArchived(fixture);
+    await toggleArchived(fixture);
 
-    expect(textOf(fixture, 'accounts-empty')).toBe("Aucun compte pour l'instant.");
+    expect(cards(fixture)).toHaveLength(1);
+  });
+
+  it('offers the new-account card, and only in the active view', async () => {
+    const fixture = await createHome(stubApi([], [account({ id: 2 })]));
+
+    expect(textOf(fixture, 'new-account')).toContain('Nouveau compte');
+
+    await toggleArchived(fixture);
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="new-account"]'),
+    ).toBeNull();
+  });
+
+  it('opens the settings modal in create mode from the new-account card', async () => {
+    const fixture = await createHome(stubApi([]));
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    expect(compiled.querySelector('app-account-settings-modal')).toBeNull();
+
+    (compiled.querySelector('[data-testid="new-account"]') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect(compiled.querySelector('app-account-settings-modal')).not.toBeNull();
+    expect(compiled.textContent).toContain('Nouveau compte');
   });
 
   it('no longer shows the temporary data-folder proof', async () => {
