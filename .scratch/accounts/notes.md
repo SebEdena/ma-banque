@@ -40,3 +40,27 @@
   failure. They return `AccountView { id, name, color, icon, created_date, opening_balance, balance, archived,
   last_entry_date }` with amounts in **major units** and dates as ISO strings — snake_case on the wire, matching
   the existing `DisplaySettings` convention.
+
+### From 02 — Shared icon & color pickers
+
+**The categories feature consumes these as-is — do not build a second copy.** Everything lives under
+`src/app/shared/pickers/` (importable as `@shared/pickers/...`):
+
+- `icon-catalog.ts`
+  - `ICON_CATALOG: readonly CatalogIcon[]` where `CatalogIcon = { name, svg, keywords }`. 65 hand-curated Lucide
+    icons covering banking, housing, transport, food, health, leisure, utilities — sized for categories as well as
+    accounts. `name` (e.g. `lucideWallet`) is the value persisted in `accounts.icon` / a future `categories.icon`.
+  - `searchIcons(query: string): readonly CatalogIcon[]` — accent- and case-insensitive, matches French keywords
+    and the name minus its `lucide` prefix; a blank query returns the whole catalogue.
+  - `provideCatalogIcons()` — **any component rendering a user-chosen icon must add this to its `providers`**,
+    not just the picker: account cards, category rows, etc. Otherwise ng-icons has nothing registered to draw.
+  - `DEFAULT_ICON_NAME` (`lucideWallet`) — what a create form starts on.
+- `color-swatches.ts` — `COLOR_SWATCHES: readonly ColorSwatch[]` (`{ value, label }`, 10 hex colours with French
+  labels) and `DEFAULT_COLOR`. A closed palette, deliberately: no free colour input.
+- `icon-picker/icon-picker.ts` → `<app-icon-picker [value]="…" (selected)="…" />`, selector `app-icon-picker`.
+- `color-picker/color-picker.ts` → `<app-color-picker [value]="…" (selected)="…" />`, selector `app-color-picker`.
+
+Both pickers are `input` + `output` (not `model`), matching `OptionToggleGroup`'s existing convention: `value` is
+a `string | null` input, `selected` emits the chosen `string`. They are presentational and hold no form state —
+the consuming form owns the value. Test hooks: `data-testid="icon-search" | "icon-option" | "icon-empty"` and
+`data-testid="color-swatch"`, each option carrying `data-value` and `aria-pressed`.

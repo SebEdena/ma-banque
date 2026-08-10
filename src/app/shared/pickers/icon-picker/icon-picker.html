@@ -1,0 +1,43 @@
+<div class="flex flex-col gap-2.5">
+  <div class="relative">
+    <ng-icon
+      name="lucideSearch"
+      size="15"
+      class="pointer-events-none absolute left-2.5 top-1/2 -translate-y-1/2 text-muted-foreground"
+    />
+    <input
+      type="search"
+      data-testid="icon-search"
+      placeholder="Rechercher une icône"
+      aria-label="Rechercher une icône"
+      class="w-full rounded-[10px] bg-muted py-2 pl-8 pr-3 text-sm outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50"
+      (input)="search($event)"
+    />
+  </div>
+
+  @if (icons().length === 0) {
+    <p data-testid="icon-empty" class="py-3 text-center text-sm text-muted-foreground">
+      Aucune icône ne correspond à cette recherche.
+    </p>
+  } @else {
+    <div class="grid max-h-44 grid-cols-8 gap-1 overflow-y-auto" role="group" aria-label="Icône">
+      @for (icon of icons(); track icon.name) {
+        <button
+          type="button"
+          data-testid="icon-option"
+          [attr.data-value]="icon.name"
+          [attr.aria-label]="icon.keywords[0]"
+          [attr.aria-pressed]="icon.name === value()"
+          class="flex aspect-square items-center justify-center rounded-lg border border-transparent outline-none transition-all hover:bg-muted focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 active:translate-y-px"
+          [class]="{
+            'bg-primary/10 text-primary': icon.name === value(),
+            'text-muted-foreground': icon.name !== value(),
+          }"
+          (click)="selected.emit(icon.name)"
+        >
+          <ng-icon [name]="icon.name" size="17" />
+        </button>
+      }
+    </div>
+  }
+</div>

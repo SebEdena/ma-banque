@@ -13,9 +13,9 @@ Out of scope: wiring these into the account modal or categories panel themselves
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Icon picker renders a grid of Lucide icons and filters by keyword search against a bundled index
-- [ ] Color picker renders a fixed row of swatches and emits the selected color
-- [ ] Both components live in a shared, non-feature-specific location
-- [ ] Component tests (Vitest): icon search filters the shown icons, color picker emits selection
+- [x] Icon picker renders a grid of Lucide icons and filters by keyword search against a bundled index
+- [x] Color picker renders a fixed row of swatches and emits the selected color
+- [x] Both components live in a shared, non-feature-specific location
+- [x] Component tests (Vitest): icon search filters the shown icons, color picker emits selection
