@@ -15,13 +15,13 @@ Out of scope: the account settings modal / "Nouveau compte" creation flow (ticke
 
 **Blocked by:** 01 — Accounts backend
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `AccountsApi` wraps `list_active_accounts`, `list_archived_accounts`, `archive_account`
-- [ ] `Home` renders active accounts as cards: name, color, balance, last-entry date — no reconciliation indicator
-- [ ] Archived accounts are hidden from the default view, with a count/toggle to reveal them
-- [ ] Each active card has an archive action calling `archive_account`
-- [ ] Clicking a card navigates toward the account (entries screen route, built later)
-- [ ] The sidebar account rail reflects the same active-accounts list
-- [ ] `Home`'s temporary `invoke('get_current_data_folder')` proof and its plain-text rendering are removed
-- [ ] Component tests (Vitest) with mocked `AccountsApi`: renders cards, hides archived accounts, toggle switches lists, archive action calls `archive_account`
+- [x] `AccountsApi` wraps `list_active_accounts`, `list_archived_accounts`, `archive_account`
+- [x] `Home` renders active accounts as cards: name, color, balance, last-entry date — no reconciliation indicator
+- [x] Archived accounts are hidden from the default view, with a count/toggle to reveal them
+- [x] Each active card has an archive action calling `archive_account`
+- [x] Clicking a card navigates toward the account (entries screen route, built later)
+- [x] The sidebar account rail reflects the same active-accounts list
+- [x] `Home`'s temporary `invoke('get_current_data_folder')` proof and its plain-text rendering are removed
+- [x] Component tests (Vitest) with mocked `AccountsApi`: renders cards, hides archived accounts, toggle switches lists, archive action calls `archive_account`

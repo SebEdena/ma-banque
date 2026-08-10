@@ -1,0 +1,43 @@
+<aside
+  class="flex w-14 shrink-0 flex-col items-center gap-2 border-r border-border bg-card py-3"
+  aria-label="Navigation principale"
+>
+  <a
+    routerLink="/home"
+    routerLinkActive="bg-primary/10 text-primary"
+    data-testid="sidebar-home"
+    aria-label="Accueil"
+    class="flex size-9 items-center justify-center rounded-[10px] text-muted-foreground outline-none transition-all hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+  >
+    <ng-icon name="lucideHouse" size="17" />
+  </a>
+
+  <hr class="my-1 w-6 border-border" />
+
+  <nav class="flex flex-1 flex-col items-center gap-2 overflow-y-auto" aria-label="Comptes">
+    @for (account of activeAccounts(); track account.id) {
+      <a
+        data-testid="sidebar-account"
+        [attr.data-account-id]="account.id"
+        [routerLink]="['/account', account.id]"
+        routerLinkActive="ring-2 ring-ring"
+        [attr.aria-label]="account.name"
+        [attr.title]="account.name"
+        [style.background-color]="account.color"
+        class="flex size-9 items-center justify-center rounded-[10px] text-white outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50"
+      >
+        <ng-icon [name]="account.icon" size="16" />
+      </a>
+    }
+  </nav>
+
+  <a
+    routerLink="/settings"
+    routerLinkActive="bg-primary/10 text-primary"
+    data-testid="sidebar-settings"
+    aria-label="Réglages"
+    class="flex size-9 items-center justify-center rounded-[10px] text-muted-foreground outline-none transition-all hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+  >
+    <ng-icon name="lucideSettings" size="17" />
+  </a>
+</aside>

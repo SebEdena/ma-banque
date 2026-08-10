@@ -1,6 +1,11 @@
 @switch (dataFolderState()) {
   @case ('ready') {
-    <router-outlet />
+    <div class="flex h-screen">
+      <app-sidebar />
+      <main class="flex-1 overflow-y-auto p-6">
+        <router-outlet />
+      </main>
+    </div>
   }
   @case ('blocked') {
     <app-folder-prompt (resolved)="onFolderResolved()" />

@@ -2,65 +2,190 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 
-import { DisplaySettingsService } from '../../core/display-settings/display-settings';
+import { Account, AccountsApi } from '@core/accounts-api/accounts-api';
+import { AccountsStore } from '@core/accounts-api/accounts-store';
+import { DisplaySettingsService } from '@core/display-settings/display-settings';
 import { Home } from './home';
 
-async function createHome(
-  displaySettings: Partial<DisplaySettingsService> = {
-    dateFormat: signal('DMY'),
-    currencyFormat: signal('SYMBOL_AFTER'),
-  },
-): Promise<ComponentFixture<Home>> {
+function account(overrides: Partial<Account> = {}): Account {
+  return {
+    id: 1,
+    name: 'Compte courant',
+    color: '#3b82f6',
+    icon: 'lucideWallet',
+    created_date: '2026-01-15',
+    opening_balance: 1000,
+    balance: 1234.56,
+    archived: false,
+    last_entry_date: '2026-03-05',
+    ...overrides,
+  };
+}
+
+function stubApi(active: Account[], archived: Account[] = []): Partial<AccountsApi> {
+  return {
+    listActiveAccounts: vi.fn().mockResolvedValue(active),
+    listArchivedAccounts: vi.fn().mockResolvedValue(archived),
+    archiveAccount: vi.fn().mockResolvedValue(undefined),
+  };
+}
+
+async function createHome(accountsApi: Partial<AccountsApi>): Promise<ComponentFixture<Home>> {
   await TestBed.configureTestingModule({
     imports: [Home],
-    providers: [provideRouter([]), { provide: DisplaySettingsService, useValue: displaySettings }],
+    providers: [
+      provideRouter([]),
+      { provide: AccountsApi, useValue: accountsApi },
+      {
+        provide: DisplaySettingsService,
+        useValue: { dateFormat: signal('DMY'), currencyFormat: signal('SYMBOL_AFTER') },
+      },
+    ],
   }).compileComponents();
+
+  await TestBed.inject(AccountsStore).loaded;
 
   const fixture = TestBed.createComponent(Home);
   fixture.detectChanges();
   return fixture;
 }
 
+function cards(fixture: ComponentFixture<Home>): HTMLElement[] {
+  return Array.from(
+    (fixture.nativeElement as HTMLElement).querySelectorAll('[data-testid="account-card"]'),
+  );
+}
+
 function textOf(fixture: ComponentFixture<Home>, testId: string): string {
-  const element = (fixture.nativeElement as HTMLElement).querySelector(`[data-testid="${testId}"]`);
-  return element?.textContent?.trim() ?? '';
+  return (
+    (fixture.nativeElement as HTMLElement)
+      .querySelector(`[data-testid="${testId}"]`)
+      ?.textContent?.trim() ?? ''
+  );
+}
+
+async function toggleArchived(fixture: ComponentFixture<Home>): Promise<void> {
+  (
+    (fixture.nativeElement as HTMLElement).querySelector(
+      '[data-testid="archived-toggle"]',
+    ) as HTMLButtonElement
+  ).click();
+  await fixture.whenStable();
+  fixture.detectChanges();
 }
 
 describe('Home', () => {
-  it('should create', async () => {
-    const fixture = await createHome();
+  it('renders one card per active account', async () => {
+    const fixture = await createHome(
+      stubApi([account({ id: 1, name: 'Compte courant' }), account({ id: 2, name: 'Livret A' })]),
+    );
 
-    expect(fixture.componentInstance).toBeTruthy();
+    expect(cards(fixture)).toHaveLength(2);
+    expect(cards(fixture)[1].textContent).toContain('Livret A');
   });
 
-  it('renders its placeholder content', async () => {
-    const fixture = await createHome();
+  it("renders each card's balance and last-entry date using the display settings", async () => {
+    const fixture = await createHome(stubApi([account()]));
+
+    expect(textOf(fixture, 'account-balance')).toMatch(/234,56\s€$/);
+    expect(textOf(fixture, 'account-last-entry')).toContain('05/03/2026');
+  });
+
+  it('says so rather than showing a date when an account has no entries', async () => {
+    const fixture = await createHome(stubApi([account({ last_entry_date: null })]));
+
+    expect(textOf(fixture, 'account-last-entry')).toBe('Aucune écriture');
+  });
+
+  it('shows no reconciliation indicator, per the spec decision against one', async () => {
+    const fixture = await createHome(stubApi([account()]));
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="reconciliation"]'),
+    ).toBeNull();
+  });
+
+  it('links each card to its account', async () => {
+    const fixture = await createHome(stubApi([account({ id: 7 })]));
+
+    const link = (fixture.nativeElement as HTMLElement).querySelector(
+      '[data-testid="account-link"]',
+    );
+    expect(link?.getAttribute('href')).toBe('/account/7');
+  });
+
+  it('hides archived accounts behind a count', async () => {
+    const fixture = await createHome(
+      stubApi(
+        [account({ id: 1, name: 'Compte courant' })],
+        [account({ id: 2, name: 'Vieux PEL' })],
+      ),
+    );
+
+    expect(cards(fixture)).toHaveLength(1);
+    expect(cards(fixture)[0].textContent).toContain('Compte courant');
+    expect(textOf(fixture, 'archived-toggle')).toContain('Comptes archivés (1)');
+  });
+
+  it('switches the list to archived accounts and back', async () => {
+    const fixture = await createHome(
+      stubApi(
+        [account({ id: 1, name: 'Compte courant' })],
+        [account({ id: 2, name: 'Vieux PEL' })],
+      ),
+    );
+
+    await toggleArchived(fixture);
+    expect(cards(fixture)).toHaveLength(1);
+    expect(cards(fixture)[0].textContent).toContain('Vieux PEL');
+
+    await toggleArchived(fixture);
+    expect(cards(fixture)[0].textContent).toContain('Compte courant');
+  });
+
+  it('offers no archived toggle when nothing is archived', async () => {
+    const fixture = await createHome(stubApi([account()]));
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="archived-toggle"]'),
+    ).toBeNull();
+  });
+
+  it('archives an account from its card and refreshes the lists', async () => {
+    const accountsApi = stubApi([account({ id: 3 })]);
+    const fixture = await createHome(accountsApi);
+
+    (
+      (fixture.nativeElement as HTMLElement).querySelector(
+        '[data-testid="archive-account"]',
+      ) as HTMLButtonElement
+    ).click();
+    await fixture.whenStable();
+
+    expect(accountsApi.archiveAccount).toHaveBeenCalledWith(3);
+    expect(accountsApi.listActiveAccounts).toHaveBeenCalledTimes(2);
+  });
+
+  it('offers no archive action on an already-archived card', async () => {
+    const fixture = await createHome(stubApi([], [account({ id: 2, archived: true })]));
+    await toggleArchived(fixture);
+
+    expect(
+      (fixture.nativeElement as HTMLElement).querySelector('[data-testid="archive-account"]'),
+    ).toBeNull();
+  });
+
+  it('says so when there are no accounts at all', async () => {
+    const fixture = await createHome(stubApi([]));
+
+    expect(textOf(fixture, 'accounts-empty')).toBe("Aucun compte pour l'instant.");
+  });
+
+  it('no longer shows the temporary data-folder proof', async () => {
+    const fixture = await createHome(stubApi([account()]));
     const compiled = fixture.nativeElement as HTMLElement;
 
-    expect(compiled.textContent).toContain('Accueil');
-  });
-
-  it('renders the sample date and amount using the current display settings', async () => {
-    const fixture = await createHome();
-
-    expect(textOf(fixture, 'demo-date')).toBe('05/03/2026');
-    expect(textOf(fixture, 'demo-amount')).toMatch(/234,56\s€$/);
-  });
-
-  it('reformats the sample values when the display settings change', async () => {
-    const fixture = await createHome({
-      dateFormat: signal('YMD'),
-      currencyFormat: signal('ISO_CODE'),
-    });
-
-    expect(textOf(fixture, 'demo-date')).toBe('2026-03-05');
-    expect(textOf(fixture, 'demo-amount')).toMatch(/234,56\sEUR$/);
-  });
-
-  it('links to the settings screen', async () => {
-    const fixture = await createHome();
-    const link = (fixture.nativeElement as HTMLElement).querySelector('a');
-
-    expect(link?.getAttribute('href')).toBe('/settings/display-format');
+    expect(compiled.querySelector('[data-testid="demo-date"]')).toBeNull();
+    expect(compiled.querySelector('[data-testid="demo-amount"]')).toBeNull();
   });
 });
