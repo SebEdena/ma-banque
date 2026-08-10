@@ -45,6 +45,14 @@ export class AccountsApi {
     return invoke<Account[]>('list_archived_accounts');
   }
 
+  createAccount(input: AccountInput): Promise<Account> {
+    return invoke<Account>('create_account', { input });
+  }
+
+  updateAccount(id: number, input: AccountInput): Promise<Account> {
+    return invoke<Account>('update_account', { id, input });
+  }
+
   archiveAccount(id: number): Promise<void> {
     return invoke<void>('archive_account', { id });
   }

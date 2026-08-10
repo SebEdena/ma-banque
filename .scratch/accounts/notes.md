@@ -87,3 +87,22 @@ the consuming form owns the value. Test hooks: `data-testid="icon-search" | "ico
 - Test hooks on Home: `account-card` (+`data-account-id`), `account-link`, `account-balance`,
   `account-last-entry`, `archive-account`, `archived-toggle`, `accounts-empty`. On the sidebar:
   `sidebar-account` (+`data-account-id`), `sidebar-home`, `sidebar-settings`.
+
+### From 04 — Account settings modal (create/edit)
+
+- **`shared/account-settings-modal/`** — one component for both modes, as `06-entries.md` will reuse it from the
+  entries screen's "Paramètres" button: `<app-account-settings-modal [account]="…" (saved)="…" (cancelled)="…" />`.
+  `account` is `Account | null`; `null` means create. It carries **no delete action** by design.
+- It talks to `AccountsStore.create`/`update` itself and emits the saved `Account`; the opener only decides when
+  the modal is shown. `AccountsApi` gained `createAccount(input)` / `updateAccount(id, input)`.
+- Built on reactive forms (`@angular/forms`) — the first form in this codebase, so it sets the precedent. Native
+  `<input type="date">` is what produces the `YYYY-MM-DD` the backend wants, with no date library involved.
+  Modal chrome is a plain backdrop plus `cdkTrapFocus` (`@angular/cdk/a11y`) rather than a new spartan dialog
+  dependency; Escape and backdrop-click both cancel.
+- **A negative opening balance is accepted.** Ticket 04's parenthetical lists "non-numeric/negative opening
+  balance" as inline validation, but the backend derives a DEBIT system entry from a negative opening balance
+  (`03-accounts.md`'s "type derived from the sign of opening_balance"), so rejecting it client-side would make an
+  overdrawn account impossible to open. Only "must be a number" and "name must not be blank" are validated inline;
+  everything else comes back from Rust as a toast.
+- Test hooks: `account-name`, `account-opening-balance`, `account-created-date` (each with a matching
+  `-error` element), `account-save`, `account-cancel`, `modal-backdrop`; on Home, `new-account`.

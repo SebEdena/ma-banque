@@ -15,13 +15,13 @@ Out of scope: the archived-accounts view and its restore/delete actions (ticket 
 
 **Blocked by:** 01, 02, 03
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Shared modal component handles both create and edit modes
-- [ ] Fields: name, opening balance, opening date (defaults to today on create), icon, color picker (reusing ticket 02's components)
-- [ ] Create mode is reachable from Home's "Nouveau compte" card
-- [ ] Opening balance is sent as the typed major-unit `f64`, untouched by the client
-- [ ] `AccountError` variants surface as toasts; field validation errors are inline
-- [ ] No delete action is rendered in this modal
-- [ ] `AccountsApi` is extended with `create_account`/`update_account`
-- [ ] Component tests (Vitest) with mocked `AccountsApi`: form validation, create vs. edit mode, save/cancel call the right methods, no delete action rendered
+- [x] Shared modal component handles both create and edit modes
+- [x] Fields: name, opening balance, opening date (defaults to today on create), icon, color picker (reusing ticket 02's components)
+- [x] Create mode is reachable from Home's "Nouveau compte" card
+- [x] Opening balance is sent as the typed major-unit `f64`, untouched by the client
+- [x] `AccountError` variants surface as toasts; field validation errors are inline
+- [x] No delete action is rendered in this modal
+- [x] `AccountsApi` is extended with `create_account`/`update_account`
+- [x] Component tests (Vitest) with mocked `AccountsApi`: form validation, create vs. edit mode, save/cancel call the right methods, no delete action rendered

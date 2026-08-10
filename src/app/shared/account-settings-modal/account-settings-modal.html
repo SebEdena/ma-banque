@@ -1,0 +1,105 @@
+<!--
+  Clicking the backdrop or pressing Escape closes the modal — Escape is
+  handled here rather than on the panel so it works wherever focus sits
+  inside the trap, and `tabindex="-1"` keeps the two consistent for the
+  keyboard as well as the mouse.
+-->
+<div
+  class="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4"
+  data-testid="modal-backdrop"
+  tabindex="-1"
+  (click)="closeOnBackdrop($event)"
+  (keydown.escape)="cancelled.emit()"
+>
+  <div
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="account-settings-title"
+    cdkTrapFocus
+    [cdkTrapFocusAutoCapture]="true"
+    class="w-full max-w-md rounded-[14px] border border-border bg-card p-5 shadow-lg"
+  >
+    <h2 id="account-settings-title" class="mb-4 text-[15px] font-bold">
+      {{ editing() ? 'Paramètres du compte' : 'Nouveau compte' }}
+    </h2>
+
+    <form [formGroup]="form" class="flex flex-col gap-4" (ngSubmit)="save()">
+      <div class="flex flex-col gap-1.5">
+        <label for="account-name" class="text-sm font-semibold">Nom</label>
+        <input
+          id="account-name"
+          type="text"
+          data-testid="account-name"
+          formControlName="name"
+          placeholder="Compte courant"
+          class="rounded-[10px] bg-muted px-3 py-2 text-sm outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50"
+        />
+        @if (showError('name')) {
+          <p data-testid="account-name-error" class="text-xs text-destructive">
+            Le nom du compte est obligatoire.
+          </p>
+        }
+      </div>
+
+      <div class="flex gap-3">
+        <div class="flex flex-1 flex-col gap-1.5">
+          <label for="account-opening-balance" class="text-sm font-semibold">Solde initial</label>
+          <input
+            id="account-opening-balance"
+            type="number"
+            step="0.01"
+            data-testid="account-opening-balance"
+            formControlName="openingBalance"
+            class="rounded-[10px] bg-muted px-3 py-2 font-mono text-sm outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50"
+          />
+          @if (showError('openingBalance')) {
+            <p data-testid="account-opening-balance-error" class="text-xs text-destructive">
+              Le solde initial doit être un montant.
+            </p>
+          }
+        </div>
+
+        <div class="flex flex-1 flex-col gap-1.5">
+          <label for="account-created-date" class="text-sm font-semibold">Date d'ouverture</label>
+          <input
+            id="account-created-date"
+            type="date"
+            data-testid="account-created-date"
+            formControlName="createdDate"
+            class="rounded-[10px] bg-muted px-3 py-2 text-sm outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50"
+          />
+          @if (showError('createdDate')) {
+            <p data-testid="account-created-date-error" class="text-xs text-destructive">
+              La date d'ouverture est obligatoire.
+            </p>
+          }
+        </div>
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <span class="text-sm font-semibold">Couleur</span>
+        <app-color-picker [value]="color()" (selected)="color.set($event)" />
+      </div>
+
+      <div class="flex flex-col gap-1.5">
+        <span class="text-sm font-semibold">Icône</span>
+        <app-icon-picker [value]="icon()" (selected)="icon.set($event)" />
+      </div>
+
+      <div class="mt-1 flex justify-end gap-2">
+        <button
+          hlmBtn
+          type="button"
+          variant="outline"
+          data-testid="account-cancel"
+          (click)="cancelled.emit()"
+        >
+          Annuler
+        </button>
+        <button hlmBtn type="submit" data-testid="account-save" [disabled]="saving()">
+          Enregistrer
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
