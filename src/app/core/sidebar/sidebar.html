@@ -1,5 +1,5 @@
 <aside
-  class="flex w-[76px] shrink-0 flex-col items-center gap-3 bg-[#14161f] py-4"
+  class="flex h-full w-[76px] shrink-0 flex-col items-center gap-3 bg-[#14161f] py-4"
   aria-label="Navigation principale"
 >
   <a
@@ -20,13 +20,13 @@
 
   <hr class="my-0.5 w-[30px] border-white/[0.14]" />
 
-  <nav class="flex flex-1 flex-col items-center gap-2.5 overflow-y-auto" aria-label="Comptes">
+  <nav class="flex flex-1 flex-col items-center gap-2.5 overflow-y-auto px-2" aria-label="Comptes">
     @for (account of activeAccounts(); track account.id) {
       <a
         data-testid="sidebar-account"
         [attr.data-account-id]="account.id"
         [routerLink]="['/account', account.id]"
-        routerLinkActive="ring-2 ring-white"
+        routerLinkActive="ring-2 ring-white ring-offset-2 ring-offset-[#14161f]"
         [attr.aria-label]="account.name"
         [attr.title]="account.name"
         [style.background-color]="account.color"
