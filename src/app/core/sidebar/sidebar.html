@@ -20,7 +20,10 @@
 
   <hr class="my-0.5 w-[30px] border-white/[0.14]" />
 
-  <nav class="flex flex-1 flex-col items-center gap-2.5 overflow-y-auto px-2" aria-label="Comptes">
+  <nav
+    class="flex flex-1 flex-col items-center gap-2.5 overflow-y-auto px-2 py-2"
+    aria-label="Comptes"
+  >
     @for (account of activeAccounts(); track account.id) {
       <a
         data-testid="sidebar-account"
