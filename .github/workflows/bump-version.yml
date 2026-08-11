@@ -36,7 +36,24 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 24
-          cache: npm
+      - name: Get npm cache directory
+        id: npm-cache-dir
+        shell: bash
+        run: echo "dir=$(npm config get cache)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          # actions/setup-node's built-in `cache: npm` keys solely on the
+          # lockfile hash, with no restore-keys fallback — since `npm
+          # version` (below) rewrites package.json/package-lock.json's
+          # version field on every run, that hash changes every single
+          # time, discarding the whole npm cache instead of reusing the
+          # untouched dependency tree. The restore-keys prefix here falls
+          # back to the nearest previous cache so npm only fetches the
+          # true delta.
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
       - run: npm ci
       - name: Configure git identity
         run: |
@@ -107,7 +124,20 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 24
-          cache: npm
+      - name: Get npm cache directory
+        id: npm-cache-dir
+        shell: bash
+        run: echo "dir=$(npm config get cache)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          # See the same step in the bump-version job: the lockfile
+          # `npm version` just bumped changes the hash every run, so a
+          # restore-keys fallback is needed to reuse the untouched
+          # dependency tree instead of a full re-download.
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
       - run: npm ci
       - name: Build frontend
         run: npm run build

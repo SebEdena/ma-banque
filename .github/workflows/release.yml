@@ -19,7 +19,23 @@ jobs:
       - uses: actions/setup-node@v5
         with:
           node-version: 24
-          cache: npm
+      - name: Get npm cache directory
+        id: npm-cache-dir
+        shell: bash
+        run: echo "dir=$(npm config get cache)" >> "$GITHUB_OUTPUT"
+      - uses: actions/cache@v4
+        with:
+          path: ${{ steps.npm-cache-dir.outputs.dir }}
+          # actions/setup-node's built-in `cache: npm` keys solely on the
+          # lockfile hash, with no restore-keys fallback — bump-version.yml
+          # changes that hash on every release (it bumps package.json's
+          # version right before tagging), so a bare lockfile-hash key
+          # would discard the whole npm cache instead of reusing the
+          # untouched dependency tree. The restore-keys prefix falls back
+          # to the nearest previous cache so npm only fetches the delta.
+          key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
+          restore-keys: |
+            ${{ runner.os }}-npm-
       - run: npm ci
       - uses: tauri-apps/tauri-action@v1
         env:
