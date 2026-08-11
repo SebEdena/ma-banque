@@ -16,7 +16,13 @@ const tauriCapabilities: TauriCapabilities = {
 
 export const config: WebdriverIO.Config = {
   runner: 'local',
-  specs: ['./e2e/**/*.e2e.ts'],
+  // A nested array runs its files in one shared app session, in the order
+  // listed, instead of relaunching the app per file — `smoke.e2e.ts` gets
+  // the app past the first-launch folder prompt once, and every file after
+  // it (via `support/routed-shell.ts`'s idempotent `ensureRoutedShell`)
+  // picks up from the already-routed shell. Add new business-flow spec
+  // files to this same group, after `smoke.e2e.ts`.
+  specs: [['./e2e/smoke.e2e.ts', './e2e/accounts.e2e.ts']],
   maxInstances: 1,
   capabilities: [tauriCapabilities],
   services: [['tauri', { driverProvider: 'external' }]],
