@@ -1,20 +1,46 @@
-<header class="mb-5 flex items-center justify-between gap-4">
-  <h1 class="text-lg font-bold">{{ showingArchived() ? 'Comptes archivés' : 'Comptes' }}</h1>
-
-  @if (archivedAccounts().length > 0 || showingArchived()) {
-    <button
-      type="button"
-      data-testid="archived-toggle"
-      class="rounded-lg px-2.5 py-1.5 text-sm text-muted-foreground outline-none transition-all hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
-      (click)="toggleArchived()"
-    >
+<header class="mb-7 flex flex-wrap items-center justify-between gap-4">
+  <div>
+    <h1 class="text-2xl font-extrabold tracking-tight">
+      {{ showingArchived() ? 'Comptes archivés' : 'Comptes' }}
+    </h1>
+    <p data-testid="accounts-subtitle" class="mt-1 text-sm text-muted-foreground">
       @if (showingArchived()) {
-        Comptes actifs
+        {{ archivedAccounts().length }} comptes archivés
       } @else {
-        Comptes archivés ({{ archivedAccounts().length }})
+        {{ activeAccounts().length }} comptes suivis
       }
-    </button>
-  }
+    </p>
+  </div>
+
+  <div class="flex items-center gap-2.5">
+    @if (archivedAccounts().length > 0 || showingArchived()) {
+      <button
+        type="button"
+        data-testid="archived-toggle"
+        class="flex items-center gap-2 rounded-[11px] border border-border px-3.5 py-2.5 text-sm font-bold text-muted-foreground outline-none transition-all hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+        (click)="toggleArchived()"
+      >
+        <ng-icon name="lucideArchive" size="15" />
+        @if (showingArchived()) {
+          Comptes actifs
+        } @else {
+          Comptes archivés ({{ archivedAccounts().length }})
+        }
+      </button>
+    }
+
+    @if (!showingArchived()) {
+      <button
+        type="button"
+        data-testid="new-account-header"
+        class="flex items-center gap-2 rounded-[11px] bg-primary px-4.5 py-2.5 text-sm font-bold text-primary-foreground outline-none transition-all hover:opacity-90 focus-visible:ring-3 focus-visible:ring-ring/50"
+        (click)="creating.set(true)"
+      >
+        <ng-icon name="lucidePlus" size="17" />
+        Nouveau compte
+      </button>
+    }
+  </div>
 </header>
 
 @if (shownAccounts().length === 0 && showingArchived()) {
@@ -27,15 +53,16 @@
       <li
         data-testid="account-card"
         [attr.data-account-id]="account.id"
-        class="relative flex flex-col gap-3 rounded-[14px] border border-border bg-card p-4 transition-all focus-within:ring-3 focus-within:ring-ring/50 hover:border-ring"
+        class="relative flex flex-col gap-3.5 rounded-[20px] border border-t-[3px] border-border bg-card p-4 shadow-sm transition-all focus-within:ring-3 focus-within:ring-ring/50 hover:-translate-y-1 hover:border-ring"
+        [style.border-top-color]="account.color"
       >
-        <div class="flex items-center gap-2.5">
+        <div class="flex items-center gap-3">
           <span
-            class="flex size-8 shrink-0 items-center justify-center rounded-[10px] text-white"
+            class="flex size-[42px] shrink-0 items-center justify-center rounded-[13px] text-white"
             [style.background-color]="account.color"
             [attr.data-testid]="'account-icon'"
           >
-            <ng-icon [name]="account.icon" size="16" />
+            <ng-icon [name]="account.icon" size="21" />
           </span>
 
           <!--
@@ -46,7 +73,7 @@
           -->
           <a
             data-testid="account-link"
-            class="flex-1 truncate font-semibold outline-none before:absolute before:inset-0 before:content-['']"
+            class="flex-1 truncate text-[18.5px] font-bold outline-none before:absolute before:inset-0 before:content-['']"
             [routerLink]="['/account', account.id]"
           >
             {{ account.name }}
@@ -84,11 +111,14 @@
           }
         </div>
 
-        <p data-testid="account-balance" class="font-mono text-xl font-semibold">
+        <p data-testid="account-balance" class="font-mono text-[22px] font-semibold tracking-tight">
           {{ account.balance | currencyFormat: displaySettings.currencyFormat() }}
         </p>
 
-        <p data-testid="account-last-entry" class="text-xs text-muted-foreground">
+        <p
+          data-testid="account-last-entry"
+          class="border-t border-border pt-2.5 text-xs text-muted-foreground"
+        >
           @if (account.last_entry_date) {
             Dernière écriture ·
             {{ parseIsoDate(account.last_entry_date) | dateFormat: displaySettings.dateFormat() }}
@@ -104,7 +134,7 @@
         <button
           type="button"
           data-testid="new-account"
-          class="flex size-full min-h-32 flex-col items-center justify-center gap-2 rounded-[14px] border border-dashed border-border text-sm text-muted-foreground outline-none transition-all hover:border-ring hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+          class="flex size-full min-h-40 flex-col items-center justify-center gap-2 rounded-[20px] border border-dashed border-border text-sm text-muted-foreground outline-none transition-all hover:-translate-y-1 hover:border-ring hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
           (click)="creating.set(true)"
         >
           <ng-icon name="lucidePlus" size="18" />
