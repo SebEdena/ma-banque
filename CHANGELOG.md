@@ -2,6 +2,43 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.3.0] - 2026-08-11
+
+### Bug Fixes
+
+- Replace per-issue /compact with issue-agent respawn
+- Replace per-PR pr-agent with single manager polling loop
+- Always spawn fresh feature agents, never resume idle ones
+- Match home screen to design.html mockup
+- Match archived view and modal sizing to design.html
+- Match sidebar rail and colour swatches to design.html
+- Fix sidebar full height, ring clipping and spacing
+- Fix top-clipped ring on first sidebar account, apply css-styleguide review
+
+### Documentation
+
+- Require e2e coverage for new business-facing flows
+- Record how to extend the sidebar rail
+
+### Features
+
+- Add the accounts backend and its minimal entries table
+- Add shared icon and colour pickers
+- Show accounts as cards on the home screen
+- Add the shared create/edit account settings modal
+- Restore and delete accounts from the archived view
+- Mock the Tauri backend for browser-only visual checks
+
+### Miscellaneous Tasks
+
+- Add visual QA recordings for the accounts feature
+
+### Testing
+
+- Assert the routed shell renders the accounts home screen
+- Cover account create/archive/restore/delete
+- Auto-discover grouped spec files in wdio.conf.ts
+
 ## [0.2.3] - 2026-08-08
 
 ### CI/CD
