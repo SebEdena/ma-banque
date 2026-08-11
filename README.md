@@ -50,6 +50,29 @@ Starts Angular (`npm start`) and opens the Tauri window pointed at it, per
 `beforeDevCommand` in `tauri.conf.json`. Uses `.dev-data/` for its data
 folder (see above) — delete that folder to reset.
 
+**Run just the Angular frontend, without Tauri (fast visual checks)**
+
+```sh
+npm run start:mock
+```
+
+Serves the Angular app alone in a plain browser tab (`ng serve --configuration
+mock`) — no `cargo`/Tauri build needed, so it starts in seconds instead of
+minutes. Outside a real Tauri webview, every Tauri call (`invoke()`, the
+folder-picker dialog) has nothing to talk to; this configuration swaps
+`AccountsApi`/`SettingsApi` for in-memory fakes (`InMemoryAccountsApi`,
+`InMemorySettingsApi` in `src/app/core/mocks/`) via `src/app/app.config.ts`,
+seeded with fixture accounts you can create/archive/unarchive/delete
+interactively. It's for eyeballing a screen's layout/styling quickly, e.g.
+against `docs/design/design.html` — it has no real persistence (state resets
+on reload) and doesn't exercise the Rust backend at all, so it's not a
+substitute for `cargo tauri dev` or the e2e suite when what you're
+verifying is actual behavior rather than appearance. The mock code is
+gated behind `src/environments/environment.ts`'s `mockBackend` flag and is
+excluded entirely from `npm run build`'s production bundle (dead-code
+eliminated, since only `environment.mock.ts`, swapped in via this
+configuration's `fileReplacements`, sets it to `true`).
+
 **Frontend tests / lint**
 
 ```sh

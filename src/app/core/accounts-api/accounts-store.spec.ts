@@ -1,22 +1,8 @@
 import { TestBed } from '@angular/core/testing';
 
-import { Account, AccountsApi } from './accounts-api';
+import { AccountsApi } from './accounts-api';
 import { AccountsStore } from './accounts-store';
-
-function account(overrides: Partial<Account> = {}): Account {
-  return {
-    id: 1,
-    name: 'Compte courant',
-    color: '#3b82f6',
-    icon: 'lucideWallet',
-    created_date: '2026-01-15',
-    opening_balance: 0,
-    balance: 0,
-    archived: false,
-    last_entry_date: null,
-    ...overrides,
-  };
-}
+import { accountFixture as account } from '@core/testing/account.fixture';
 
 function createStore(accountsApi: Partial<AccountsApi>): AccountsStore {
   TestBed.configureTestingModule({

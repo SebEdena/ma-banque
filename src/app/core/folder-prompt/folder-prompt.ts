@@ -1,7 +1,6 @@
 import { Component, inject, output, signal } from '@angular/core';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { toast } from '@spartan-ng/brain/sonner';
-import { open } from '@tauri-apps/plugin-dialog';
 
 import { parseDataFolderLocationError, SettingsApi } from '@core/settings-api/settings-api';
 
@@ -39,8 +38,8 @@ export class FolderPrompt {
   protected async chooseFolder(): Promise<void> {
     this.busy.set(true);
     try {
-      const selected = await open({ directory: true, multiple: false });
-      if (typeof selected !== 'string') {
+      const selected = await this.settingsApi.pickFolder();
+      if (selected === null) {
         // User cancelled the picker — stay on the prompt.
         return;
       }

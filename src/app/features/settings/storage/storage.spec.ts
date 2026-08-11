@@ -3,10 +3,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SettingsApi } from '../../../core/settings-api/settings-api';
 import { Storage } from './storage';
 
-vi.mock('@tauri-apps/plugin-dialog', () => ({
-  open: vi.fn(),
-}));
-
 vi.mock('@spartan-ng/brain/sonner', () => ({
   toast: { error: vi.fn() },
 }));
@@ -51,41 +47,41 @@ describe('Storage', () => {
   });
 
   it('"move data folder" opens a folder picker and calls move_data_folder', async () => {
-    const { open } = await import('@tauri-apps/plugin-dialog');
-    vi.mocked(open).mockResolvedValue('/new/home');
+    const pickFolder = vi.fn().mockResolvedValue('/new/home');
     const moveDataFolder = vi.fn().mockResolvedValue('/new/home');
     const fixture = await createStorage({
       getCurrentDataFolder: vi.fn().mockResolvedValue('/home/user/saves'),
+      pickFolder,
       moveDataFolder,
     });
 
     await clickButton(fixture, 'Déplacer le dossier de données');
 
-    expect(open).toHaveBeenCalledWith(expect.objectContaining({ directory: true }));
+    expect(pickFolder).toHaveBeenCalled();
     expect(moveDataFolder).toHaveBeenCalledWith('/new/home');
   });
 
   it('"open a different folder" opens a folder picker and calls open_data_folder', async () => {
-    const { open } = await import('@tauri-apps/plugin-dialog');
-    vi.mocked(open).mockResolvedValue('/other/folder');
+    const pickFolder = vi.fn().mockResolvedValue('/other/folder');
     const openDataFolder = vi.fn().mockResolvedValue('/other/folder');
     const fixture = await createStorage({
       getCurrentDataFolder: vi.fn().mockResolvedValue('/home/user/saves'),
+      pickFolder,
       openDataFolder,
     });
 
     await clickButton(fixture, 'Ouvrir un autre dossier');
 
-    expect(open).toHaveBeenCalledWith(expect.objectContaining({ directory: true }));
+    expect(pickFolder).toHaveBeenCalled();
     expect(openDataFolder).toHaveBeenCalledWith('/other/folder');
   });
 
   it('does nothing when the picker is cancelled', async () => {
-    const { open } = await import('@tauri-apps/plugin-dialog');
-    vi.mocked(open).mockResolvedValue(null);
+    const pickFolder = vi.fn().mockResolvedValue(null);
     const moveDataFolder = vi.fn();
     const fixture = await createStorage({
       getCurrentDataFolder: vi.fn().mockResolvedValue('/home/user/saves'),
+      pickFolder,
       moveDataFolder,
     });
 
@@ -95,12 +91,12 @@ describe('Storage', () => {
   });
 
   it('surfaces the destination-occupied move error as a toast, in French', async () => {
-    const { open } = await import('@tauri-apps/plugin-dialog');
     const { toast } = await import('@spartan-ng/brain/sonner');
-    vi.mocked(open).mockResolvedValue('/occupied');
+    const pickFolder = vi.fn().mockResolvedValue('/occupied');
     const moveDataFolder = vi.fn().mockRejectedValue({ kind: 'DestinationOccupied' });
     const fixture = await createStorage({
       getCurrentDataFolder: vi.fn().mockResolvedValue('/home/user/saves'),
+      pickFolder,
       moveDataFolder,
     });
 
@@ -112,12 +108,12 @@ describe('Storage', () => {
   });
 
   it('surfaces the invalid-database open error as a toast, in French', async () => {
-    const { open } = await import('@tauri-apps/plugin-dialog');
     const { toast } = await import('@spartan-ng/brain/sonner');
-    vi.mocked(open).mockResolvedValue('/bad/save');
+    const pickFolder = vi.fn().mockResolvedValue('/bad/save');
     const openDataFolder = vi.fn().mockRejectedValue({ kind: 'InvalidExistingSave' });
     const fixture = await createStorage({
       getCurrentDataFolder: vi.fn().mockResolvedValue('/home/user/saves'),
+      pickFolder,
       openDataFolder,
     });
 

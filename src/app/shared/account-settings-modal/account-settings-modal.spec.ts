@@ -2,22 +2,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { Account, AccountsApi } from '@core/accounts-api/accounts-api';
 import { AccountsStore } from '@core/accounts-api/accounts-store';
+import { accountFixture as account } from '@core/testing/account.fixture';
 import { AccountSettingsModal } from './account-settings-modal';
-
-function account(overrides: Partial<Account> = {}): Account {
-  return {
-    id: 7,
-    name: 'Livret A',
-    color: '#10b981',
-    icon: 'lucidePiggyBank',
-    created_date: '2026-01-15',
-    opening_balance: 1234.56,
-    balance: 1234.56,
-    archived: false,
-    last_entry_date: '2026-01-15',
-    ...overrides,
-  };
-}
 
 function stubApi(overrides: Partial<AccountsApi> = {}): Partial<AccountsApi> {
   return {
@@ -154,7 +140,10 @@ describe('AccountSettingsModal', () => {
 
   describe('edit mode', () => {
     it('titles itself as settings and fills the form from the account', async () => {
-      const fixture = await createModal(stubApi(), account());
+      const fixture = await createModal(
+        stubApi(),
+        account({ name: 'Livret A', opening_balance: 1234.56 }),
+      );
 
       expect((fixture.nativeElement as HTMLElement).textContent).toContain('Paramètres du compte');
       expect(element<HTMLInputElement>(fixture, 'account-name').value).toBe('Livret A');

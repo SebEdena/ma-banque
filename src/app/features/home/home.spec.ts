@@ -4,23 +4,9 @@ import { provideRouter } from '@angular/router';
 
 import { Account, AccountsApi } from '@core/accounts-api/accounts-api';
 import { AccountsStore } from '@core/accounts-api/accounts-store';
+import { accountFixture as account } from '@core/testing/account.fixture';
 import { DisplaySettingsService } from '@core/display-settings/display-settings';
 import { Home } from './home';
-
-function account(overrides: Partial<Account> = {}): Account {
-  return {
-    id: 1,
-    name: 'Compte courant',
-    color: '#3b82f6',
-    icon: 'lucideWallet',
-    created_date: '2026-01-15',
-    opening_balance: 1000,
-    balance: 1234.56,
-    archived: false,
-    last_entry_date: '2026-03-05',
-    ...overrides,
-  };
-}
 
 function stubApi(
   active: Account[],
