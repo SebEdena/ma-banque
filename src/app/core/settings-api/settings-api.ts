@@ -1,19 +1,28 @@
 import { Service } from '@angular/core';
 import { invoke } from '@tauri-apps/api/core';
+import { open } from '@tauri-apps/plugin-dialog';
 
 import type { DisplaySettings } from '@core/display-settings/display-settings.types';
 
 /**
  * Wraps `invoke()` for the data-folder-location Tauri commands (built in
  * `01-setup-backend.md`) and the display-settings commands (built in
- * `01-settings-backend.md`) so components never call `invoke()` directly —
- * the seam later tickets' tests mock instead of `invoke()` itself (see
- * `docs/spec/05-settings-remainder.md`).
+ * `01-settings-backend.md`), plus the native folder-picker dialog, so
+ * components never import from `@tauri-apps/*` directly — the seam later
+ * tickets' tests mock instead of Tauri itself (see
+ * `docs/spec/05-settings-remainder.md`), and the only seam an in-memory
+ * backend (`settings-api.mock.ts`) needs to replace.
  */
 @Service()
 export class SettingsApi {
   getCurrentDataFolder(): Promise<string | null> {
     return invoke<string | null>('get_current_data_folder');
+  }
+
+  /** Opens the native folder picker; resolves `null` if the user cancels. */
+  async pickFolder(): Promise<string | null> {
+    const picked = await open({ directory: true, multiple: false });
+    return typeof picked === 'string' ? picked : null;
   }
 
   setDefaultDataFolder(): Promise<string> {

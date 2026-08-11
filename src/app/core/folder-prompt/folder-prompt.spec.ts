@@ -3,10 +3,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { SettingsApi } from '../settings-api/settings-api';
 import { FolderPrompt } from './folder-prompt';
 
-vi.mock('@tauri-apps/plugin-dialog', () => ({
-  open: vi.fn(),
-}));
-
 vi.mock('@spartan-ng/brain/sonner', () => ({
   toast: { error: vi.fn() },
 }));
@@ -76,26 +72,24 @@ describe('FolderPrompt', () => {
   });
 
   it('"choose a folder" opens the OS picker and calls SettingsApi.openDataFolder', async () => {
-    const { open } = await import('@tauri-apps/plugin-dialog');
-    vi.mocked(open).mockResolvedValue('/chosen/path');
+    const pickFolder = vi.fn().mockResolvedValue('/chosen/path');
     const openDataFolder = vi.fn().mockResolvedValue('/chosen/path');
-    const fixture = await createFolderPrompt({ openDataFolder });
+    const fixture = await createFolderPrompt({ pickFolder, openDataFolder });
 
     let resolved = false;
     fixture.componentInstance.resolved.subscribe(() => (resolved = true));
 
     await clickButton(fixture, 'Choisir un dossier');
 
-    expect(open).toHaveBeenCalledWith(expect.objectContaining({ directory: true }));
+    expect(pickFolder).toHaveBeenCalled();
     expect(openDataFolder).toHaveBeenCalledWith('/chosen/path');
     expect(resolved).toBe(true);
   });
 
   it('"choose a folder" does nothing when the picker is cancelled', async () => {
-    const { open } = await import('@tauri-apps/plugin-dialog');
-    vi.mocked(open).mockResolvedValue(null);
+    const pickFolder = vi.fn().mockResolvedValue(null);
     const openDataFolder = vi.fn();
-    const fixture = await createFolderPrompt({ openDataFolder });
+    const fixture = await createFolderPrompt({ pickFolder, openDataFolder });
 
     let resolved = false;
     fixture.componentInstance.resolved.subscribe(() => (resolved = true));
@@ -107,11 +101,10 @@ describe('FolderPrompt', () => {
   });
 
   it('"choose a folder" surfaces a rejected command error as a toast, in French', async () => {
-    const { open } = await import('@tauri-apps/plugin-dialog');
     const { toast } = await import('@spartan-ng/brain/sonner');
-    vi.mocked(open).mockResolvedValue('/bad/path');
+    const pickFolder = vi.fn().mockResolvedValue('/bad/path');
     const openDataFolder = vi.fn().mockRejectedValue({ kind: 'InvalidExistingSave' });
-    const fixture = await createFolderPrompt({ openDataFolder });
+    const fixture = await createFolderPrompt({ pickFolder, openDataFolder });
 
     await clickButton(fixture, 'Choisir un dossier');
 

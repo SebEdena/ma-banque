@@ -1,7 +1,6 @@
 import { Component, inject, signal } from '@angular/core';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 import { toast } from '@spartan-ng/brain/sonner';
-import { open } from '@tauri-apps/plugin-dialog';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideFolder } from '@ng-icons/lucide';
 
@@ -52,8 +51,8 @@ export class Storage {
   private async pickFolderAndRun(command: (path: string) => Promise<string>): Promise<void> {
     this.busy.set(true);
     try {
-      const picked = await open({ directory: true, multiple: false });
-      if (typeof picked !== 'string') {
+      const picked = await this.settingsApi.pickFolder();
+      if (picked === null) {
         // User cancelled the picker — stay put.
         return;
       }
