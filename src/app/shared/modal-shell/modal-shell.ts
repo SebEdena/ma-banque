@@ -23,7 +23,7 @@ import { ChangeDetectionStrategy, Component, input, output } from '@angular/core
         [attr.aria-labelledby]="labelledBy()"
         cdkTrapFocus
         [cdkTrapFocusAutoCapture]="true"
-        class="w-full rounded-[14px] border border-border bg-card p-5 shadow-lg"
+        class="max-h-full w-full overflow-y-auto rounded-[14px] border border-border bg-card p-5 shadow-lg"
         [class]="panelClass()"
       >
         <ng-content />

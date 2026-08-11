@@ -17,7 +17,12 @@
       <button
         type="button"
         data-testid="archived-toggle"
-        class="flex items-center gap-2 rounded-[11px] border border-border px-3.5 py-2.5 text-sm font-bold text-muted-foreground outline-none transition-all hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+        class="flex items-center gap-2 rounded-[11px] border px-3.5 py-2.5 text-sm font-bold outline-none transition-all hover:bg-muted focus-visible:ring-3 focus-visible:ring-ring/50"
+        [class]="
+          showingArchived()
+            ? 'border-primary bg-primary/10 text-primary'
+            : 'border-border text-muted-foreground'
+        "
         (click)="toggleArchived()"
       >
         <ng-icon name="lucideArchive" size="15" />
@@ -54,6 +59,7 @@
         data-testid="account-card"
         [attr.data-account-id]="account.id"
         class="relative flex flex-col gap-3.5 rounded-[20px] border border-t-[3px] border-border bg-card p-4 shadow-sm transition-all focus-within:ring-3 focus-within:ring-ring/50 hover:-translate-y-1 hover:border-ring"
+        [class]="account.archived ? 'opacity-[0.72]' : ''"
         [style.border-top-color]="account.color"
       >
         <div class="flex items-center gap-3">
