@@ -59,7 +59,7 @@ Implement the `Account` domain entity end to end: creation (with its mandatory o
 - SQLite integration tests for `SqliteAccountRepository` and the minimal entry repository methods, against a fresh `:memory:` database with migrations applied per test.
 - Domain unit tests for balance calculation (sum of signed entries) and the opening-date-before-first-entry invariant.
 - Angular component tests (Vitest) for `Home` (renders cards from a mocked `AccountsApi`, hides archived accounts, archived toggle switches lists, active view's per-card archive action calls `archiveAccount`, archived view's restore/delete actions call `unarchiveAccount`/`delete_account` — the latter only after the named-confirmation dialog is accepted) and the account-settings modal component (form validation, create vs. edit mode, save/cancel call the right `AccountsApi` methods, no delete action rendered in the modal) — mock `AccountsApi`, not `invoke()` directly, per the seam agreed for this and the other layer-1 specs.
-- No new e2e scenario is required by this spec alone; the existing smoke e2e from `02-setup-frontend-ci.md` continues to cover "app launches, shell renders."
+- E2E (WebdriverIO, `e2e/accounts.e2e.ts`): create an account from the home screen, archive it, restore it from the archived view, and delete it from the archived view behind the named confirmation — each step asserting on the real `data-testid` hooks, sharing the WDIO session the shell smoke test (`02-setup-frontend-ci.md`) establishes per `technical-architecture.md` §2.3.
 
 ## Out of Scope
 

@@ -44,7 +44,7 @@ Implement the `Category` domain entity end to end — creation, editing, deletio
 - Use case tests (`create_category`, `update_category`, `delete_category` guard, `list_categories`) against a hand-written in-memory fake `CategoryRepository` — no `mockall`, per `technical-architecture.md` §1.6.
 - SQLite integration test asserting the seed migration inserts exactly the twelve business-requirements §6 categories on a fresh database, plus standard CRUD integration tests for `SqliteCategoryRepository`.
 - Angular component tests (Vitest) for `Categories`: renders the seeded/created list from a mocked `CategoriesApi`, delete blocked with an error surfaced when the mocked API returns `InUse`, icon-picker keyword search filters the shown icons. Mock `CategoriesApi`, not `invoke()` directly, per the seam agreed for this and the other layer-1 specs.
-- No new e2e scenario required by this spec alone.
+- E2E (WebdriverIO, `e2e/categories.e2e.ts`): create a category from Settings' "Postes" sub-section, edit it, and delete it (covering both the confirm-dialog and blocked-with-count paths) — asserting on `data-testid` hooks, sharing the WDIO session per `technical-architecture.md` §2.3.
 
 ## Out of Scope
 

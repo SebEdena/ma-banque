@@ -72,6 +72,7 @@ utilisent les vrais répertoires de l'OS.
 
 - **Vitest** pour les tests unitaires et de composants (runner par défaut scaffoldé par `ng new` depuis Angular 22, Karma/Jasmine totalement retirés).
 - **E2E** : WebdriverIO + `@wdio/tauri-service` (pilote `tauri-driver`), exécutés sur `windows-latest` uniquement (voir §3).
+- **Chaque spec qui ajoute un nouveau flux métier orienté utilisateur (écrans de type création/édition/suppression, pas seulement une nouvelle route) étend la suite e2e** avec un scénario couvrant les hooks `data-testid` de ce flux — le smoke test du shell prouve que l'app se lance, pas qu'une fonctionnalité marche de bout en bout. La section « Testing Decisions » d'une spec ne peut s'en dispenser que si la spec n'ajoute aucun nouveau flux utilisateur (ex. changement de schéma ou d'infra uniquement). Chaque nouveau fichier de spec a son propre `e2e/*.e2e.ts`, partageant une session WDIO via le regroupement de specs de `wdio.conf.ts` — voir `ensureRoutedShell()` dans `e2e/support/routed-shell.ts` pour la façon dont un fichier reprend là où un fichier précédent de la session s'est arrêté, plutôt que de supposer un lancement à froid.
 
 ### 2.3 Style de code
 
