@@ -314,6 +314,13 @@ mod tests {
                 .filter(|e| e.account_id == account_id && !e.is_system)
                 .count() as i64)
         }
+
+        /// Nothing in this fake tags an entry with a category — the account
+        /// rules don't involve them. `usecases::category`'s own fake covers
+        /// this method's behavior.
+        fn count_by_category(&self, _category_id: i64) -> Result<i64, EntryError> {
+            Ok(0)
+        }
     }
 
     fn input(opening_balance: f64) -> AccountInput {

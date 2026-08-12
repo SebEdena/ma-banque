@@ -122,6 +122,11 @@ pub trait EntryRepository {
 
     /// How much real activity the account has beyond its opening balance.
     fn count_non_system_by_account(&self, account_id: i64) -> Result<i64, EntryError>;
+
+    /// How many entries are tagged with `category_id`. Backs the guard that
+    /// stops a category being deleted out from under the entries using it,
+    /// and the usage count each category is listed with.
+    fn count_by_category(&self, category_id: i64) -> Result<i64, EntryError>;
 }
 
 pub type DynEntryRepository = Box<dyn EntryRepository + Send + Sync>;

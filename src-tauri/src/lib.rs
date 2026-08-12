@@ -13,10 +13,12 @@ mod usecases;
 use tauri::Manager;
 
 use domain::account::DynAccountRepository;
+use domain::category::DynCategoryRepository;
 use domain::data_folder_location::{DataFolderLocationRepository, DynDataFolderLocationRepository};
 use domain::entry::DynEntryRepository;
 use domain::settings::DynSettingsRepository;
 use infra::account::SqliteAccountRepository;
+use infra::category::SqliteCategoryRepository;
 use infra::data_folder_location::FsDataFolderLocationRepository;
 use infra::db::StartupDbError;
 use infra::entry::SqliteEntryRepository;
@@ -38,6 +40,10 @@ pub fn run() {
             commands::account::archive_account,
             commands::account::unarchive_account,
             commands::account::delete_account,
+            commands::category::list_categories,
+            commands::category::create_category,
+            commands::category::update_category,
+            commands::category::delete_category,
             commands::db::get_startup_db_error,
             commands::settings::get_display_settings,
             commands::settings::update_display_settings,
@@ -103,6 +109,8 @@ pub fn run() {
             app.manage(Box::new(settings_repo) as DynSettingsRepository);
             let account_repo = SqliteAccountRepository::new(shared_conn.clone());
             app.manage(Box::new(account_repo) as DynAccountRepository);
+            let category_repo = SqliteCategoryRepository::new(shared_conn.clone());
+            app.manage(Box::new(category_repo) as DynCategoryRepository);
             let entry_repo = SqliteEntryRepository::new(shared_conn.clone());
             app.manage(Box::new(entry_repo) as DynEntryRepository);
             app.manage(shared_conn);
