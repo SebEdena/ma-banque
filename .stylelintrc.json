@@ -1,0 +1,20 @@
+{
+  "extends": ["stylelint-config-standard", "@dreamsicle.io/stylelint-config-tailwindcss"],
+  "rules": {
+    "declaration-no-important": true,
+    "color-no-hex": true,
+    "function-disallowed-list": ["rgb", "rgba", "hsl", "hsla"],
+    "selector-pseudo-element-disallowed-list": ["::ng-deep"],
+    "no-empty-source": null,
+    "value-keyword-case": null
+  },
+  "overrides": [
+    {
+      "files": ["src/styles.css"],
+      "rules": {
+        "color-no-hex": null,
+        "function-disallowed-list": null
+      }
+    }
+  ]
+}
