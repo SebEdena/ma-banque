@@ -2,6 +2,38 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.4.0] - 2026-08-12
+
+### Bug Fixes
+
+- Order names by a case- and accent-insensitive collation
+
+### Build
+
+- Integrate stylelint for CSS linting
+
+### CI/CD
+
+- Fall back to the nearest npm cache instead of a full miss
+
+### Documentation
+
+- Mark the categories backend issue done
+
+### Features
+
+- Add the category backend with its seeded starting list
+- Build the Postes tab category management panel
+- Widen the palette so every seeded category has its own colour
+
+### Miscellaneous Tasks
+
+- Skip chore(agent) commits from generated changelog
+
+### Testing
+
+- Cover category create/edit/delete from the Postes tab
+
 ## [0.3.0] - 2026-08-11
 
 ### Bug Fixes
