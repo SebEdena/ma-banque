@@ -31,4 +31,8 @@ Decisions from issue 02 (Postes tab UI) that later issues inherit.
 - **The quick-create shortcut `06-entries.md` owns** should open `CategoryModal` (`features/settings/categories/category-modal/`) rather than build a second form. It takes an optional `category` input (`null` = create), emits `saved`/`cancelled`, and calls `CategoriesApi` itself — so the caller only re-fetches its own list on `saved`.
 - **Delete branches on `usage_count` before calling**, showing the prototype's blocked-with-count dialog instead of a delete action; the `InUse` toast is only the backstop for a stale count.
 - **The scaffolded `categories` route is retired**: the component moved to `features/settings/categories/` alongside `display-format`/`storage`, still behind `/settings/categories` (the Postes sub-nav link is unchanged).
-- **No E2E spec was written.** `docs/spec/04-categories.md`'s Testing Decisions call for `e2e/categories.e2e.ts`, but neither issue's acceptance criteria listed it and no ticket owns it — it is the one piece of this spec still outstanding.
+- **No E2E spec was written.** `docs/spec/04-categories.md`'s Testing Decisions call for `e2e/categories.e2e.ts`, but neither issue's acceptance criteria listed it and no ticket owns it — picked up by issue 03.
+
+Decisions from issue 03 (E2E Postes tab) that later issues inherit.
+
+- **`06-entries.md` inherits adding the blocked-with-count delete scenario to `e2e/categories.e2e.ts`** — it needs a category an entry actually references, and no entry-creation command or UI exists yet, so issue 03 covers only the usage-count-0 confirm-delete path.
