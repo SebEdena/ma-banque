@@ -1,6 +1,6 @@
 import { Category, CategoriesApi, CategoryInput } from '@core/categories-api/categories-api';
 
-/** The seeded twelve, already in `list_categories`' case-insensitive name order. */
+/** The seeded twelve, already in `list_categories`' case- and accent-insensitive name order. */
 const SEEDED: Category[] = [
   {
     id: 8,
@@ -27,9 +27,17 @@ const SEEDED: Category[] = [
     usage_count: 0,
   },
   {
+    id: 10,
+    name: 'Épargne / Investissement',
+    color: '#14b8a6',
+    icon: 'lucidePiggyBank',
+    description: "Virements vers l'épargne",
+    usage_count: 2,
+  },
+  {
     id: 11,
     name: 'Impôts / Taxes',
-    color: '#64748b',
+    color: '#6366f1',
     icon: 'lucideLandmark',
     description: 'Impôts, taxes, cotisations',
     usage_count: 0,
@@ -90,14 +98,6 @@ const SEEDED: Category[] = [
     description: 'Essence, transports en commun, entretien',
     usage_count: 11,
   },
-  {
-    id: 10,
-    name: 'Épargne / Investissement',
-    color: '#3b82f6',
-    icon: 'lucidePiggyBank',
-    description: "Virements vers l'épargne",
-    usage_count: 2,
-  },
 ];
 
 /**
@@ -139,21 +139,14 @@ export class InMemoryCategoriesApi implements CategoriesApi {
   }
 
   /**
-   * Mirrors the repository's `ORDER BY name COLLATE NOCASE, id`. Compares
-   * code units rather than using `localeCompare`, because SQLite's `NOCASE`
-   * only folds ASCII: "Épargne / Investissement" sorts *after* "Transport",
-   * and the mock has to reproduce that or the browser shows an order the
-   * real backend never returns.
+   * Mirrors the repository's `ORDER BY name COLLATE FRENCH_NOCASE, id` — the
+   * custom collation in `infra/collation.rs` folds case *and* accents, which
+   * `sensitivity: 'base'` is the browser's equivalent of.
    */
   private sorted(categories: Category[] = this.categories): Category[] {
-    return [...categories].sort((a, b) => {
-      const left = a.name.toUpperCase();
-      const right = b.name.toUpperCase();
-      if (left === right) {
-        return a.id - b.id;
-      }
-      return left < right ? -1 : 1;
-    });
+    return [...categories].sort(
+      (a, b) => a.name.localeCompare(b.name, 'fr', { sensitivity: 'base' }) || a.id - b.id,
+    );
   }
 
   private findOrThrow(id: number): Category {
