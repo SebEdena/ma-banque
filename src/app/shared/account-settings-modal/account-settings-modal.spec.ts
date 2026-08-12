@@ -3,6 +3,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Account, AccountsApi } from '@core/accounts-api/accounts-api';
 import { AccountsStore } from '@core/accounts-api/accounts-store';
 import { accountFixture as account } from '@core/testing/account.fixture';
+import { COLOR_SWATCHES } from '@shared/pickers/color-swatches';
 import { AccountSettingsModal } from './account-settings-modal';
 
 function stubApi(overrides: Partial<AccountsApi> = {}): Partial<AccountsApi> {
@@ -133,7 +134,7 @@ describe('AccountSettingsModal', () => {
       await save(fixture);
 
       const input = vi.mocked(accountsApi.createAccount!).mock.calls[0][0];
-      expect(input.color).toBe('#06b6d4');
+      expect(input.color).toBe(COLOR_SWATCHES[1].value);
       expect(input.icon).toBe('lucideLandmark');
     });
   });
