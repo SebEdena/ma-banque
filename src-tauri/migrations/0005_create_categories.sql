@@ -18,9 +18,9 @@ CREATE TABLE categories (
 -- (`shared/pickers/icon-catalog.ts` and `color-swatches.ts`), not the raw
 -- Lucide/Tailwind values business requirements §6 suggests: the pickers only
 -- render what they know, so a seed outside their vocabulary would show a blank
--- icon and leave the edit modal with no swatch selected. The palette is ten
--- colours for twelve categories, so Logement/Épargne and Impôts/Divers share
--- one — the user can repaint any of them.
+-- icon and leave the edit modal with no swatch selected. Every category gets a
+-- distinct swatch, so the card grid never shows the same colour twice on a
+-- fresh database — the user can still repaint any of them.
 INSERT INTO categories (name, color, icon, description) VALUES
     ('Alimentation', '#10b981', 'lucideShoppingCart', 'Courses, supermarché, marché'),
     ('Logement', '#3b82f6', 'lucideHouse', 'Loyer, charges, assurance habitation'),
@@ -31,8 +31,8 @@ INSERT INTO categories (name, color, icon, description) VALUES
     ('Shopping / Habillement', '#eab308', 'lucideShirt', 'Vêtements, accessoires'),
     ('Abonnements', '#06b6d4', 'lucideRepeat', 'Streaming, logiciels, presse'),
     ('Salaire', '#84cc16', 'lucideBanknote', 'Revenus du travail'),
-    ('Épargne / Investissement', '#3b82f6', 'lucidePiggyBank', 'Virements vers l''épargne'),
-    ('Impôts / Taxes', '#64748b', 'lucideLandmark', 'Impôts, taxes, cotisations'),
+    ('Épargne / Investissement', '#14b8a6', 'lucidePiggyBank', 'Virements vers l''épargne'),
+    ('Impôts / Taxes', '#6366f1', 'lucideLandmark', 'Impôts, taxes, cotisations'),
     ('Divers', '#64748b', 'lucideEllipsis', 'Non catégorisé');
 
 -- `entries.category_id` was created without its REFERENCES clause because

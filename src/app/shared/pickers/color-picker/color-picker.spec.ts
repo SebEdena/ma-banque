@@ -67,4 +67,10 @@ describe('ColorPicker', () => {
   it('offers the default colour a create form starts on', () => {
     expect(COLOR_SWATCHES.map((swatch) => swatch.value)).toContain(DEFAULT_COLOR);
   });
+
+  it('holds no duplicate colour, so two entities are never told apart by luck', () => {
+    const values = COLOR_SWATCHES.map((swatch) => swatch.value);
+
+    expect(new Set(values).size).toBe(values.length);
+  });
 });
