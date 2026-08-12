@@ -7,7 +7,7 @@ export interface ColorSwatch {
 
 /**
  * The fixed palette offered wherever the app asks a user to colour something
- * — accounts today, categories next. A closed set rather than a free colour
+ * — accounts and categories today. A closed set rather than a free colour
  * input: it keeps cards and charts legible against both themes, and lets two
  * accounts be told apart at a glance.
  */

@@ -1,0 +1,85 @@
+<app-modal-shell
+  labelledBy="category-modal-title"
+  panelClass="max-w-[460px]"
+  (dismissed)="cancelled.emit()"
+>
+  <h2 id="category-modal-title" class="mb-4 text-[15px] font-bold">
+    {{ editing() ? 'Modifier le poste' : 'Nouveau poste' }}
+  </h2>
+
+  <form [formGroup]="form" class="flex flex-col gap-4" (ngSubmit)="save()">
+    <div class="flex flex-col gap-1.5">
+      <label for="category-name" class="text-sm font-semibold">Nom</label>
+      <div class="flex items-center gap-3">
+        <div
+          data-testid="category-preview"
+          class="flex size-[50px] flex-shrink-0 items-center justify-center rounded-[15px]"
+          [style.background-color]="color() + '22'"
+          [style.color]="color()"
+        >
+          @if (icon(); as selected) {
+            <ng-icon [name]="selected" size="24" />
+          }
+        </div>
+        <input
+          id="category-name"
+          type="text"
+          data-testid="category-name"
+          formControlName="name"
+          placeholder="Nom du poste"
+          class="min-w-0 flex-1 rounded-[10px] bg-muted px-3 py-2.5 text-sm font-semibold outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50"
+        />
+      </div>
+      @if (showNameError()) {
+        <p data-testid="category-name-error" class="text-xs text-destructive">
+          Le nom du poste est obligatoire.
+        </p>
+      }
+    </div>
+
+    <div class="flex flex-col gap-1.5">
+      <span class="text-sm font-semibold">Couleur</span>
+      <app-color-picker [value]="color()" (selected)="color.set($event)" />
+    </div>
+
+    <div class="flex flex-col gap-1.5">
+      <span class="text-sm font-semibold">Icône</span>
+      <app-icon-picker [value]="icon()" (selected)="icon.set($event)" />
+      @if (showIconError()) {
+        <p data-testid="category-icon-error" class="text-xs text-destructive">
+          Sélectionnez une icône pour ce poste.
+        </p>
+      }
+    </div>
+
+    <div class="flex flex-col gap-1.5">
+      <label for="category-description" class="text-sm font-semibold"
+        >Description (optionnel)</label
+      >
+      <textarea
+        id="category-description"
+        rows="2"
+        data-testid="category-description"
+        formControlName="description"
+        placeholder="Précisions sur ce poste"
+        class="resize-none rounded-[10px] bg-muted px-3 py-2 text-sm outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50"
+      ></textarea>
+    </div>
+
+    <div class="mt-1 flex gap-2">
+      <button
+        hlmBtn
+        type="button"
+        variant="outline"
+        class="flex-1"
+        data-testid="category-cancel"
+        (click)="cancelled.emit()"
+      >
+        Annuler
+      </button>
+      <button hlmBtn type="submit" class="flex-1" data-testid="category-save" [disabled]="saving()">
+        Enregistrer
+      </button>
+    </div>
+  </form>
+</app-modal-shell>

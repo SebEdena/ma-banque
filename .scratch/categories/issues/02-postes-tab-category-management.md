@@ -16,12 +16,12 @@ Out of scope: category hierarchy, custom icon upload, the entries-screen "quick-
 
 **Blocked by:** `categories` ticket 01 (this feature's backend), `accounts` ticket 02 (shared icon/color pickers), `settings-remainder` ticket 02 (Settings screen shell + Affichage tab — owns the sub-nav this tab plugs into)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Postes tab renders the category list (seeded + created) from `list_categories`
-- [ ] Create/edit modal has name, icon (keyword-search picker from `accounts` ticket 02), description, color (picker from the same ticket) fields
-- [ ] Delete: plain confirm when usage count is 0; blocked-with-count message (no delete option) when non-zero
-- [ ] List re-fetches or updates locally after each mutation
-- [ ] The old `categories` route/component from `02-setup-frontend-ci.md` is retired or redirected into Settings' Postes tab
-- [ ] `CategoryError::InUse` surfaces as a toast; field validation is inline
-- [ ] Component tests (Vitest) with mocked `CategoriesApi`: renders seeded/created list, delete blocked with error surfaced on `InUse`, icon-picker keyword search filters shown icons
+- [x] Postes tab renders the category list (seeded + created) from `list_categories`
+- [x] Create/edit modal has name, icon (keyword-search picker from `accounts` ticket 02), description, color (picker from the same ticket) fields
+- [x] Delete: plain confirm when usage count is 0; blocked-with-count message (no delete option) when non-zero
+- [x] List re-fetches or updates locally after each mutation
+- [x] The old `categories` route/component from `02-setup-frontend-ci.md` is retired or redirected into Settings' Postes tab
+- [x] `CategoryError::InUse` surfaces as a toast; field validation is inline
+- [x] Component tests (Vitest) with mocked `CategoriesApi`: renders seeded/created list, delete blocked with error surfaced on `InUse`, icon-picker keyword search filters shown icons

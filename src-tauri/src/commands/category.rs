@@ -14,8 +14,8 @@ pub struct CategoryView {
     pub color: String,
     pub icon: String,
     pub description: String,
-    /// How many entries use this category — the panel shows it on each card
-    /// and uses it to decide between offering deletion and refusing it.
+    /// How many entries use this category — what the panel branches on to
+    /// decide between offering deletion and refusing it with a count.
     pub usage_count: i64,
 }
 
@@ -106,8 +106,8 @@ mod tests {
             category: Category {
                 id: 1,
                 name: "Alimentation".to_owned(),
-                color: "#4ADE80".to_owned(),
-                icon: "shopping-cart".to_owned(),
+                color: "#10b981".to_owned(),
+                icon: "lucideShoppingCart".to_owned(),
                 description: "Courses, supermarché, marché".to_owned(),
             },
             usage_count,
@@ -120,8 +120,8 @@ mod tests {
 
         assert_eq!(view.id, 1);
         assert_eq!(view.name, "Alimentation");
-        assert_eq!(view.color, "#4ADE80");
-        assert_eq!(view.icon, "shopping-cart");
+        assert_eq!(view.color, "#10b981");
+        assert_eq!(view.icon, "lucideShoppingCart");
         assert_eq!(view.description, "Courses, supermarché, marché");
         assert_eq!(view.usage_count, 7);
     }
