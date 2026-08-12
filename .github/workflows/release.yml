@@ -39,7 +39,12 @@ jobs:
       - run: npm ci
       - uses: tauri-apps/tauri-action@v2
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          # The auto-generated GITHUB_TOKEN has intermittently lacked
+          # release-creation rights on this repo despite contents: write
+          # being declared here (fails with "Resource not accessible by
+          # integration"). RELEASE_TOKEN is a PAT with Contents: write,
+          # used to sidestep that.
+          GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
         with:
           tagName: ${{ github.ref_name }}
           releaseName: "Ma Banque ${{ github.ref_name }}"
