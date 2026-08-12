@@ -18,6 +18,7 @@ import {
   lucideDog,
   lucideDroplet,
   lucideDumbbell,
+  lucideEllipsis,
   lucideEuro,
   lucideFilm,
   lucideFlame,
@@ -36,11 +37,13 @@ import {
   lucideMusic,
   lucidePackage,
   lucidePaintbrush,
+  lucidePartyPopper,
   lucidePhone,
   lucidePiggyBank,
   lucidePill,
   lucidePlane,
   lucideReceipt,
+  lucideRepeat,
   lucideScissors,
   lucideSchool,
   lucideShirt,
@@ -77,8 +80,8 @@ export interface CatalogIcon {
 }
 
 /**
- * The icons offered anywhere the app asks a user to pick one — accounts
- * today, categories next. A hand-curated slice of Lucide rather than the
+ * The icons offered anywhere the app asks a user to pick one — accounts and
+ * categories today. A hand-curated slice of Lucide rather than the
  * whole 1900-icon library: only these get bundled, and only these carry the
  * French keywords the search box needs.
  */
@@ -102,6 +105,7 @@ export const ICON_CATALOG: readonly CatalogIcon[] = [
     keywords: ['calcul', 'budget', 'comptabilité'],
   },
   { name: 'lucideReceipt', svg: lucideReceipt, keywords: ['reçu', 'facture', 'ticket'] },
+  { name: 'lucideRepeat', svg: lucideRepeat, keywords: ['abonnement', 'récurrent', 'périodique'] },
   {
     name: 'lucideTrendingUp',
     svg: lucideTrendingUp,
@@ -158,6 +162,7 @@ export const ICON_CATALOG: readonly CatalogIcon[] = [
   { name: 'lucideDumbbell', svg: lucideDumbbell, keywords: ['sport', 'musculation', 'fitness'] },
   { name: 'lucideTrophy', svg: lucideTrophy, keywords: ['sport', 'compétition', 'club'] },
   { name: 'lucideGamepad2', svg: lucideGamepad2, keywords: ['jeux', 'jeux vidéo', 'loisirs'] },
+  { name: 'lucidePartyPopper', svg: lucidePartyPopper, keywords: ['fête', 'sortie', 'loisirs'] },
   { name: 'lucideMusic', svg: lucideMusic, keywords: ['musique', 'concert', 'abonnement'] },
   { name: 'lucideFilm', svg: lucideFilm, keywords: ['cinéma', 'film', 'streaming'] },
   { name: 'lucideTicket', svg: lucideTicket, keywords: ['billet', 'spectacle', 'sortie'] },
@@ -192,6 +197,7 @@ export const ICON_CATALOG: readonly CatalogIcon[] = [
   { name: 'lucideStar', svg: lucideStar, keywords: ['favori', 'important', 'divers'] },
   { name: 'lucideHeart', svg: lucideHeart, keywords: ['don', 'association', 'favori'] },
   { name: 'lucideTag', svg: lucideTag, keywords: ['étiquette', 'divers', 'autre'] },
+  { name: 'lucideEllipsis', svg: lucideEllipsis, keywords: ['divers', 'autre', 'non classé'] },
 ];
 
 /** What a create form starts on before the user picks anything. */

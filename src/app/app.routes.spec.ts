@@ -20,6 +20,7 @@ describe('app routes', () => {
             return Promise.resolve({ date_format: 'DMY', currency_format: 'SYMBOL_AFTER' });
           case 'list_active_accounts':
           case 'list_archived_accounts':
+          case 'list_categories':
             return Promise.resolve([]);
           default:
             return Promise.resolve(null);
@@ -50,9 +51,9 @@ describe('app routes', () => {
     expect(harness.routeNativeElement?.textContent).toContain('Statistiques');
   });
 
-  it('redirects settings to its categories child route', async () => {
+  it('redirects settings to its Postes (categories) child route', async () => {
     const harness = await RouterTestingHarness.create('/settings');
-    expect(harness.routeNativeElement?.textContent).toContain('Catégories');
+    expect(harness.routeNativeElement?.textContent).toContain('Nouveau poste');
   });
 
   it('renders the Affichage (display-format) tab at /settings/display-format', async () => {

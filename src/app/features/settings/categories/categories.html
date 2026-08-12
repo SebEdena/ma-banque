@@ -1,0 +1,98 @@
+<div class="mb-4 flex justify-end">
+  <button hlmBtn type="button" data-testid="category-create" (click)="startCreate()">
+    <ng-icon name="lucidePlus" size="16" />
+    Nouveau poste
+  </button>
+</div>
+
+<div class="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3.5">
+  @for (category of categories(); track category.id) {
+    <div
+      data-testid="category-card"
+      class="relative rounded-2xl border border-border bg-card p-[15px] shadow-sm transition-all hover:-translate-y-[3px] hover:shadow-lg"
+    >
+      <div class="absolute top-2.5 right-2.5 flex gap-0.5">
+        <button
+          type="button"
+          data-testid="category-edit"
+          title="Modifier"
+          aria-label="Modifier {{ category.name }}"
+          class="flex size-[26px] items-center justify-center rounded-lg text-muted-foreground outline-none transition-all hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+          (click)="startEdit(category)"
+        >
+          <ng-icon name="lucidePencil" size="13" />
+        </button>
+        <button
+          type="button"
+          data-testid="category-delete"
+          title="Supprimer"
+          aria-label="Supprimer {{ category.name }}"
+          class="flex size-[26px] items-center justify-center rounded-lg text-muted-foreground outline-none transition-all hover:bg-destructive/10 hover:text-destructive focus-visible:ring-3 focus-visible:ring-ring/50"
+          (click)="startDelete(category)"
+        >
+          <ng-icon name="lucideTrash2" size="13" />
+        </button>
+      </div>
+
+      <div class="flex items-start gap-2.5 pr-14">
+        <div
+          class="flex size-[34px] flex-shrink-0 items-center justify-center rounded-[10px] text-white"
+          [style.background-color]="category.color"
+        >
+          <ng-icon [name]="category.icon" size="17" />
+        </div>
+        <div class="min-w-0 flex-1">
+          <div class="text-sm font-bold">{{ category.name }}</div>
+          <div class="mt-0.5 line-clamp-2 text-[11.5px] text-muted-foreground">
+            {{ category.description }}
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</div>
+
+@if (editing(); as category) {
+  <app-category-modal [category]="category" (cancelled)="closeModal()" (saved)="onSaved()" />
+} @else if (editing() === null) {
+  <app-category-modal (cancelled)="closeModal()" (saved)="onSaved()" />
+}
+
+@if (confirmingDelete(); as category) {
+  <app-confirm-dialog
+    title="Supprimer ce poste ?"
+    message="{{ category.name }} n'est utilisé par aucune écriture. Cette action est définitive."
+    confirmLabel="Supprimer"
+    (confirmed)="confirmDelete()"
+    (cancelled)="confirmingDelete.set(null)"
+  />
+}
+
+@if (deleteBlocked(); as category) {
+  <app-modal-shell
+    labelledBy="delete-blocked-title"
+    panelClass="max-w-sm"
+    (dismissed)="deleteBlocked.set(null)"
+  >
+    <div
+      class="mb-4 flex size-11 items-center justify-center rounded-[13px] bg-destructive/10 text-destructive"
+    >
+      <ng-icon name="lucideCircleAlert" size="22" />
+    </div>
+    <h2 id="delete-blocked-title" class="mb-2 text-[15px] font-bold">Suppression impossible</h2>
+    <p data-testid="delete-blocked-message" class="mb-4 text-sm text-muted-foreground">
+      Le poste <strong class="text-foreground">{{ category.name }}</strong> est utilisé par
+      {{ usageLabel(category) }}. Réaffectez d'abord ces écritures à un autre poste avant de le
+      supprimer.
+    </p>
+    <button
+      hlmBtn
+      type="button"
+      class="w-full"
+      data-testid="delete-blocked-dismiss"
+      (click)="deleteBlocked.set(null)"
+    >
+      Compris
+    </button>
+  </app-modal-shell>
+}

@@ -18,7 +18,8 @@ export const routes: Routes = [
       { path: '', pathMatch: 'full', redirectTo: 'categories' },
       {
         path: 'categories',
-        loadComponent: () => import('./features/categories/categories').then((m) => m.Categories),
+        loadComponent: () =>
+          import('./features/settings/categories/categories').then((m) => m.Categories),
       },
       {
         path: 'display-format',

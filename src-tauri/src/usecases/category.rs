@@ -220,8 +220,8 @@ mod tests {
     fn input(name: &str) -> CategoryInput {
         CategoryInput {
             name: name.to_owned(),
-            color: "#4ADE80".to_owned(),
-            icon: "shopping-cart".to_owned(),
+            color: "#10b981".to_owned(),
+            icon: "lucideShoppingCart".to_owned(),
             description: "Courses, supermarché, marché".to_owned(),
         }
     }
@@ -233,8 +233,8 @@ mod tests {
         let created = create_category(&store, &store, input("Alimentation")).unwrap();
 
         assert_eq!(created.category.name, "Alimentation");
-        assert_eq!(created.category.color, "#4ADE80");
-        assert_eq!(created.category.icon, "shopping-cart");
+        assert_eq!(created.category.color, "#10b981");
+        assert_eq!(created.category.icon, "lucideShoppingCart");
         assert_eq!(created.category.description, "Courses, supermarché, marché");
     }
 

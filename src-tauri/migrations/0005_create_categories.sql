@@ -13,19 +13,27 @@ CREATE TABLE categories (
 -- startup so a fresh database gets them exactly once, deterministically. These
 -- are ordinary rows from this point on — freely editable and deletable, with
 -- no flag marking them as preset.
+--
+-- `icon` holds an ng-icons name and `color` a swatch from the shared palette
+-- (`shared/pickers/icon-catalog.ts` and `color-swatches.ts`), not the raw
+-- Lucide/Tailwind values business requirements §6 suggests: the pickers only
+-- render what they know, so a seed outside their vocabulary would show a blank
+-- icon and leave the edit modal with no swatch selected. The palette is ten
+-- colours for twelve categories, so Logement/Épargne and Impôts/Divers share
+-- one — the user can repaint any of them.
 INSERT INTO categories (name, color, icon, description) VALUES
-    ('Alimentation', '#4ADE80', 'shopping-cart', 'Courses, supermarché, marché'),
-    ('Logement', '#60A5FA', 'home', 'Loyer, charges, assurance habitation'),
-    ('Transport', '#FB923C', 'car', 'Essence, transports en commun, entretien'),
-    ('Restaurant / Sorties', '#F472B6', 'utensils', 'Restaurants, cafés, bars'),
-    ('Loisirs', '#A78BFA', 'party-popper', 'Cinéma, sport, activités'),
-    ('Santé', '#F87171', 'heart-pulse', 'Pharmacie, médecin, mutuelle'),
-    ('Shopping / Habillement', '#FBBF24', 'shirt', 'Vêtements, accessoires'),
-    ('Abonnements', '#38BDF8', 'repeat', 'Streaming, logiciels, presse'),
-    ('Salaire', '#34D399', 'banknote', 'Revenus du travail'),
-    ('Épargne / Investissement', '#818CF8', 'piggy-bank', 'Virements vers l''épargne'),
-    ('Impôts / Taxes', '#94A3B8', 'landmark', 'Impôts, taxes, cotisations'),
-    ('Divers', '#A8A29E', 'more-horizontal', 'Non catégorisé');
+    ('Alimentation', '#10b981', 'lucideShoppingCart', 'Courses, supermarché, marché'),
+    ('Logement', '#3b82f6', 'lucideHouse', 'Loyer, charges, assurance habitation'),
+    ('Transport', '#f97316', 'lucideCar', 'Essence, transports en commun, entretien'),
+    ('Restaurant / Sorties', '#ec4899', 'lucideUtensils', 'Restaurants, cafés, bars'),
+    ('Loisirs', '#a855f7', 'lucidePartyPopper', 'Cinéma, sport, activités'),
+    ('Santé', '#ef4444', 'lucideHeartPulse', 'Pharmacie, médecin, mutuelle'),
+    ('Shopping / Habillement', '#eab308', 'lucideShirt', 'Vêtements, accessoires'),
+    ('Abonnements', '#06b6d4', 'lucideRepeat', 'Streaming, logiciels, presse'),
+    ('Salaire', '#84cc16', 'lucideBanknote', 'Revenus du travail'),
+    ('Épargne / Investissement', '#3b82f6', 'lucidePiggyBank', 'Virements vers l''épargne'),
+    ('Impôts / Taxes', '#64748b', 'lucideLandmark', 'Impôts, taxes, cotisations'),
+    ('Divers', '#64748b', 'lucideEllipsis', 'Non catégorisé');
 
 -- `entries.category_id` was created without its REFERENCES clause because
 -- `categories` didn't exist yet (see 0004); SQLite can't add a foreign key to

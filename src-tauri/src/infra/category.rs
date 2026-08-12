@@ -152,8 +152,8 @@ mod tests {
     fn details(name: &str) -> CategoryDetails {
         CategoryDetails {
             name: name.to_owned(),
-            color: "#4ADE80".to_owned(),
-            icon: "shopping-cart".to_owned(),
+            color: "#10b981".to_owned(),
+            icon: "lucideShoppingCart".to_owned(),
             description: "Courses, supermarché, marché".to_owned(),
         }
     }
@@ -182,8 +182,8 @@ mod tests {
             .find(|c| c.name == "Alimentation")
             .unwrap();
 
-        assert_eq!(alimentation.icon, "shopping-cart");
-        assert_eq!(alimentation.color, "#4ADE80");
+        assert_eq!(alimentation.icon, "lucideShoppingCart");
+        assert_eq!(alimentation.color, "#10b981");
     }
 
     #[test]
@@ -207,8 +207,8 @@ mod tests {
         let found = repo.find(created.id).unwrap().unwrap();
         assert_eq!(found, created);
         assert_eq!(found.name, "Cadeaux");
-        assert_eq!(found.color, "#4ADE80");
-        assert_eq!(found.icon, "shopping-cart");
+        assert_eq!(found.color, "#10b981");
+        assert_eq!(found.icon, "lucideShoppingCart");
         assert_eq!(found.description, "Courses, supermarché, marché");
     }
 
