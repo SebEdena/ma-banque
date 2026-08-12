@@ -76,6 +76,7 @@ Files: `actions/cleanup/01-sweep-worktrees.md`. Runs alongside `bootstrap/01-syn
 - `references/actors.md` — manager / issue-agent / feature-agent roles, terse-comms rule
 - `references/respecting-agent-time.md` — stall-avoidance guidance for the poll loop
 - `references/poll-state.md` — `.scratch/<feature>/pr-poll-state.json`: what the poll loop persists to survive a session restart
+- `references/pr-template.md` — the PR body heading skeleton (Summary / Decisions / Test plan) used by `open-pr`
 
 ## Scripts
 
