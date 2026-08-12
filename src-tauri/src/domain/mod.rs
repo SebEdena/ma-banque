@@ -4,6 +4,7 @@
 //! compile without knowing that Tauri, SQLite, or `usecases` exist.
 
 pub mod account;
+pub mod category;
 pub mod data_folder_location;
 pub mod date;
 pub mod entry;

@@ -147,6 +147,18 @@ impl EntryRepository for SqliteEntryRepository {
             )
             .map_err(io_err)
     }
+
+    fn count_by_category(&self, category_id: i64) -> Result<i64, EntryError> {
+        self.conn
+            .lock()
+            .unwrap()
+            .query_row(
+                "SELECT COUNT(*) FROM entries WHERE category_id = ?1",
+                [category_id],
+                |row| row.get(0),
+            )
+            .map_err(io_err)
+    }
 }
 
 #[cfg(test)]
@@ -186,6 +198,22 @@ mod tests {
             .execute(
                 "INSERT INTO entries (account_id, date, type, amount, is_system) VALUES (?1, ?2, ?3, ?4, 0)",
                 rusqlite::params![account_id, date, kind, amount],
+            )
+            .unwrap();
+    }
+
+    fn add_categorized_entry(
+        conn: &SharedConnection,
+        account_id: i64,
+        date: &str,
+        category_id: i64,
+    ) {
+        conn.lock()
+            .unwrap()
+            .execute(
+                "INSERT INTO entries (account_id, date, type, amount, is_system, category_id) \
+                 VALUES (?1, ?2, 'DEBIT', 100, 0, ?3)",
+                rusqlite::params![account_id, date, category_id],
             )
             .unwrap();
     }
@@ -282,6 +310,39 @@ mod tests {
         add_real_entry(&conn, account_id, "2026-02-02", "CREDIT", 100);
 
         assert_eq!(repo.count_non_system_by_account(account_id).unwrap(), 2);
+    }
+
+    #[test]
+    fn count_by_category_counts_only_entries_tagged_with_that_category() {
+        let (conn, account_id) = fixture();
+        add_categorized_entry(&conn, account_id, "2026-02-01", 1);
+        add_categorized_entry(&conn, account_id, "2026-02-02", 1);
+        add_categorized_entry(&conn, account_id, "2026-02-03", 2);
+        let repo = SqliteEntryRepository::new(conn);
+
+        assert_eq!(repo.count_by_category(1).unwrap(), 2);
+        assert_eq!(repo.count_by_category(2).unwrap(), 1);
+    }
+
+    #[test]
+    fn an_entry_cannot_point_at_a_category_that_does_not_exist() {
+        let (conn, account_id) = fixture();
+
+        let orphan = conn.lock().unwrap().execute(
+            "INSERT INTO entries (account_id, date, type, amount, is_system, category_id) \
+             VALUES (?1, '2026-02-01', 'DEBIT', 100, 0, 404)",
+            [account_id],
+        );
+
+        assert!(orphan.is_err(), "an unknown category should be rejected");
+    }
+
+    #[test]
+    fn count_by_category_is_zero_for_a_category_no_entry_uses() {
+        let (conn, _) = fixture();
+        let repo = SqliteEntryRepository::new(conn);
+
+        assert_eq!(repo.count_by_category(1).unwrap(), 0);
     }
 
     #[test]
