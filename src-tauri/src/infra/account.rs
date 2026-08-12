@@ -9,6 +9,7 @@ use rusqlite::{Connection, OptionalExtension, Row};
 
 use crate::domain::account::{Account, AccountDetails, AccountError, AccountRepository};
 use crate::domain::date::IsoDate;
+use crate::infra::collation::FRENCH_NOCASE;
 use crate::infra::db::SharedConnection;
 use crate::infra::entry;
 
@@ -172,7 +173,8 @@ impl AccountRepository for SqliteAccountRepository {
         let conn = self.conn.lock().unwrap();
         let mut statement = conn
             .prepare(&format!(
-                "SELECT {COLUMNS} FROM accounts WHERE archived = ?1 ORDER BY name COLLATE NOCASE, id"
+                "SELECT {COLUMNS} FROM accounts WHERE archived = ?1 \
+                 ORDER BY name COLLATE {FRENCH_NOCASE}, id"
             ))
             .map_err(io_err)?;
 
@@ -354,11 +356,13 @@ mod tests {
     }
 
     #[test]
-    fn list_is_ordered_by_name_case_insensitively() {
+    fn list_is_ordered_by_name_ignoring_case_and_accents() {
         let conn = db::migrated_in_memory_connection();
         let repo = SqliteAccountRepository::new(conn);
         repo.create(&details("livret b", "2026-01-15", 0)).unwrap();
         repo.create(&details("Compte courant", "2026-01-15", 0))
+            .unwrap();
+        repo.create(&details("Épargne Projet", "2026-01-15", 0))
             .unwrap();
         repo.create(&details("Livret A", "2026-01-15", 0)).unwrap();
 
@@ -369,7 +373,10 @@ mod tests {
             .map(|a| a.name)
             .collect();
 
-        assert_eq!(names, ["Compte courant", "Livret A", "livret b"]);
+        assert_eq!(
+            names,
+            ["Compte courant", "Épargne Projet", "Livret A", "livret b"]
+        );
     }
 
     #[test]

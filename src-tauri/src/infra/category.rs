@@ -4,6 +4,7 @@
 use rusqlite::{Connection, OptionalExtension, Row};
 
 use crate::domain::category::{Category, CategoryDetails, CategoryError, CategoryRepository};
+use crate::infra::collation::FRENCH_NOCASE;
 use crate::infra::db::SharedConnection;
 
 const COLUMNS: &str = "id, name, color, icon, description";
@@ -106,7 +107,7 @@ impl CategoryRepository for SqliteCategoryRepository {
         let conn = self.conn.lock().unwrap();
         let mut statement = conn
             .prepare(&format!(
-                "SELECT {COLUMNS} FROM categories ORDER BY name COLLATE NOCASE, id"
+                "SELECT {COLUMNS} FROM categories ORDER BY name COLLATE {FRENCH_NOCASE}, id"
             ))
             .map_err(io_err)?;
 
@@ -128,16 +129,11 @@ mod tests {
     /// The starting list from business requirements §6, in the order the
     /// panel shows it — spelled out here rather than derived from the
     /// migration so the two have to agree.
-    ///
-    /// "Épargne / Investissement" trails the list because SQLite's `NOCASE`
-    /// only folds ASCII, so an accented initial sorts after every unaccented
-    /// one. Accounts order the same way (`infra::account::list`); making both
-    /// accent-aware needs a custom collation and is a change for the two of
-    /// them together, not for categories alone.
     const SEEDED_NAMES: [&str; 12] = [
         "Abonnements",
         "Alimentation",
         "Divers",
+        "Épargne / Investissement",
         "Impôts / Taxes",
         "Logement",
         "Loisirs",
@@ -146,7 +142,6 @@ mod tests {
         "Santé",
         "Shopping / Habillement",
         "Transport",
-        "Épargne / Investissement",
     ];
 
     fn details(name: &str) -> CategoryDetails {
@@ -280,7 +275,7 @@ mod tests {
     }
 
     #[test]
-    fn list_is_ordered_by_name_case_insensitively() {
+    fn list_is_ordered_by_name_ignoring_case_and_accents() {
         let conn = db::migrated_in_memory_connection();
         conn.lock()
             .unwrap()
@@ -290,8 +285,26 @@ mod tests {
 
         repo.create(&details("cadeaux b")).unwrap();
         repo.create(&details("Anniversaires")).unwrap();
+        repo.create(&details("Éducation")).unwrap();
         repo.create(&details("Cadeaux A")).unwrap();
 
-        assert_eq!(names(&repo), ["Anniversaires", "Cadeaux A", "cadeaux b"]);
+        assert_eq!(
+            names(&repo),
+            ["Anniversaires", "Cadeaux A", "cadeaux b", "Éducation"]
+        );
+    }
+
+    #[test]
+    fn every_seeded_category_carries_a_colour_of_its_own() {
+        let mut colors: Vec<_> = repo()
+            .list()
+            .unwrap()
+            .into_iter()
+            .map(|c| c.color)
+            .collect();
+        colors.sort();
+        colors.dedup();
+
+        assert_eq!(colors.len(), SEEDED_NAMES.len());
     }
 }

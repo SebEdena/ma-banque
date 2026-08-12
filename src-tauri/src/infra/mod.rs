@@ -7,6 +7,7 @@
 
 pub mod account;
 pub mod category;
+pub mod collation;
 pub mod data_folder_location;
 pub mod db;
 pub mod entry;

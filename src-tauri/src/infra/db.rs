@@ -14,6 +14,8 @@ use rusqlite_migration::{Migrations, SchemaVersion, M};
 use serde::Serialize;
 use thiserror::Error;
 
+use crate::infra::collation;
+
 /// Connection handle shared across the app via `tauri::State`.
 pub type SharedConnection = Arc<Mutex<Connection>>;
 
@@ -88,9 +90,10 @@ pub fn reopen(shared: &SharedConnection, db_path: &Path) -> Result<(), DbOpenErr
 /// that: the frontend blocks routing to any screen that reads/writes
 /// settings until `get_current_data_folder` resolves to a real folder.
 pub fn placeholder_connection() -> SharedConnection {
-    Arc::new(Mutex::new(
-        Connection::open_in_memory().expect("in-memory sqlite connection should always open"),
-    ))
+    let conn =
+        Connection::open_in_memory().expect("in-memory sqlite connection should always open");
+    collation::register(&conn).expect("collation should register on a fresh connection");
+    Arc::new(Mutex::new(conn))
 }
 
 /// A fresh, fully migrated in-memory database — one per call, so repository
@@ -98,6 +101,7 @@ pub fn placeholder_connection() -> SharedConnection {
 #[cfg(test)]
 pub fn migrated_in_memory_connection() -> SharedConnection {
     let mut conn = Connection::open_in_memory().expect("in-memory sqlite connection should open");
+    collation::register(&conn).expect("collation should register on a fresh connection");
     migrations()
         .to_latest(&mut conn)
         .expect("migrations should apply cleanly");
@@ -108,6 +112,7 @@ fn open_and_migrate_connection(db_path: &Path) -> Result<Connection, DbOpenError
     let existed_before = db_path.is_file();
 
     let mut conn = Connection::open(db_path).map_err(io_err)?;
+    collation::register(&conn).map_err(io_err)?;
 
     if !is_schema_supported(&conn) {
         return Err(DbOpenError::SchemaNewerThanSupported);
