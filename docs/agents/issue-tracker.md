@@ -15,6 +15,7 @@ Issues and specs (you may know a spec as a PRD) for this repo live as markdown f
 
 - If the output is spec-shaped (a PRD produced by `/to-spec`), create the next-numbered file under `docs/spec/`.
 - If the output is ticket-shaped (a piece of implementation work produced by `/to-tickets`), create a new file under `.scratch/<feature-slug>/issues/` (creating the directory if needed), following the numbering and `Status:`/`Blocked by:` conventions above.
+- **Every bullet in the spec's `Testing Decisions` section must land as an acceptance-criteria line on exactly one ticket** — most naturally the ticket that builds the flow it tests, but a dedicated ticket is fine too. This applies in particular to E2E scenarios: `03-accounts.md` and `04-categories.md` both stated an E2E requirement in `Testing Decisions` that no ticket's acceptance criteria ever picked up, so both features shipped without it and it had to be patched in after the fact. Breaking a spec into tickets isn't done until every `Testing Decisions` bullet has a ticket owner — treat an unassigned one as a bug in the breakdown, not something to note and move on from.
 
 ## When a skill says "fetch the relevant ticket"
 
