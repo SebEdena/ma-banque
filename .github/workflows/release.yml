@@ -37,7 +37,7 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-npm-
       - run: npm ci
-      - uses: tauri-apps/tauri-action@v2
+      - uses: tauri-apps/tauri-action@v1
         env:
           # The auto-generated GITHUB_TOKEN has intermittently lacked
           # release-creation rights on this repo despite contents: write
