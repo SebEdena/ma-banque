@@ -14,13 +14,13 @@ Out of scope: any Postes tab UI (ticket 02), category hierarchy, custom icon upl
 
 **Blocked by:** `accounts` ticket 01 — Accounts backend (provides the `entries` table and is the natural place `count_by_category` extends)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `categories` table exists via migration, seeded with exactly the twelve business-requirements §6 categories on a fresh database
-- [ ] `domain::category`/`usecases::category`/`infra::category`/`commands::category` implement create/update/delete/list
-- [ ] `delete_category` returns `CategoryError::InUse` when any entry references the category, and succeeds otherwise
-- [ ] `list_categories` returns rows sorted by name, case-insensitive
-- [ ] `CategoryError` is a `thiserror` enum, `#[derive(Serialize)]`
-- [ ] Use-case tests against a hand-written in-memory fake `CategoryRepository` (no `mockall`)
-- [ ] SQLite integration test asserting the seed migration inserts exactly the twelve categories on a fresh database, plus standard CRUD integration tests
-- [ ] `cargo fmt --check`, `cargo clippy -- -D warnings`, and `cargo test` all pass locally
+- [x] `categories` table exists via migration, seeded with exactly the twelve business-requirements §6 categories on a fresh database
+- [x] `domain::category`/`usecases::category`/`infra::category`/`commands::category` implement create/update/delete/list
+- [x] `delete_category` returns `CategoryError::InUse` when any entry references the category, and succeeds otherwise
+- [x] `list_categories` returns rows sorted by name, case-insensitive
+- [x] `CategoryError` is a `thiserror` enum, `#[derive(Serialize)]`
+- [x] Use-case tests against a hand-written in-memory fake `CategoryRepository` (no `mockall`)
+- [x] SQLite integration test asserting the seed migration inserts exactly the twelve categories on a fresh database, plus standard CRUD integration tests
+- [x] `cargo fmt --check`, `cargo clippy -- -D warnings`, and `cargo test` all pass locally
