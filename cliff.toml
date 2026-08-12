@@ -39,6 +39,7 @@ commit_parsers = [
   { message = "^ci", group = "CI/CD" },
   { message = "^build", group = "Build" },
   { message = "^chore\\(release\\):", skip = true },
+  { message = "^chore\\(agent\\):", skip = true },
   { message = "^chore", group = "Miscellaneous Tasks" },
   { message = "^style", group = "Styling" },
   { message = "^revert", group = "Reverts" },
