@@ -15,17 +15,17 @@ Out of scope: any entries-screen UI (tickets 02–04), the category quick-create
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `migrations/0006_entries_label_description.sql` adds `label`/`description` columns as `NOT NULL DEFAULT ''` (the default exists for the pre-existing/system-entry rows only; it does not make an empty label valid for a real entry — see the validation criterion below)
-- [ ] `EntryRepository` gains `list_by_account`, `find`, `create`, `update`, `delete`, `set_reconciled`; the five pre-existing methods keep their signatures and observable behavior
-- [ ] `list_by_account` supports account_id, optional inclusive date-range filter, sort direction with `id` tie-break, offset/limit pagination with a `has_more` flag, and always includes the system entry regardless of filters
-- [ ] A jump-to-date path returns the page containing the first entry at or before a given date in the current sort order
-- [ ] `create_entry`/`update_entry`/`delete_entry`/`set_reconciled` reject the system entry with `EntryError::SystemEntryReadOnly`
-- [ ] `create_entry`/`update_entry` validate the label (non-empty) and amount (via `money::to_cents`), and surface an unknown `category_id` as `EntryError::UnknownCategory`
-- [ ] `commands::entry` exposes `create_entry`, `update_entry`, `delete_entry`, `list_entries`, `set_reconciled` as Tauri commands
-- [ ] `EntryError` is a `thiserror` enum, `#[derive(Serialize)]`
-- [ ] Use-case tests (create/update/delete/set_reconciled including system-entry rejection, list_entries covering date-range filtering, both sort directions, and pagination boundaries) against a hand-written in-memory fake `EntryRepository` (no `mockall`)
-- [ ] SQLite integration tests for the new repository methods against a fresh `:memory:` DB with migrations through `0006` applied, extending the existing `infra::entry` test module — including an unknown-`category_id` case and a case asserting the system entry is always included regardless of the date-range filter
-- [ ] The pre-existing `infra::entry` tests for `sum_by_account`, `last_entry_date`, `exists_non_system_on_or_before`, `count_non_system_by_account`, and `count_by_category` keep passing unchanged
-- [ ] `cargo fmt --check`, `cargo clippy -- -D warnings`, and `cargo test` all pass locally
+- [x] `migrations/0006_entries_label_description.sql` adds `label`/`description` columns as `NOT NULL DEFAULT ''` (the default exists for the pre-existing/system-entry rows only; it does not make an empty label valid for a real entry — see the validation criterion below)
+- [x] `EntryRepository` gains `list_by_account`, `find`, `create`, `update`, `delete`, `set_reconciled`; the five pre-existing methods keep their signatures and observable behavior
+- [x] `list_by_account` supports account_id, optional inclusive date-range filter, sort direction with `id` tie-break, offset/limit pagination with a `has_more` flag, and always includes the system entry regardless of filters
+- [x] A jump-to-date path returns the page containing the first entry at or before a given date in the current sort order
+- [x] `create_entry`/`update_entry`/`delete_entry`/`set_reconciled` reject the system entry with `EntryError::SystemEntryReadOnly`
+- [x] `create_entry`/`update_entry` validate the label (non-empty) and amount (via `money::to_cents`), and surface an unknown `category_id` as `EntryError::UnknownCategory`
+- [x] `commands::entry` exposes `create_entry`, `update_entry`, `delete_entry`, `list_entries`, `set_reconciled` as Tauri commands
+- [x] `EntryError` is a `thiserror` enum, `#[derive(Serialize)]`
+- [x] Use-case tests (create/update/delete/set_reconciled including system-entry rejection, list_entries covering date-range filtering, both sort directions, and pagination boundaries) against a hand-written in-memory fake `EntryRepository` (no `mockall`)
+- [x] SQLite integration tests for the new repository methods against a fresh `:memory:` DB with migrations through `0006` applied, extending the existing `infra::entry` test module — including an unknown-`category_id` case and a case asserting the system entry is always included regardless of the date-range filter
+- [x] The pre-existing `infra::entry` tests for `sum_by_account`, `last_entry_date`, `exists_non_system_on_or_before`, `count_non_system_by_account`, and `count_by_category` keep passing unchanged
+- [x] `cargo fmt --check`, `cargo clippy -- -D warnings`, and `cargo test` all pass locally
