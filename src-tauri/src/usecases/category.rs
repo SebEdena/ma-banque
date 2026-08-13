@@ -215,6 +215,57 @@ mod tests {
         fn count_non_system_by_account(&self, _account_id: i64) -> Result<i64, EntryError> {
             unimplemented!("category rules never count entries per account")
         }
+
+        fn list_by_account(
+            &self,
+            _account_id: i64,
+            _query: &crate::domain::entry::EntryListQuery,
+        ) -> Result<crate::domain::entry::EntryPage, EntryError> {
+            unimplemented!("category rules never list entries")
+        }
+
+        fn offset_for_date(
+            &self,
+            _account_id: i64,
+            _from: Option<&IsoDate>,
+            _to: Option<&IsoDate>,
+            _sort: crate::domain::entry::SortDirection,
+            _target: &IsoDate,
+        ) -> Result<i64, EntryError> {
+            unimplemented!("category rules never jump to a date")
+        }
+
+        fn find(&self, _id: i64) -> Result<Option<crate::domain::entry::Entry>, EntryError> {
+            unimplemented!("category rules never look up individual entries")
+        }
+
+        fn create(
+            &self,
+            _account_id: i64,
+            _details: &crate::domain::entry::EntryDetails,
+        ) -> Result<crate::domain::entry::Entry, EntryError> {
+            unimplemented!("category rules never create entries")
+        }
+
+        fn update(
+            &self,
+            _id: i64,
+            _details: &crate::domain::entry::EntryDetails,
+        ) -> Result<crate::domain::entry::Entry, EntryError> {
+            unimplemented!("category rules never update entries")
+        }
+
+        fn delete(&self, _id: i64) -> Result<(), EntryError> {
+            unimplemented!("category rules never delete entries")
+        }
+
+        fn set_reconciled(
+            &self,
+            _id: i64,
+            _reconciled: bool,
+        ) -> Result<crate::domain::entry::Entry, EntryError> {
+            unimplemented!("category rules never reconcile entries")
+        }
     }
 
     fn input(name: &str) -> CategoryInput {

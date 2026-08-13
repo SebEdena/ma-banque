@@ -78,6 +78,10 @@ impl From<EntryError> for AccountError {
             EntryError::InvalidStoredValue(message) | EntryError::Io(message) => {
                 AccountError::Io(message)
             }
+            // The account rules never create/edit/delete an entry directly —
+            // only `usecases::entry` does — so these never actually occur
+            // through this path; kept exhaustive rather than an unreachable!.
+            other => AccountError::Io(other.to_string()),
         }
     }
 }

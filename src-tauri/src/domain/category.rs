@@ -56,6 +56,10 @@ impl From<EntryError> for CategoryError {
             EntryError::InvalidStoredValue(message) | EntryError::Io(message) => {
                 CategoryError::Io(message)
             }
+            // The category rules never create/edit/delete an entry directly
+            // — only `usecases::entry` does — so these never actually occur
+            // through this path; kept exhaustive rather than an unreachable!.
+            other => CategoryError::Io(other.to_string()),
         }
     }
 }
