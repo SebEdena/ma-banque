@@ -171,6 +171,12 @@
           [itemSize]="rowHeight"
           (scrolledIndexChange)="onScrolledIndex($event)"
         >
+          <!--
+            A row is focusable and Enter-activated, but deliberately not
+            `role="button"`: it hosts its own buttons (reconcile, delete, and
+            the whole form once editing), which a button role would nest
+            inside another.
+          -->
           <div
             *cdkVirtualFor="let entry of entries(); trackBy: trackById"
             data-testid="entry-row"
@@ -178,9 +184,7 @@
             [attr.data-entry-id]="entry.id"
             [attr.data-system]="entry.is_system"
             [attr.data-editing]="editing() === entry.id"
-            [attr.role]="entry.is_system ? null : 'button'"
             [attr.tabindex]="entry.is_system ? null : 0"
-            [attr.aria-label]="entry.is_system ? null : 'Modifier l’écriture ' + entry.label"
             class="flex items-center gap-4 border-b border-border px-5 outline-none"
             [class.cursor-pointer]="!entry.is_system && editing() !== entry.id"
             [style.height.px]="rowHeight"
@@ -308,19 +312,14 @@
       role="checkbox"
       data-testid="entry-form-reconciled"
       data-accent-solid
-      [attr.aria-checked]="entry ? entry.reconciled : draftReconciled()"
-      aria-label="Écriture pointée"
+      [attr.aria-checked]="formReconciled(entry)"
+      [attr.aria-label]="formReconciled(entry) ? 'Écriture pointée' : 'Écriture non pointée'"
       class="flex size-[19px] shrink-0 items-center justify-center rounded-md border-[1.5px] border-border text-white outline-none"
-      [style.background-color]="
-        (entry ? entry.reconciled : draftReconciled()) ? account.color : 'transparent'
-      "
-      [style.border-color]="(entry ? entry.reconciled : draftReconciled()) ? account.color : ''"
-      (click)="
-        entry ? toggleReconciled(entry) : draftReconciled.set(!draftReconciled());
-        $event.stopPropagation()
-      "
+      [style.background-color]="formReconciled(entry) ? account.color : 'transparent'"
+      [style.border-color]="formReconciled(entry) ? account.color : ''"
+      (click)="toggleFormReconciled(entry)"
     >
-      @if (entry ? entry.reconciled : draftReconciled()) {
+      @if (formReconciled(entry)) {
         <ng-icon name="lucideCheck" size="12" />
       }
     </button>
@@ -333,7 +332,6 @@
       aria-label="Date de l’écriture"
       class="w-[88px] shrink-0 rounded-[7px] border border-border bg-card px-1.5 py-1 text-[12.5px] outline-none"
       [value]="draftDate()"
-      (click)="$event.stopPropagation()"
       (change)="draftDate.set($any($event.target).value)"
     />
 
@@ -350,7 +348,6 @@
         data-accent
         aria-label="Poste de l’écriture"
         class="min-w-0 flex-1 rounded-[7px] border border-border bg-card px-1.5 py-1 text-[12px] font-semibold outline-none"
-        (click)="$event.stopPropagation()"
         (change)="setCategory($any($event.target).value)"
       >
         <!--
@@ -368,37 +365,39 @@
     </span>
 
     <span class="flex min-w-0 flex-1 flex-col gap-1">
-      <input
-        id="entry-form-label"
-        type="text"
-        data-testid="entry-form-label"
-        data-accent
-        placeholder="Libellé"
-        aria-label="Libellé de l’écriture"
-        class="w-full rounded-[7px] border border-border bg-card px-2 py-1 text-[13.5px] font-bold outline-none"
-        [class.border-destructive]="submitted() && labelMissing()"
-        [value]="draftLabel()"
-        (click)="$event.stopPropagation()"
-        (input)="draftLabel.set($any($event.target).value)"
-      />
-      @if (submitted() && labelMissing()) {
-        <span data-testid="entry-form-label-error" class="text-[11px] text-destructive">
-          Le libellé est obligatoire.
-        </span>
-      } @else {
+      <span class="flex items-center gap-2">
         <input
-          id="entry-form-description"
+          id="entry-form-label"
           type="text"
-          data-testid="entry-form-description"
+          data-testid="entry-form-label"
           data-accent
-          placeholder="Description (optionnel)"
-          aria-label="Description de l’écriture"
-          class="w-full rounded-[7px] border border-border bg-card px-2 py-0.5 text-[12px] text-muted-foreground outline-none"
-          [value]="draftDescription()"
-          (click)="$event.stopPropagation()"
-          (input)="draftDescription.set($any($event.target).value)"
+          placeholder="Libellé"
+          aria-label="Libellé de l’écriture"
+          class="min-w-0 flex-1 rounded-[7px] border border-border bg-card px-2 py-1 text-[13.5px] font-bold outline-none"
+          [class.border-destructive]="submitted() && labelMissing()"
+          [value]="draftLabel()"
+          (input)="draftLabel.set($any($event.target).value)"
         />
-      }
+        @if (submitted() && labelMissing()) {
+          <span
+            data-testid="entry-form-label-error"
+            class="shrink-0 text-[11px] font-semibold text-destructive"
+          >
+            Libellé obligatoire
+          </span>
+        }
+      </span>
+      <input
+        id="entry-form-description"
+        type="text"
+        data-testid="entry-form-description"
+        data-accent
+        placeholder="Description (optionnel)"
+        aria-label="Description de l’écriture"
+        class="w-full rounded-[7px] border border-border bg-card px-2 py-0.5 text-[12px] text-muted-foreground outline-none"
+        [value]="draftDescription()"
+        (input)="draftDescription.set($any($event.target).value)"
+      />
     </span>
 
     <span class="flex shrink-0 items-center gap-1.5">
@@ -412,7 +411,6 @@
         aria-label="Montant de l’écriture"
         class="w-[90px] rounded-[7px] border border-border bg-card px-2 py-1.5 text-right font-mono text-[14px] font-semibold outline-none"
         [value]="draftAmount()"
-        (click)="$event.stopPropagation()"
         (input)="draftAmount.set($any($event.target).value)"
       />
       <span class="flex gap-[3px]">
@@ -425,7 +423,7 @@
           class="rounded-md border border-border px-1.5 py-1 text-[11px] font-semibold outline-none"
           [class.text-white]="draftIsDebit()"
           [style.background-color]="draftIsDebit() ? account.color : 'transparent'"
-          (click)="setDebit(true); $event.stopPropagation()"
+          (click)="setDebit(true)"
         >
           Débit
         </button>
@@ -438,7 +436,7 @@
           class="rounded-md border border-border px-1.5 py-1 text-[11px] font-semibold outline-none"
           [class.text-white]="!draftIsDebit()"
           [style.background-color]="draftIsDebit() ? 'transparent' : account.color"
-          (click)="setDebit(false); $event.stopPropagation()"
+          (click)="setDebit(false)"
         >
           Crédit
         </button>

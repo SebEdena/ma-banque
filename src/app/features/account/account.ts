@@ -26,13 +26,14 @@ import {
 } from '@ng-icons/lucide';
 import { toast } from '@spartan-ng/brain/sonner';
 
-import { parseIsoDate } from '@core/accounts-api/accounts-api';
+import { parseIsoDate, todayIso } from '@core/accounts-api/accounts-api';
 import { AccountsStore } from '@core/accounts-api/accounts-store';
 import { CategoriesApi, Category, parseCategoryError } from '@core/categories-api/categories-api';
 import { CurrencyFormatPipe } from '@core/display-settings/currency-format.pipe';
 import { DateFormatPipe } from '@core/display-settings/date-format.pipe';
 import { DisplaySettingsService } from '@core/display-settings/display-settings';
 import {
+  ENTRY_INVALID_AMOUNT_MESSAGE,
   EntriesApi,
   Entry,
   EntryInput,
@@ -83,14 +84,6 @@ interface PageQuery {
   sort: SortDirection;
   from: string | null;
   to: string | null;
-}
-
-/** Today as the `YYYY-MM-DD` both the backend and `<input type="date">` speak. */
-function today(): string {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${now.getFullYear()}-${month}-${day}`;
 }
 
 /**
@@ -189,7 +182,7 @@ export class Account {
 
   protected readonly draftLabel = signal('');
   protected readonly draftDescription = signal('');
-  protected readonly draftDate = signal(today());
+  protected readonly draftDate = signal(todayIso());
   protected readonly draftCategoryId = signal<number | null>(null);
   protected readonly draftReconciled = signal(false);
 
@@ -320,7 +313,7 @@ export class Account {
 
     const amount = this.amountValue();
     if (amount === null) {
-      toast.error(parseEntryError({ kind: 'InvalidAmount' }));
+      toast.error(ENTRY_INVALID_AMOUNT_MESSAGE);
       return;
     }
 
@@ -334,23 +327,38 @@ export class Account {
 
     this.saving.set(true);
     try {
-      if (target === 'new') {
-        const created = await this.entriesApi.createEntry(this.accountId(), input);
-        // `create_entry` doesn't take the flag — the creation row's checkbox
-        // goes through the same command the row toggle uses.
-        if (this.draftReconciled()) {
-          await this.entriesApi.setReconciled(created.id, true);
-        }
-      } else {
-        await this.entriesApi.updateEntry(target, input);
-      }
+      const saved =
+        target === 'new'
+          ? await this.entriesApi.createEntry(this.accountId(), input)
+          : await this.entriesApi.updateEntry(target, input);
+
+      // The row exists from here on, so the form closes before the checkbox
+      // call: a failure there must not leave it open on an entry that saving
+      // again would duplicate. `create_entry` doesn't take the flag — the
+      // creation row's checkbox goes through the row toggle's command.
       this.editing.set(null);
-      this.reload();
+      if (target === 'new' && this.draftReconciled()) {
+        await this.entriesApi.setReconciled(saved.id, true);
+      }
     } catch (error) {
       toast.error(parseEntryError(error));
     } finally {
       this.saving.set(false);
+      this.reload();
     }
+  }
+
+  /** The reconciled flag the form shows: the entry's, or the draft's while creating. */
+  protected formReconciled(entry: Entry | null): boolean {
+    return entry === null ? this.draftReconciled() : entry.reconciled;
+  }
+
+  protected toggleFormReconciled(entry: Entry | null): void {
+    if (entry === null) {
+      this.draftReconciled.update((reconciled) => !reconciled);
+      return;
+    }
+    void this.toggleReconciled(entry);
   }
 
   /**
@@ -399,7 +407,7 @@ export class Account {
     this.submitted.set(false);
     this.draftLabel.set('');
     this.draftDescription.set('');
-    this.draftDate.set(today());
+    this.draftDate.set(todayIso());
     this.draftCategoryId.set(null);
     this.draftAmount.set('-');
     this.draftReconciled.set(false);
@@ -407,14 +415,15 @@ export class Account {
 
   /**
    * The amount field's text as the signed major-unit number to send, or
-   * `null` when it isn't a number at all. Nothing typed after the sign is
-   * zero; anything the backend's `money::to_cents` would reject (sub-cent
-   * precision especially) is left for it to reject.
+   * `null` when it isn't a number — including when only the sign was picked.
+   * What `money::to_cents` would reject on the far side (sub-cent precision
+   * especially) is left for it to reject, so both paths say the same thing.
    */
   private amountValue(): number | null {
-    const raw = this.draftAmount().trim().replace(',', '.');
-    const magnitude = Number(raw.replace(/^-/, ''));
-    if (!Number.isFinite(magnitude)) {
+    const raw = this.draftAmount().trim().replaceAll(',', '.');
+    const digits = raw.replace(/^-/, '');
+    const magnitude = Number(digits);
+    if (digits === '' || !Number.isFinite(magnitude)) {
       return null;
     }
     return raw.startsWith('-') ? -magnitude : magnitude;
