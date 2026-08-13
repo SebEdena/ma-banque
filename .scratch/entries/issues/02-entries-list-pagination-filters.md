@@ -16,15 +16,15 @@ Out of scope: creating/editing/deleting entries and the reconciled toggle (ticke
 
 **Blocked by:** `entries` ticket 01 — Entries backend
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `EntriesApi` wraps `list_entries`
-- [ ] `Account` renders a page of entries from `EntriesApi.listEntries`, sorted most-recent-first by default
-- [ ] A reverse-order control flips the sort direction and re-requests accordingly
-- [ ] The list is Angular CDK Virtual Scroll, fetching and appending further pages as the user scrolls
-- [ ] A date-range filter changes what's requested from `EntriesApi`
-- [ ] Jump-to-date scrolls the list to the page containing the first entry at or before the target date
-- [ ] The system entry renders in the list with no edit-in-place or delete affordance
-- [ ] Amounts and dates render through `DisplaySettingsService`'s `currency-format`/`date-format` pipes
-- [ ] The account's accent color is applied to every interactive element on the screen
-- [ ] Component tests (Vitest) with mocked `EntriesApi`: renders a page of entries, system entry renders read-only, reverse-order control and date-range filter change what's requested
+- [x] `EntriesApi` wraps `list_entries`
+- [x] `Account` renders a page of entries from `EntriesApi.listEntries`, sorted most-recent-first by default
+- [x] A reverse-order control flips the sort direction and re-requests accordingly
+- [x] The list is Angular CDK Virtual Scroll, fetching and appending further pages as the user scrolls
+- [x] A date-range filter changes what's requested from `EntriesApi`
+- [x] Jump-to-date scrolls the list to the page containing the first entry at or before the target date
+- [x] The system entry renders in the list with no edit-in-place or delete affordance
+- [x] Amounts and dates render through `DisplaySettingsService`'s `currency-format`/`date-format` pipes
+- [x] The account's accent color is applied to every interactive element on the screen
+- [x] Component tests (Vitest) with mocked `EntriesApi`: renders a page of entries, system entry renders read-only, reverse-order control and date-range filter change what's requested
