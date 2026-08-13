@@ -91,6 +91,13 @@ export class EntriesApi {
 }
 
 /**
+ * What the amount field says when its text isn't a number at all — the same
+ * wording the backend's own `money::to_cents` rejection gets, so the two
+ * paths read identically to the user.
+ */
+export const ENTRY_INVALID_AMOUNT_MESSAGE = "le montant de l'écriture est invalide";
+
+/**
  * The `kind` discriminants `EntryError` serializes to (see
  * `src-tauri/src/domain/entry.rs`'s `#[serde(tag = "kind", content =
  * "message")]`).
@@ -138,7 +145,7 @@ export function parseEntryError(error: unknown): string {
     case 'UnknownCategory':
       return "ce poste n'existe plus";
     case 'InvalidAmount':
-      return "le montant de l'écriture est invalide";
+      return ENTRY_INVALID_AMOUNT_MESSAGE;
     case 'InvalidStoredValue':
       return "l'écriture contient une valeur invalide";
     case 'Io':

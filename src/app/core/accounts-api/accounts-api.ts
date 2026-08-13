@@ -135,3 +135,11 @@ export function parseIsoDate(value: string): Date {
   const [year, month, day] = value.split('-').map(Number);
   return new Date(year, month - 1, day);
 }
+
+/** Today as the `YYYY-MM-DD` both the backend and `<input type="date">` speak. */
+export function todayIso(): string {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${now.getFullYear()}-${month}-${day}`;
+}

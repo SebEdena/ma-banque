@@ -350,10 +350,23 @@ describe('Account', () => {
 
     await click(fixture, 'entries-new');
     await type(fixture, 'entry-form-label', 'Boulangerie');
+    await type(fixture, 'entry-form-amount', '-12.40');
     await click(fixture, 'entry-form-reconciled');
     await click(fixture, 'entry-save');
 
     expect(entriesApi.setReconciled).toHaveBeenCalledWith(999, true);
+  });
+
+  it('refuses to save an amount that is not a number', async () => {
+    const entriesApi = stubEntriesApi([entry()]);
+    const fixture = await createAccount(entriesApi);
+
+    await click(fixture, 'entries-new');
+    await type(fixture, 'entry-form-label', 'Sans montant');
+    await type(fixture, 'entry-form-amount', '-');
+    await click(fixture, 'entry-save');
+
+    expect(entriesApi.createEntry).not.toHaveBeenCalled();
   });
 
   it('blocks saving while the label is empty, inline rather than as a toast', async () => {

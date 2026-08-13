@@ -19,21 +19,18 @@ import {
 import { toast } from '@spartan-ng/brain/sonner';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 
-import { Account, AccountInput, parseAccountError } from '@core/accounts-api/accounts-api';
+import {
+  Account,
+  AccountInput,
+  parseAccountError,
+  todayIso,
+} from '@core/accounts-api/accounts-api';
 import { AccountsStore } from '@core/accounts-api/accounts-store';
 import { ModalShell } from '@shared/modal-shell/modal-shell';
 import { ColorPicker } from '@shared/pickers/color-picker/color-picker';
 import { DEFAULT_COLOR } from '@shared/pickers/color-swatches';
 import { IconPicker } from '@shared/pickers/icon-picker/icon-picker';
 import { DEFAULT_ICON_NAME } from '@shared/pickers/icon-catalog';
-
-/** Today as the `YYYY-MM-DD` the backend and `<input type="date">` both speak. */
-function today(): string {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${now.getFullYear()}-${month}-${day}`;
-}
 
 /**
  * The one create/edit account form, matching the prototype's "Nouveau
@@ -78,7 +75,7 @@ export class AccountSettingsModal implements OnInit {
     openingBalance: new FormControl<number | null>(0, {
       validators: [Validators.required],
     }),
-    createdDate: new FormControl(today(), {
+    createdDate: new FormControl(todayIso(), {
       nonNullable: true,
       validators: [Validators.required],
     }),
