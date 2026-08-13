@@ -321,6 +321,57 @@ mod tests {
         fn count_by_category(&self, _category_id: i64) -> Result<i64, EntryError> {
             Ok(0)
         }
+
+        fn list_by_account(
+            &self,
+            _account_id: i64,
+            _query: &crate::domain::entry::EntryListQuery,
+        ) -> Result<crate::domain::entry::EntryPage, EntryError> {
+            unimplemented!("account rules don't list entries")
+        }
+
+        fn offset_for_date(
+            &self,
+            _account_id: i64,
+            _from: Option<&IsoDate>,
+            _to: Option<&IsoDate>,
+            _sort: crate::domain::entry::SortDirection,
+            _target: &IsoDate,
+        ) -> Result<i64, EntryError> {
+            unimplemented!("account rules don't jump to a date")
+        }
+
+        fn find(&self, _id: i64) -> Result<Option<crate::domain::entry::Entry>, EntryError> {
+            unimplemented!("account rules don't look up individual entries")
+        }
+
+        fn create(
+            &self,
+            _account_id: i64,
+            _details: &crate::domain::entry::EntryDetails,
+        ) -> Result<crate::domain::entry::Entry, EntryError> {
+            unimplemented!("account rules don't create entries")
+        }
+
+        fn update(
+            &self,
+            _id: i64,
+            _details: &crate::domain::entry::EntryDetails,
+        ) -> Result<crate::domain::entry::Entry, EntryError> {
+            unimplemented!("account rules don't update entries")
+        }
+
+        fn delete(&self, _id: i64) -> Result<(), EntryError> {
+            unimplemented!("account rules don't delete entries")
+        }
+
+        fn set_reconciled(
+            &self,
+            _id: i64,
+            _reconciled: bool,
+        ) -> Result<crate::domain::entry::Entry, EntryError> {
+            unimplemented!("account rules don't reconcile entries")
+        }
     }
 
     fn input(opening_balance: f64) -> AccountInput {
