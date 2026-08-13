@@ -5,8 +5,10 @@ import { mockBackend } from '../environments/environment';
 import { routes } from './app.routes';
 import { AccountsApi } from './core/accounts-api/accounts-api';
 import { CategoriesApi } from './core/categories-api/categories-api';
+import { EntriesApi } from './core/entries-api/entries-api';
 import { InMemoryAccountsApi } from './core/mocks/accounts-api.mock';
 import { InMemoryCategoriesApi } from './core/mocks/categories-api.mock';
+import { InMemoryEntriesApi } from './core/mocks/entries-api.mock';
 import { InMemorySettingsApi } from './core/mocks/settings-api.mock';
 import { SettingsApi } from './core/settings-api/settings-api';
 
@@ -20,6 +22,7 @@ const mockProviders = mockBackend
   ? [
       { provide: AccountsApi, useClass: InMemoryAccountsApi },
       { provide: CategoriesApi, useClass: InMemoryCategoriesApi },
+      { provide: EntriesApi, useClass: InMemoryEntriesApi },
       { provide: SettingsApi, useClass: InMemorySettingsApi },
     ]
   : [];
