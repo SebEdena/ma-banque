@@ -1,4 +1,10 @@
-import { EntriesApi, Entry, EntryPage, ListEntriesQuery } from '@core/entries-api/entries-api';
+import {
+  EntriesApi,
+  Entry,
+  EntryInput,
+  EntryPage,
+  ListEntriesQuery,
+} from '@core/entries-api/entries-api';
 
 const LABELS: { label: string; category_id: number | null; amount: number; description: string }[] =
   [
@@ -48,6 +54,31 @@ function seed(accountId: number): Entry[] {
   return entries;
 }
 
+/** The subset of `Entry` an `EntryInput` sets, on create and on update alike. */
+function fields(
+  input: EntryInput,
+): Pick<Entry, 'label' | 'category_id' | 'date' | 'amount' | 'description'> {
+  return {
+    label: input.label.trim(),
+    category_id: input.category_id,
+    date: input.date,
+    amount: input.amount,
+    description: input.description,
+  };
+}
+
+/** Mirrors what `usecases::entry` rejects, so the mock UI hits the same toasts. */
+function validate(input: EntryInput): { kind: string } | null {
+  if (input.label.trim() === '') {
+    return { kind: 'EmptyLabel' };
+  }
+  const cents = input.amount * 100;
+  if (!Number.isFinite(cents) || Math.abs(cents - Math.round(cents)) > 1e-6) {
+    return { kind: 'InvalidAmount' };
+  }
+  return null;
+}
+
 /** Local date parts, not `toISOString()` — which would shift a day west of UTC. */
 function isoDate(date: Date): string {
   const month = String(date.getMonth() + 1).padStart(2, '0');
@@ -84,6 +115,70 @@ export class InMemoryEntriesApi implements EntriesApi {
       entries: matching.slice(offset, offset + query.page_size),
       has_more: matching.length > offset + query.page_size,
     });
+  }
+
+  createEntry(accountId: number, input: EntryInput): Promise<Entry> {
+    const invalid = validate(input);
+    if (invalid) {
+      return Promise.reject(invalid);
+    }
+
+    const entries = this.entriesFor(accountId);
+    const created: Entry = {
+      id: Math.max(...entries.map((entry) => entry.id)) + 1,
+      account_id: accountId,
+      ...fields(input),
+      is_system: false,
+      reconciled: false,
+    };
+    entries.push(created);
+    return Promise.resolve({ ...created });
+  }
+
+  updateEntry(id: number, input: EntryInput): Promise<Entry> {
+    const invalid = validate(input);
+    if (invalid) {
+      return Promise.reject(invalid);
+    }
+
+    return this.mutate(id, (entry) => Object.assign(entry, fields(input)));
+  }
+
+  deleteEntry(id: number): Promise<void> {
+    for (const entries of this.byAccount.values()) {
+      const index = entries.findIndex((entry) => entry.id === id);
+      if (index === -1) {
+        continue;
+      }
+      if (entries[index].is_system) {
+        return Promise.reject({ kind: 'SystemEntryReadOnly' });
+      }
+      entries.splice(index, 1);
+      return Promise.resolve();
+    }
+    return Promise.reject({ kind: 'NotFound' });
+  }
+
+  setReconciled(id: number, reconciled: boolean): Promise<Entry> {
+    return this.mutate(id, (entry) => {
+      entry.reconciled = reconciled;
+    });
+  }
+
+  /** Applies a change to a non-system entry, rejecting the way the backend does. */
+  private mutate(id: number, change: (entry: Entry) => void): Promise<Entry> {
+    for (const entries of this.byAccount.values()) {
+      const entry = entries.find((candidate) => candidate.id === id);
+      if (!entry) {
+        continue;
+      }
+      if (entry.is_system) {
+        return Promise.reject({ kind: 'SystemEntryReadOnly' });
+      }
+      change(entry);
+      return Promise.resolve({ ...entry });
+    }
+    return Promise.reject({ kind: 'NotFound' });
   }
 
   private offsetFor(matching: Entry[], query: ListEntriesQuery): number {

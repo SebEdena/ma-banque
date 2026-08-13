@@ -1,4 +1,5 @@
 import { CdkVirtualScrollViewport, ScrollingModule } from '@angular/cdk/scrolling';
+import { NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -17,8 +18,11 @@ import {
   lucideChevronsUpDown,
   lucideFlag,
   lucideLock,
+  lucidePlus,
   lucideRotateCcw,
   lucideSearch,
+  lucideTrash2,
+  lucideX,
 } from '@ng-icons/lucide';
 import { toast } from '@spartan-ng/brain/sonner';
 
@@ -28,7 +32,14 @@ import { CategoriesApi, Category, parseCategoryError } from '@core/categories-ap
 import { CurrencyFormatPipe } from '@core/display-settings/currency-format.pipe';
 import { DateFormatPipe } from '@core/display-settings/date-format.pipe';
 import { DisplaySettingsService } from '@core/display-settings/display-settings';
-import { EntriesApi, Entry, SortDirection, parseEntryError } from '@core/entries-api/entries-api';
+import {
+  EntriesApi,
+  Entry,
+  EntryInput,
+  SortDirection,
+  parseEntryError,
+} from '@core/entries-api/entries-api';
+import { ConfirmDialog } from '@shared/confirm-dialog/confirm-dialog';
 import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
 
 /**
@@ -63,13 +74,30 @@ const UNCATEGORIZED: RowCategory = {
   icon: 'lucideEllipsis',
 };
 
+/** Which row the inline form is open on: the creation row, or an entry's id. */
+type EditTarget = 'new' | number;
+
+/** Everything a `list_entries` page request depends on besides its offset. */
+interface PageQuery {
+  accountId: number;
+  sort: SortDirection;
+  from: string | null;
+  to: string | null;
+}
+
+/** Today as the `YYYY-MM-DD` both the backend and `<input type="date">` speak. */
+function today(): string {
+  const now = new Date();
+  const month = String(now.getMonth() + 1).padStart(2, '0');
+  const day = String(now.getDate()).padStart(2, '0');
+  return `${now.getFullYear()}-${month}-${day}`;
+}
+
 /**
  * The account entries screen (business requirements §4.3): the account's
  * register as a virtual-scrolled list, most-recent-first by default, with a
- * date-range filter, a reverse-order control and jump-to-date.
- *
- * Read-only for now — inline creation/editing, deletion and the reconciled
- * toggle land with the rest of `docs/spec/06-entries.md`.
+ * date-range filter, a reverse-order control, jump-to-date, inline
+ * creation/editing, deletion and the per-row reconciled toggle.
  *
  * Pages are appended to one buffer that always starts at offset 0, because
  * CDK Virtual Scroll renders a single array: a page starting further in
@@ -79,7 +107,15 @@ const UNCATEGORIZED: RowCategory = {
  */
 @Component({
   selector: 'app-account',
-  imports: [RouterLink, NgIcon, ScrollingModule, DateFormatPipe, CurrencyFormatPipe],
+  imports: [
+    RouterLink,
+    NgIcon,
+    NgTemplateOutlet,
+    ScrollingModule,
+    DateFormatPipe,
+    CurrencyFormatPipe,
+    ConfirmDialog,
+  ],
   templateUrl: './account.html',
   styleUrl: './account.css',
   providers: [
@@ -90,8 +126,11 @@ const UNCATEGORIZED: RowCategory = {
       lucideChevronsUpDown,
       lucideFlag,
       lucideLock,
+      lucidePlus,
       lucideRotateCcw,
       lucideSearch,
+      lucideTrash2,
+      lucideX,
     }),
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -137,10 +176,37 @@ export class Account {
   protected readonly parseIsoDate = parseIsoDate;
   protected readonly trackById = (_index: number, entry: Entry): number => entry.id;
 
-  private readonly categories = signal<Category[]>([]);
+  protected readonly categories = signal<Category[]>([]);
   private readonly categoriesById = computed(
     () => new Map(this.categories().map((category) => [category.id, category])),
   );
+
+  /** The row the inline form is open on, or `null` when the list is idle. */
+  protected readonly editing = signal<EditTarget | null>(null);
+  protected readonly saving = signal(false);
+  protected readonly submitted = signal(false);
+  protected readonly confirmingDelete = signal<Entry | null>(null);
+
+  protected readonly draftLabel = signal('');
+  protected readonly draftDescription = signal('');
+  protected readonly draftDate = signal(today());
+  protected readonly draftCategoryId = signal<number | null>(null);
+  protected readonly draftReconciled = signal(false);
+
+  /**
+   * The amount field's text, sign included — the debit/credit selector is a
+   * view over that sign rather than a second piece of state, so the two
+   * can't drift apart (`docs/spec/06-entries.md`).
+   */
+  protected readonly draftAmount = signal('');
+  protected readonly draftIsDebit = computed(() => this.draftAmount().trim().startsWith('-'));
+  protected readonly labelMissing = computed(() => this.draftLabel().trim() === '');
+
+  /** The swatch the form shows next to its category select. */
+  protected readonly draftCategory = computed<RowCategory>(() => {
+    const id = this.draftCategoryId();
+    return (id === null ? undefined : this.categoriesById().get(id)) ?? UNCATEGORIZED;
+  });
 
   /**
    * Bumped on every filter/sort/account change so a page that arrives after
@@ -152,15 +218,8 @@ export class Account {
     void this.loadCategories();
 
     effect(() => {
-      const accountId = this.accountId();
-      const sort = this.sort();
-      const from = this.from();
-      const to = this.to();
-
-      this.generation += 1;
-      this.entries.set([]);
-      this.hasMore.set(false);
-      void this.fetchPage(this.generation, { accountId, sort, from, to }, 0);
+      this.editing.set(null);
+      this.reload();
     });
   }
 
@@ -216,6 +275,116 @@ export class Account {
     }
   }
 
+  /** Opens the creation row at the top of the list, on an empty draft. */
+  protected startCreate(): void {
+    this.resetDraft();
+    this.editing.set('new');
+  }
+
+  /** Turns an existing row into the inline form; system entries stay read-only. */
+  protected startEdit(entry: Entry): void {
+    if (entry.is_system || this.editing() === entry.id) {
+      return;
+    }
+
+    this.resetDraft();
+    this.draftLabel.set(entry.label);
+    this.draftDescription.set(entry.description);
+    this.draftDate.set(entry.date);
+    this.draftCategoryId.set(entry.category_id);
+    this.draftAmount.set(String(entry.amount));
+    this.draftReconciled.set(entry.reconciled);
+    this.editing.set(entry.id);
+  }
+
+  protected cancelEdit(): void {
+    this.editing.set(null);
+  }
+
+  protected setCategory(value: string): void {
+    this.draftCategoryId.set(value === '' ? null : Number(value));
+  }
+
+  /** Rewrites the amount's sign, which is all the debit/credit selector is. */
+  protected setDebit(debit: boolean): void {
+    const magnitude = this.draftAmount().trim().replace(/^-/, '');
+    this.draftAmount.set(debit ? `-${magnitude}` : magnitude);
+  }
+
+  protected async save(): Promise<void> {
+    this.submitted.set(true);
+    const target = this.editing();
+    if (target === null || this.labelMissing() || this.saving()) {
+      return;
+    }
+
+    const amount = this.amountValue();
+    if (amount === null) {
+      toast.error(parseEntryError({ kind: 'InvalidAmount' }));
+      return;
+    }
+
+    const input: EntryInput = {
+      label: this.draftLabel().trim(),
+      category_id: this.draftCategoryId(),
+      date: this.draftDate(),
+      amount,
+      description: this.draftDescription().trim(),
+    };
+
+    this.saving.set(true);
+    try {
+      if (target === 'new') {
+        const created = await this.entriesApi.createEntry(this.accountId(), input);
+        // `create_entry` doesn't take the flag — the creation row's checkbox
+        // goes through the same command the row toggle uses.
+        if (this.draftReconciled()) {
+          await this.entriesApi.setReconciled(created.id, true);
+        }
+      } else {
+        await this.entriesApi.updateEntry(target, input);
+      }
+      this.editing.set(null);
+      this.reload();
+    } catch (error) {
+      toast.error(parseEntryError(error));
+    } finally {
+      this.saving.set(false);
+    }
+  }
+
+  /**
+   * Toggles an existing entry's reconciled flag on its own, independent of
+   * whether the row is being edited, and patches the one row rather than
+   * refetching so the list doesn't jump under the pointer.
+   */
+  protected async toggleReconciled(entry: Entry): Promise<void> {
+    try {
+      const updated = await this.entriesApi.setReconciled(entry.id, !entry.reconciled);
+      this.entries.update((current) =>
+        current.map((candidate) => (candidate.id === updated.id ? updated : candidate)),
+      );
+    } catch (error) {
+      toast.error(parseEntryError(error));
+    }
+  }
+
+  protected async confirmDelete(): Promise<void> {
+    const entry = this.confirmingDelete();
+    if (entry === null) {
+      return;
+    }
+
+    this.confirmingDelete.set(null);
+    try {
+      await this.entriesApi.deleteEntry(entry.id);
+      this.editing.set(null);
+      this.reload();
+    } catch (error) {
+      toast.error(parseEntryError(error));
+    }
+  }
+
   protected categoryOf(entry: Entry): RowCategory {
     if (entry.is_system) {
       return SYSTEM_CATEGORY;
@@ -224,6 +393,31 @@ export class Account {
       return UNCATEGORIZED;
     }
     return this.categoriesById().get(entry.category_id) ?? UNCATEGORIZED;
+  }
+
+  private resetDraft(): void {
+    this.submitted.set(false);
+    this.draftLabel.set('');
+    this.draftDescription.set('');
+    this.draftDate.set(today());
+    this.draftCategoryId.set(null);
+    this.draftAmount.set('-');
+    this.draftReconciled.set(false);
+  }
+
+  /**
+   * The amount field's text as the signed major-unit number to send, or
+   * `null` when it isn't a number at all. Nothing typed after the sign is
+   * zero; anything the backend's `money::to_cents` would reject (sub-cent
+   * precision especially) is left for it to reject.
+   */
+  private amountValue(): number | null {
+    const raw = this.draftAmount().trim().replace(',', '.');
+    const magnitude = Number(raw.replace(/^-/, ''));
+    if (!Number.isFinite(magnitude)) {
+      return null;
+    }
+    return raw.startsWith('-') ? -magnitude : magnitude;
   }
 
   private anchorIndex(target: string): number {
@@ -237,23 +431,32 @@ export class Account {
       return;
     }
 
-    await this.fetchPage(
-      this.generation,
-      {
-        accountId: this.accountId(),
-        sort: this.sort(),
-        from: this.from(),
-        to: this.to(),
-      },
-      this.entries().length,
-    );
+    await this.fetchPage(this.generation, this.query(), this.entries().length);
   }
 
-  private async fetchPage(
-    generation: number,
-    query: { accountId: number; sort: SortDirection; from: string | null; to: string | null },
-    offset: number,
-  ): Promise<void> {
+  private query(): PageQuery {
+    return {
+      accountId: this.accountId(),
+      sort: this.sort(),
+      from: this.from(),
+      to: this.to(),
+    };
+  }
+
+  /**
+   * Drops the buffer and refetches it from the top — what every write goes
+   * through, since a new or edited entry can land anywhere in the current
+   * order.
+   */
+  private reload(): void {
+    const query = this.query();
+    this.generation += 1;
+    this.entries.set([]);
+    this.hasMore.set(false);
+    void this.fetchPage(this.generation, query, 0);
+  }
+
+  private async fetchPage(generation: number, query: PageQuery, offset: number): Promise<void> {
     this.loading.set(true);
     try {
       const page = await this.entriesApi.listEntries(query.accountId, {

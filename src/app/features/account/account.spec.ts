@@ -39,9 +39,23 @@ function category(overrides: Partial<Category> = {}): Category {
   };
 }
 
+interface StubEntriesApi {
+  listEntries: ReturnType<typeof vi.fn>;
+  createEntry: ReturnType<typeof vi.fn>;
+  updateEntry: ReturnType<typeof vi.fn>;
+  deleteEntry: ReturnType<typeof vi.fn>;
+  setReconciled: ReturnType<typeof vi.fn>;
+}
+
 /** Pages, filters and sorts like the backend does, so the screen's requests round-trip honestly. */
-function stubEntriesApi(entries: Entry[]): { listEntries: ReturnType<typeof vi.fn> } {
+function stubEntriesApi(entries: Entry[]): StubEntriesApi {
   return {
+    createEntry: vi.fn().mockResolvedValue(entry({ id: 999 })),
+    updateEntry: vi.fn().mockResolvedValue(entry()),
+    deleteEntry: vi.fn().mockResolvedValue(undefined),
+    setReconciled: vi.fn((id: number, reconciled: boolean) =>
+      Promise.resolve(entry({ ...entries.find((candidate) => candidate.id === id), reconciled })),
+    ),
     listEntries: vi.fn((_accountId: number, query: ListEntriesQuery) => {
       const matching = entries
         .filter(
@@ -64,7 +78,7 @@ function stubEntriesApi(entries: Entry[]): { listEntries: ReturnType<typeof vi.f
 }
 
 async function createAccount(
-  entriesApi: { listEntries: ReturnType<typeof vi.fn> },
+  entriesApi: StubEntriesApi,
   categories: Category[] = [category()],
 ): Promise<ComponentFixture<Account>> {
   await TestBed.configureTestingModule({
@@ -142,11 +156,30 @@ async function setDate(
   await settle(fixture);
 }
 
+async function type(
+  fixture: ComponentFixture<Account>,
+  testId: string,
+  value: string,
+): Promise<void> {
+  const input = one(fixture, testId) as HTMLInputElement;
+  input.value = value;
+  input.dispatchEvent(new Event('input'));
+  await settle(fixture);
+}
+
+async function select(
+  fixture: ComponentFixture<Account>,
+  testId: string,
+  value: string,
+): Promise<void> {
+  const element = one(fixture, testId) as HTMLSelectElement;
+  element.value = value;
+  element.dispatchEvent(new Event('change'));
+  await settle(fixture);
+}
+
 /** The `listEntries` query of the nth call, newest last. */
-function queryOf(
-  entriesApi: { listEntries: ReturnType<typeof vi.fn> },
-  index = -1,
-): ListEntriesQuery {
+function queryOf(entriesApi: StubEntriesApi, index = -1): ListEntriesQuery {
   const calls = entriesApi.listEntries.mock.calls;
   return (calls.at(index) as [number, ListEntriesQuery])[1];
 }
@@ -287,6 +320,116 @@ describe('Account', () => {
     // scrolled to.
     expect(queryOf(entriesApi)).toMatchObject({ offset: 50 });
     expect(scrollSpy).toHaveBeenCalledWith(55, 'smooth');
+  });
+
+  it('creates an entry from the top row and reloads the list', async () => {
+    const entriesApi = stubEntriesApi([entry()]);
+    const fixture = await createAccount(entriesApi);
+
+    await click(fixture, 'entries-new');
+    await type(fixture, 'entry-form-label', 'Boulangerie');
+    await type(fixture, 'entry-form-amount', '-12.40');
+    await setDate(fixture, 'entry-form-date', '2026-03-05');
+    await select(fixture, 'entry-form-category', '1');
+    await click(fixture, 'entry-save');
+
+    expect(entriesApi.createEntry).toHaveBeenCalledWith(1, {
+      label: 'Boulangerie',
+      category_id: 1,
+      date: '2026-03-05',
+      amount: -12.4,
+      description: '',
+    });
+    expect(queryOf(entriesApi)).toMatchObject({ offset: 0 });
+    expect(one(fixture, 'entry-new-row')).toBeNull();
+  });
+
+  it('marks a freshly created entry reconciled through set_reconciled', async () => {
+    const entriesApi = stubEntriesApi([entry()]);
+    const fixture = await createAccount(entriesApi);
+
+    await click(fixture, 'entries-new');
+    await type(fixture, 'entry-form-label', 'Boulangerie');
+    await click(fixture, 'entry-form-reconciled');
+    await click(fixture, 'entry-save');
+
+    expect(entriesApi.setReconciled).toHaveBeenCalledWith(999, true);
+  });
+
+  it('blocks saving while the label is empty, inline rather than as a toast', async () => {
+    const entriesApi = stubEntriesApi([entry()]);
+    const fixture = await createAccount(entriesApi);
+
+    await click(fixture, 'entries-new');
+    await click(fixture, 'entry-save');
+
+    expect(entriesApi.createEntry).not.toHaveBeenCalled();
+    expect(one(fixture, 'entry-form-label-error')).not.toBeNull();
+  });
+
+  it('edits an existing row in place and saves it', async () => {
+    const entriesApi = stubEntriesApi([entry({ id: 7, label: 'Courses', amount: -25.5 })]);
+    const fixture = await createAccount(entriesApi);
+
+    rows(fixture)[0].click();
+    await settle(fixture);
+    await type(fixture, 'entry-form-label', 'Courses du samedi');
+    await click(fixture, 'entry-save');
+
+    expect(entriesApi.updateEntry).toHaveBeenCalledWith(
+      7,
+      expect.objectContaining({ label: 'Courses du samedi', amount: -25.5 }),
+    );
+  });
+
+  it('leaves the system entry read-only when its row is clicked', async () => {
+    const entriesApi = stubEntriesApi([entry({ id: 1, is_system: true })]);
+    const fixture = await createAccount(entriesApi);
+
+    rows(fixture)[0].click();
+    await settle(fixture);
+
+    expect(one(fixture, 'entry-form-label')).toBeNull();
+    expect(rows(fixture)[0].querySelector('[data-testid="entry-delete"]')).toBeNull();
+  });
+
+  it('deletes an entry only once the confirmation is accepted', async () => {
+    const entriesApi = stubEntriesApi([entry({ id: 7 })]);
+    const fixture = await createAccount(entriesApi);
+
+    await click(fixture, 'entry-delete');
+    expect(entriesApi.deleteEntry).not.toHaveBeenCalled();
+
+    await click(fixture, 'confirm-accept');
+
+    expect(entriesApi.deleteEntry).toHaveBeenCalledWith(7);
+    expect(queryOf(entriesApi)).toMatchObject({ offset: 0 });
+  });
+
+  it('toggles a row’s reconciled flag without reloading the list', async () => {
+    const entriesApi = stubEntriesApi([entry({ id: 7, reconciled: false })]);
+    const fixture = await createAccount(entriesApi);
+
+    await click(fixture, 'entry-reconciled');
+
+    expect(entriesApi.setReconciled).toHaveBeenCalledWith(7, true);
+    expect(entriesApi.listEntries).toHaveBeenCalledTimes(1);
+    expect(one(fixture, 'entry-reconciled')?.dataset['reconciled']).toBe('true');
+  });
+
+  it('flips the type selector with the amount’s sign, in both directions', async () => {
+    const fixture = await createAccount(stubEntriesApi([entry()]));
+
+    await click(fixture, 'entries-new');
+    await type(fixture, 'entry-form-amount', '30');
+    expect(one(fixture, 'entry-form-credit')?.dataset['selected']).toBe('true');
+
+    await type(fixture, 'entry-form-amount', '-30');
+    expect(one(fixture, 'entry-form-debit')?.dataset['selected']).toBe('true');
+
+    await click(fixture, 'entry-form-credit');
+    expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('30');
+    expect(one(fixture, 'entry-form-credit')?.dataset['selected']).toBe('true');
   });
 });
 
