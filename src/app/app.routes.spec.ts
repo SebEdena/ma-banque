@@ -2,6 +2,7 @@ import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 
+import { AccountsStore } from '@core/accounts-api/accounts-store';
 import { routes } from './app.routes';
 
 describe('app routes', () => {
@@ -19,9 +20,24 @@ describe('app routes', () => {
           case 'get_display_settings':
             return Promise.resolve({ date_format: 'DMY', currency_format: 'SYMBOL_AFTER' });
           case 'list_active_accounts':
+            return Promise.resolve([
+              {
+                id: 123,
+                name: 'Compte Courant',
+                color: '#3b82f6',
+                icon: 'lucideWallet',
+                created_date: '2026-01-15',
+                opening_balance: 0,
+                balance: 0,
+                archived: false,
+                last_entry_date: null,
+              },
+            ]);
           case 'list_archived_accounts':
           case 'list_categories':
             return Promise.resolve([]);
+          case 'list_entries':
+            return Promise.resolve({ entries: [], has_more: false });
           default:
             return Promise.resolve(null);
         }
@@ -41,9 +57,12 @@ describe('app routes', () => {
     expect(harness.routeNativeElement?.textContent).toContain('Comptes');
   });
 
-  it('renders the account placeholder for a given account id', async () => {
+  it('renders the entries screen for a given account id', async () => {
     const harness = await RouterTestingHarness.create('/account/123');
-    expect(harness.routeNativeElement?.textContent).toContain('Compte');
+    await TestBed.inject(AccountsStore).loaded;
+    harness.detectChanges();
+
+    expect(harness.routeNativeElement?.textContent).toContain('Compte Courant');
   });
 
   it('renders the stats placeholder for a given account id', async () => {

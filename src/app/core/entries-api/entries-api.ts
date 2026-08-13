@@ -1,0 +1,119 @@
+import { Service } from '@angular/core';
+import { invoke } from '@tauri-apps/api/core';
+
+/**
+ * Mirrors `EntryView` in `src-tauri/src/commands/entry.rs` — snake_case on
+ * the wire, like `Account` and `Category`. `amount` arrives as **signed
+ * major units** (negative is a debit, positive a credit; Rust already
+ * divided the cents, see `technical-architecture.md` §1.3): never divide or
+ * multiply it here. `date` is an ISO `YYYY-MM-DD` string.
+ */
+export interface Entry {
+  id: number;
+  account_id: number;
+  label: string;
+  category_id: number | null;
+  date: string;
+  amount: number;
+  description: string;
+  is_system: boolean;
+  reconciled: boolean;
+}
+
+/** `ORDER BY date` direction, as `ListEntriesPayload::sort` spells it. */
+export type SortDirection = 'ASC' | 'DESC';
+
+/** Mirrors `ListEntriesPayload` in `src-tauri/src/commands/entry.rs`. */
+export interface ListEntriesQuery {
+  /** Inclusive lower bound, or `null` for no lower bound. */
+  from: string | null;
+  /** Inclusive upper bound, or `null` for no upper bound. */
+  to: string | null;
+  sort: SortDirection;
+  page_size: number;
+  offset: number;
+  /**
+   * When set, the backend resolves the offset itself so the returned page is
+   * the one containing the first entry at or before this date — `offset` is
+   * ignored. Unused by the entries screen, which keeps a buffer contiguous
+   * from offset 0 (CDK Virtual Scroll renders one array, so a page starting
+   * at an unreported offset can't be placed in it).
+   */
+  jump_to_date: string | null;
+}
+
+/** Mirrors `EntryPageView` — one page plus whether another follows. */
+export interface EntryPage {
+  entries: Entry[];
+  has_more: boolean;
+}
+
+/**
+ * Wraps `invoke()` for the entry Tauri commands so components never call
+ * `invoke()` directly — the seam this feature's tests mock, matching
+ * `AccountsApi` and `CategoriesApi`.
+ */
+@Service()
+export class EntriesApi {
+  listEntries(accountId: number, query: ListEntriesQuery): Promise<EntryPage> {
+    return invoke<EntryPage>('list_entries', { accountId, query });
+  }
+}
+
+/**
+ * The `kind` discriminants `EntryError` serializes to (see
+ * `src-tauri/src/domain/entry.rs`'s `#[serde(tag = "kind", content =
+ * "message")]`).
+ */
+type EntryErrorKind =
+  | 'NotFound'
+  | 'SystemEntryReadOnly'
+  | 'EmptyLabel'
+  | 'UnknownCategory'
+  | 'InvalidAmount'
+  | 'InvalidStoredValue'
+  | 'Io';
+
+interface EntryErrorWire {
+  kind: EntryErrorKind;
+  message?: string;
+}
+
+function isEntryErrorWire(error: unknown): error is EntryErrorWire {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'kind' in error &&
+    typeof (error as { kind: unknown }).kind === 'string'
+  );
+}
+
+/**
+ * Turns a rejected `EntryError` into the toast text to show, matching
+ * `parseAccountError`/`parseCategoryError` — the backend stays English and
+ * the UI owns its own wording.
+ */
+export function parseEntryError(error: unknown): string {
+  if (!isEntryErrorWire(error)) {
+    return "une erreur inattendue s'est produite";
+  }
+
+  switch (error.kind) {
+    case 'NotFound':
+      return "cette écriture n'existe plus";
+    case 'SystemEntryReadOnly':
+      return "l'écriture de solde initial se modifie depuis les paramètres du compte";
+    case 'EmptyLabel':
+      return "le libellé de l'écriture ne peut pas être vide";
+    case 'UnknownCategory':
+      return "ce poste n'existe plus";
+    case 'InvalidAmount':
+      return "le montant de l'écriture est invalide";
+    case 'InvalidStoredValue':
+      return "l'écriture contient une valeur invalide";
+    case 'Io':
+      return error.message ?? 'une erreur du système de fichiers est survenue';
+    default:
+      return "une erreur inattendue s'est produite";
+  }
+}

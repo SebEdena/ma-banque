@@ -1,1 +1,242 @@
-<p>Compte — à venir</p>
+@if (account(); as account) {
+  <div class="flex h-full flex-col" [style.--account-color]="account.color">
+    <header class="shrink-0">
+      <nav
+        class="mb-2.5 flex items-center gap-2 text-[13px] text-muted-foreground"
+        aria-label="Fil d'ariane"
+      >
+        <a
+          data-testid="breadcrumb-home"
+          data-accent
+          class="rounded-sm outline-none hover:underline"
+          routerLink="/home"
+        >
+          Comptes
+        </a>
+        <ng-icon name="lucideChevronRight" size="13" />
+        <span data-testid="account-name" class="font-bold" [style.color]="account.color">
+          {{ account.name }}
+        </span>
+      </nav>
+
+      <div class="mb-5 flex flex-wrap items-center gap-3.5">
+        <span
+          data-testid="account-icon"
+          class="flex size-[38px] shrink-0 items-center justify-center rounded-xl text-white"
+          [style.background-color]="account.color"
+        >
+          <ng-icon [name]="account.icon" size="19" />
+        </span>
+
+        <h1
+          class="border-b-[3px] pb-0.5 text-2xl font-extrabold tracking-tight"
+          [style.border-bottom-color]="account.color"
+        >
+          {{ account.name }}
+        </h1>
+
+        <p
+          data-testid="account-balance"
+          class="ml-3 flex items-center gap-2 rounded-full px-4 py-1.5 text-white"
+          [style.background-color]="account.color"
+        >
+          <span class="text-xs font-semibold tracking-wide text-white/85 uppercase">Solde</span>
+          <span class="font-mono text-[18px] font-bold">
+            {{ account.balance | currencyFormat: displaySettings.currencyFormat() }}
+          </span>
+        </p>
+      </div>
+
+      <div class="mb-4 flex flex-wrap items-center gap-3">
+        <div
+          class="flex items-center gap-1.5 rounded-[9px] border border-border bg-card px-2.5 py-1.5"
+        >
+          <label class="text-xs font-semibold text-muted-foreground" for="entries-from">Du</label>
+          <input
+            id="entries-from"
+            type="date"
+            data-testid="entries-from"
+            data-accent
+            class="bg-transparent text-[13px] outline-none"
+            [value]="from() ?? ''"
+            (change)="setFrom($any($event.target).value)"
+          />
+          <label class="ml-1 text-xs font-semibold text-muted-foreground" for="entries-to"
+            >Au</label
+          >
+          <input
+            id="entries-to"
+            type="date"
+            data-testid="entries-to"
+            data-accent
+            class="bg-transparent text-[13px] outline-none"
+            [value]="to() ?? ''"
+            (change)="setTo($any($event.target).value)"
+          />
+        </div>
+
+        <button
+          type="button"
+          data-testid="entries-sort-toggle"
+          data-accent
+          class="flex items-center gap-1.5 rounded-[9px] border border-border bg-card px-3 py-2 text-[13px] font-semibold text-muted-foreground outline-none transition-colors"
+          (click)="toggleSort()"
+        >
+          <ng-icon name="lucideChevronsUpDown" size="14" />
+          {{ sort() === 'DESC' ? 'Plus récentes d’abord' : 'Plus anciennes d’abord' }}
+        </button>
+
+        @if (filtersActive()) {
+          <button
+            type="button"
+            data-testid="entries-reset-filters"
+            data-accent
+            title="Réinitialiser les filtres"
+            aria-label="Réinitialiser les filtres"
+            class="flex size-[34px] items-center justify-center rounded-[9px] border border-border bg-card outline-none transition-colors"
+            [style.color]="account.color"
+            (click)="resetFilters()"
+          >
+            <ng-icon name="lucideRotateCcw" size="14" />
+          </button>
+        }
+
+        <div class="flex-1"></div>
+
+        <div
+          class="flex items-center gap-1.5 rounded-[9px] border border-border bg-card px-2.5 py-1.5"
+        >
+          <label class="text-xs font-semibold text-muted-foreground" for="entries-jump">
+            Aller au
+          </label>
+          <input
+            id="entries-jump"
+            type="date"
+            data-testid="entries-jump-date"
+            data-accent
+            class="bg-transparent text-[13px] outline-none"
+            [value]="jumpTarget()"
+            (change)="jumpTarget.set($any($event.target).value)"
+          />
+          <button
+            type="button"
+            data-testid="entries-jump"
+            data-accent
+            aria-label="Aller à cette date"
+            class="flex size-6 items-center justify-center rounded-md outline-none transition-colors"
+            [style.color]="account.color"
+            (click)="jumpToDate()"
+          >
+            <ng-icon name="lucideSearch" size="14" />
+          </button>
+        </div>
+      </div>
+    </header>
+
+    <div
+      class="flex min-h-0 flex-1 flex-col overflow-hidden rounded-2xl border border-t-[3px] border-border bg-card"
+      [style.border-top-color]="account.color"
+    >
+      @if (entries().length === 0 && !loading()) {
+        <p data-testid="entries-empty" class="px-5 py-12 text-center text-sm text-muted-foreground">
+          Aucune écriture ne correspond aux filtres actuels.
+        </p>
+      } @else {
+        <cdk-virtual-scroll-viewport
+          data-testid="entries-viewport"
+          class="h-full"
+          [itemSize]="rowHeight"
+          (scrolledIndexChange)="onScrolledIndex($event)"
+        >
+          <div
+            *cdkVirtualFor="let entry of entries(); trackBy: trackById"
+            data-testid="entry-row"
+            [attr.data-entry-id]="entry.id"
+            [attr.data-system]="entry.is_system"
+            class="flex items-center gap-4 border-b border-border px-5"
+            [style.height.px]="rowHeight"
+          >
+            @if (entry.is_system) {
+              <span
+                data-testid="entry-system-checkbox"
+                title="Modifiable depuis les paramètres du compte"
+                class="flex size-[19px] shrink-0 items-center justify-center rounded-md border-[1.5px] border-border bg-muted text-muted-foreground"
+              >
+                <ng-icon name="lucideLock" size="10" />
+              </span>
+            } @else {
+              <span
+                data-testid="entry-reconciled"
+                [attr.data-reconciled]="entry.reconciled"
+                [attr.aria-label]="entry.reconciled ? 'Écriture pointée' : 'Écriture non pointée'"
+                class="flex size-[19px] shrink-0 items-center justify-center rounded-md border-[1.5px] text-white"
+                [style.background-color]="entry.reconciled ? account.color : 'transparent'"
+                [style.border-color]="entry.reconciled ? account.color : ''"
+              >
+                @if (entry.reconciled) {
+                  <ng-icon name="lucideCheck" size="12" />
+                }
+              </span>
+            }
+
+            <span
+              data-testid="entry-date"
+              class="w-[88px] shrink-0 text-[13px] text-muted-foreground"
+            >
+              {{ parseIsoDate(entry.date) | dateFormat: displaySettings.dateFormat() }}
+            </span>
+
+            <span data-testid="entry-category" class="flex w-[170px] shrink-0 items-center gap-2.5">
+              <span
+                class="flex size-[30px] shrink-0 items-center justify-center rounded-[9px] text-white"
+                [style.background-color]="categoryOf(entry).color"
+              >
+                <ng-icon [name]="categoryOf(entry).icon" size="15" />
+              </span>
+              <span class="truncate text-[12.5px] font-semibold text-muted-foreground">
+                {{ categoryOf(entry).name }}
+              </span>
+            </span>
+
+            <span class="min-w-0 flex-1">
+              <span
+                data-testid="entry-label"
+                class="block truncate text-[14.5px] font-bold"
+                [class.text-muted-foreground]="entry.is_system"
+              >
+                {{ entry.is_system ? 'Solde de départ' : entry.label }}
+              </span>
+              @if (entry.description) {
+                <span class="block truncate text-[12.5px] text-muted-foreground">
+                  {{ entry.description }}
+                </span>
+              }
+            </span>
+
+            <span
+              data-testid="entry-amount"
+              class="w-[120px] shrink-0 text-right font-mono text-[15px] font-semibold"
+              [class]="
+                entry.amount < 0 ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'
+              "
+            >
+              {{ entry.amount | currencyFormat: displaySettings.currencyFormat() }}
+            </span>
+
+            <span class="flex w-16 shrink-0 justify-end">
+              @if (entry.is_system) {
+                <span
+                  data-testid="entry-locked"
+                  title="Modifiable depuis les paramètres du compte"
+                  class="flex size-7 items-center justify-center text-muted-foreground opacity-60"
+                >
+                  <ng-icon name="lucideLock" size="14" />
+                </span>
+              }
+            </span>
+          </div>
+        </cdk-virtual-scroll-viewport>
+      }
+    </div>
+  </div>
+}
