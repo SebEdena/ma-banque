@@ -17,14 +17,14 @@ Out of scope: the category quick-create shortcut (ticket 04), the reconciliation
 
 **Blocked by:** `entries` ticket 02 — Entries screen: list, pagination & filters
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `EntriesApi` is extended with `create_entry`, `update_entry`, `delete_entry`, `set_reconciled`
-- [ ] The top "Nouvelle écriture" row creates an entry via `create_entry`; the list refetches/prepends on success
-- [ ] Clicking an existing non-system row toggles it into edit mode; saving calls `update_entry`
-- [ ] Typing a negative amount flips the debit/credit selector and vice versa, with the signed value sent as one consistent pair to `create_entry`/`update_entry`
-- [ ] Deleting an entry (behind a confirmation dialog) calls `delete_entry`; no delete affordance on the system entry
-- [ ] The reconciled checkbox on a row calls `set_reconciled` directly
-- [ ] Amount input rejects non-numeric/sub-cent input the same way the opening-balance field does
-- [ ] `EntryError` variants surface as toasts; empty-label validation is inline next to the field, blocking save while the label is empty
-- [ ] Component tests (Vitest) with mocked `EntriesApi`: create via top row, edit-in-place + save, delete behind confirmation, reconciled checkbox calls `setReconciled`, typing a negative amount flips the type selector and vice versa
+- [x] `EntriesApi` is extended with `create_entry`, `update_entry`, `delete_entry`, `set_reconciled`
+- [x] The top "Nouvelle écriture" row creates an entry via `create_entry`; the list refetches/prepends on success
+- [x] Clicking an existing non-system row toggles it into edit mode; saving calls `update_entry`
+- [x] Typing a negative amount flips the debit/credit selector and vice versa, with the signed value sent as one consistent pair to `create_entry`/`update_entry`
+- [x] Deleting an entry (behind a confirmation dialog) calls `delete_entry`; no delete affordance on the system entry
+- [x] The reconciled checkbox on a row calls `set_reconciled` directly
+- [x] Amount input rejects non-numeric/sub-cent input the same way the opening-balance field does
+- [x] `EntryError` variants surface as toasts; empty-label validation is inline next to the field, blocking save while the label is empty
+- [x] Component tests (Vitest) with mocked `EntriesApi`: create via top row, edit-in-place + save, delete behind confirmation, reconciled checkbox calls `setReconciled`, typing a negative amount flips the type selector and vice versa
