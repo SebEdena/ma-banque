@@ -23,3 +23,18 @@ a[data-accent]:hover {
   color: var(--account-color);
   border-color: var(--account-color);
 }
+
+/*
+  Controls that already wear the accent as a background — or that own their
+  hover colours, like the destructive delete button. They opt into the focus
+  ring only: the hover recolour above would tint their label to the very
+  colour they sit on.
+*/
+[data-accent-solid] {
+  accent-color: var(--account-color);
+}
+
+[data-accent-solid]:focus-visible {
+  outline: 2px solid var(--account-color);
+  outline-offset: 2px;
+}

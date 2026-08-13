@@ -49,6 +49,20 @@ export interface EntryPage {
 }
 
 /**
+ * Mirrors `EntryInputPayload` — the entry row's form as `create_entry` and
+ * `update_entry` take it. `amount` is the **signed** major-unit value the
+ * debit/credit sync already produced (negative is a debit), handed over
+ * exactly as typed: Rust owns the rounding to cents.
+ */
+export interface EntryInput {
+  label: string;
+  category_id: number | null;
+  date: string;
+  amount: number;
+  description: string;
+}
+
+/**
  * Wraps `invoke()` for the entry Tauri commands so components never call
  * `invoke()` directly — the seam this feature's tests mock, matching
  * `AccountsApi` and `CategoriesApi`.
@@ -57,6 +71,22 @@ export interface EntryPage {
 export class EntriesApi {
   listEntries(accountId: number, query: ListEntriesQuery): Promise<EntryPage> {
     return invoke<EntryPage>('list_entries', { accountId, query });
+  }
+
+  createEntry(accountId: number, input: EntryInput): Promise<Entry> {
+    return invoke<Entry>('create_entry', { accountId, input });
+  }
+
+  updateEntry(id: number, input: EntryInput): Promise<Entry> {
+    return invoke<Entry>('update_entry', { id, input });
+  }
+
+  deleteEntry(id: number): Promise<void> {
+    return invoke<void>('delete_entry', { id });
+  }
+
+  setReconciled(id: number, reconciled: boolean): Promise<Entry> {
+    return invoke<Entry>('set_reconciled', { id, reconciled });
   }
 }
 
