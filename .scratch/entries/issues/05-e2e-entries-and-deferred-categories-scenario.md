@@ -11,9 +11,9 @@ Out of scope: any new user-facing behavior — this ticket only adds test covera
 
 **Blocked by:** `entries` ticket 04 — Category quick-create from the entry row
 
-**Status:** ready-for-agent
+**Status:** done — lint/tsc clean; actual WDIO run not executed locally (this environment is Linux WSL, and the suite is gated to `platform() === 'win32'` with no `msedgedriver` available here). Will be validated by CI's `e2e.yml` (windows-latest) on the PR.
 
-- [ ] `e2e/entries.e2e.ts` exists: create an entry via the inline row, edit it in place, toggle reconciled, delete it behind confirmation
-- [ ] `e2e/entries.e2e.ts` covers creating a category via the entry row's quick-create shortcut and confirms it's selected
-- [ ] `e2e/categories.e2e.ts` gets the blocked-with-count delete scenario (category referenced by an entry created in this ticket's setup)
-- [ ] Both scenarios share the WDIO session per `technical-architecture.md` §2.3, consistent with `e2e/accounts.e2e.ts`/`e2e/categories.e2e.ts`
+- [x] `e2e/entries.e2e.ts` exists: create an entry via the inline row, edit it in place, toggle reconciled, delete it behind confirmation
+- [x] `e2e/entries.e2e.ts` covers creating a category via the entry row's quick-create shortcut and confirms it's selected
+- [x] `e2e/categories.e2e.ts` gets the blocked-with-count delete scenario (category referenced by an entry created in this ticket's setup)
+- [x] Both scenarios share the WDIO session per `technical-architecture.md` §2.3, consistent with `e2e/accounts.e2e.ts`/`e2e/categories.e2e.ts`
