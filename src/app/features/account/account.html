@@ -348,7 +348,7 @@
         data-accent
         aria-label="Poste de l’écriture"
         class="min-w-0 flex-1 rounded-[7px] border border-border bg-card px-1.5 py-1 text-[12px] font-semibold outline-none"
-        (change)="setCategory($any($event.target).value)"
+        (change)="setCategory($any($event.target))"
       >
         <!--
           Selected marked per option rather than bound on the `<select>`,
@@ -361,6 +361,9 @@
             {{ category.name }}
           </option>
         }
+        <option data-testid="entry-form-category-new" [value]="newCategoryValue">
+          + Nouvelle catégorie…
+        </option>
       </select>
     </span>
 
@@ -470,6 +473,13 @@
       </button>
     </span>
   </ng-template>
+
+  @if (creatingCategory()) {
+    <app-category-modal
+      (cancelled)="creatingCategory.set(false)"
+      (saved)="onCategoryCreated($event)"
+    />
+  }
 
   @if (confirmingDelete(); as entry) {
     <app-confirm-dialog

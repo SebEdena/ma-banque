@@ -12,8 +12,8 @@ Out of scope: any change to `CategoryModal` itself or to `CategoriesApi` (both a
 
 **Blocked by:** `entries` ticket 03 — Entry create/edit/delete & reconciliation toggle
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] The entry row's category dropdown has a "Nouvelle catégorie" affordance opening `CategoryModal`
-- [ ] Saving the modal creates the category via the existing category use case and selects it on the entry row immediately, without a manual dropdown re-open
-- [ ] Component tests (Vitest) with mocked `EntriesApi`/`CategoriesApi`: the quick-create affordance opens `CategoryModal`, and saving it selects the result on the entry row
+- [x] The entry row's category dropdown has a "Nouvelle catégorie" affordance opening `CategoryModal`
+- [x] Saving the modal creates the category via the existing category use case and selects it on the entry row immediately, without a manual dropdown re-open
+- [x] Component tests (Vitest) with mocked `EntriesApi`/`CategoriesApi`: the quick-create affordance opens `CategoryModal`, and saving it selects the result on the entry row
