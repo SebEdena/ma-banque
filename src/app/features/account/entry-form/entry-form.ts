@@ -56,6 +56,7 @@ export class EntryForm {
   readonly reconciled = input.required<boolean>();
   readonly saving = input(false);
   readonly labelError = input(false);
+  readonly amountError = input(false);
 
   readonly saved = output<void>();
   readonly cancelled = output<void>();

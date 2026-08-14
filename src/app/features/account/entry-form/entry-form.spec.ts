@@ -127,6 +127,19 @@ describe('EntryForm', () => {
     expect(one(fixture, 'entry-form-label-error')).not.toBeNull();
   });
 
+  it('shows the amount error only when the container says the amount is invalid', async () => {
+    const fixture = await createEntryForm();
+    expect(one(fixture, 'entry-form-amount-error')).toBeNull();
+
+    fixture.componentRef.setInput('amountError', true);
+    fixture.detectChanges();
+
+    expect(one(fixture, 'entry-form-amount-error')?.textContent?.trim()).toBe('Montant invalide');
+    expect((one(fixture, 'entry-form-amount') as HTMLInputElement).className).toContain(
+      'border-destructive',
+    );
+  });
+
   it('shows the reconciled flag it is given and only asks for it to be toggled', async () => {
     const fixture = await createEntryForm();
     let toggled = 0;

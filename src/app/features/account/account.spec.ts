@@ -374,7 +374,7 @@ describe('Account', () => {
     expect(entriesApi.setReconciled).toHaveBeenCalledWith(999, true);
   });
 
-  it('refuses to save an amount that is not a number', async () => {
+  it('refuses to save an amount that is not a number, and says so inline', async () => {
     const entriesApi = stubEntriesApi([entry()]);
     const fixture = await createAccount(entriesApi);
 
@@ -384,6 +384,21 @@ describe('Account', () => {
     await click(fixture, 'entry-save');
 
     expect(entriesApi.createEntry).not.toHaveBeenCalled();
+    // A toast as well (spec 06), but the inline error is what names the field.
+    expect(one(fixture, 'entry-form-amount-error')).not.toBeNull();
+
+    await type(fixture, 'entry-form-amount', '-12.40');
+
+    expect(one(fixture, 'entry-form-amount-error')).toBeNull();
+  });
+
+  it('leaves the amount error alone until a save has been attempted', async () => {
+    const fixture = await createAccount(stubEntriesApi([entry()]));
+
+    await click(fixture, 'entries-new');
+
+    // The creation row opens on a lone sign, which isn't a number yet.
+    expect(one(fixture, 'entry-form-amount-error')).toBeNull();
   });
 
   it('blocks saving while the label is empty, inline rather than as a toast', async () => {

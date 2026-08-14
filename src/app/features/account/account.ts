@@ -183,6 +183,14 @@ export class Account {
   protected readonly labelMissing = computed(() => this.draft().label.trim() === '');
 
   /**
+   * Whether the amount field's text isn't a number. Shown inline once a save
+   * has been attempted, on top of the toast `save()` raises: the toast is
+   * what `docs/spec/06-entries.md` asks for, the inline error is what tells
+   * the user which field to fix without reading it.
+   */
+  protected readonly amountInvalid = computed(() => this.amountValue() === null);
+
+  /**
    * Bumped on every filter/sort/account change so a page that arrives after
    * the query moved on is discarded instead of appended to the wrong list.
    */
