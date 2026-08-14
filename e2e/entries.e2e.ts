@@ -23,7 +23,9 @@ describe('entries', () => {
     await expect($('[data-testid="entry-new-row"]')).toExist();
 
     await (await $('[data-testid="entry-form-label"]')).setValue('Courses e2e');
-    await (await $('[data-testid="entry-form-amount"]')).setValue('-12,50');
+    // A period, not a comma: the field is `type="number"`, whose value syntax
+    // is locale-independent whatever separator the keyboard produces.
+    await (await $('[data-testid="entry-form-amount"]')).setValue('-12.50');
     await (await $('[data-testid="entry-save"]')).click();
 
     await expect($('[data-testid="entry-new-row"]')).not.toExist();

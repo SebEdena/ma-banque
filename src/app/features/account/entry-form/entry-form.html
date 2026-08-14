@@ -71,16 +71,16 @@
       placeholder="Libellé"
       aria-label="Libellé de l’écriture"
       class="min-w-0 flex-1 rounded-[7px] border border-border bg-card px-2 py-1 text-[13.5px] font-bold outline-none"
-      [class.border-destructive]="labelError()"
+      [class.border-destructive]="labelError() !== null"
       [value]="draft().label"
       (input)="patch({ label: $any($event.target).value })"
     />
-    @if (labelError()) {
+    @if (labelError(); as message) {
       <span
         data-testid="entry-form-label-error"
         class="shrink-0 text-[11px] font-semibold text-destructive"
       >
-        Libellé obligatoire
+        {{ message }}
       </span>
     }
   </span>
@@ -102,16 +102,19 @@
     <input
       #amountField
       id="entry-form-amount"
-      type="text"
+      type="number"
+      step="0.01"
       inputmode="decimal"
       data-testid="entry-form-amount"
       data-accent
       placeholder="0,00"
       aria-label="Montant de l’écriture"
       class="w-[90px] rounded-[7px] border border-border bg-card px-2 py-1.5 text-right font-mono text-[14px] font-semibold outline-none"
-      [class.border-destructive]="amountError()"
-      [value]="draft().amount"
-      (input)="patch({ amount: $any($event.target).value })"
+      [class.border-destructive]="amountError() !== null"
+      [value]="amountDisplay()"
+      (focus)="amountEditing.set(true)"
+      (blur)="amountEditing.set(false)"
+      (input)="onAmountInput($any($event.target))"
     />
     <span class="flex gap-[3px]">
       <button
@@ -148,12 +151,12 @@
       </button>
     </span>
   </span>
-  @if (amountError()) {
+  @if (amountError(); as message) {
     <span
       data-testid="entry-form-amount-error"
       class="text-[11px] font-semibold whitespace-nowrap text-destructive"
     >
-      Montant invalide
+      {{ message }}
     </span>
   }
 </span>
@@ -167,7 +170,7 @@
     aria-label="Enregistrer l’écriture"
     class="flex size-7 items-center justify-center rounded-lg bg-emerald-600 text-white outline-none transition-colors hover:bg-emerald-700 disabled:opacity-50 dark:bg-emerald-500 dark:hover:bg-emerald-600"
     [disabled]="saving()"
-    (click)="saved.emit(); $event.stopPropagation()"
+    (click)="attemptSave(); $event.stopPropagation()"
   >
     <ng-icon name="lucideCheck" size="14" />
   </button>
