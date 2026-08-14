@@ -60,15 +60,20 @@ describe('entries', () => {
     await (await $('[data-testid="icon-option"]')).click();
     await (await $('[data-testid="category-save"]')).click();
 
-    // `option:checked` isn't usable here — WebKit matches it against the
-    // `selected` attribute, which Angular's property binding never writes.
+    // Not an `option:checked` selector: WebKit (the Linux webview) doesn't
+    // match it for a selection Angular made by property rather than by the
+    // `selected` attribute.
     await expect(categoryOption('Poste écriture e2e')).toBeSelected();
 
+    // Asserted by selector rather than `getText` so the whole chain is
+    // re-queried on each poll: saving refetches the list, and an element
+    // resolved against the pre-refetch DOM reads back empty.
     await (await $('[data-testid="entry-save"]')).click();
-    await expect(entryRow('Courses e2e modifiées').$('[data-testid="entry-category"]')).toHaveText(
-      'Poste écriture e2e',
-      { containing: true },
-    );
+    await expect(
+      entryRow('Courses e2e modifiées').$(
+        './/span[@data-testid="entry-category"][contains(., "Poste écriture e2e")]',
+      ),
+    ).toExist();
   });
 
   it('deletes the entry behind a confirmation naming it', async () => {
