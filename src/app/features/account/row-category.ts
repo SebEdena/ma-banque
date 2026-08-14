@@ -12,7 +12,7 @@ export const SYSTEM_CATEGORY: RowCategory = {
 };
 
 export const UNCATEGORIZED: RowCategory = {
-  name: '—',
+  name: 'Aucune catégorie',
   color: '#94a3b8',
   icon: 'lucideEllipsis',
 };

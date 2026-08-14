@@ -427,6 +427,17 @@ describe('Account', () => {
     );
   });
 
+  it('opens the form focused on the column the click landed in', async () => {
+    const entriesApi = stubEntriesApi([entry({ id: 7, label: 'Courses', amount: -25.5 })]);
+    const fixture = await createAccount(entriesApi);
+
+    const amount = rows(fixture)[0].querySelector('[data-testid="entry-amount"]') as HTMLElement;
+    amount.click();
+    await settle(fixture);
+
+    expect(document.activeElement).toBe(one(fixture, 'entry-form-amount'));
+  });
+
   it('leaves the system entry read-only when its row is clicked', async () => {
     const entriesApi = stubEntriesApi([entry({ id: 1, is_system: true })]);
     const fixture = await createAccount(entriesApi);

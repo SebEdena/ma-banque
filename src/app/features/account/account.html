@@ -201,7 +201,7 @@
             [class.cursor-pointer]="!entry.is_system && editing() !== entry.id"
             [style.height.px]="rowHeight"
             [style.background-color]="editing() === entry.id ? account.color + '14' : ''"
-            (click)="startEdit(entry)"
+            (click)="startEdit(entry, $event)"
             (keydown.enter)="startEdit(entry)"
           >
             @if (editing() === entry.id) {
@@ -213,6 +213,7 @@
                 [saving]="saving()"
                 [labelError]="submitted() && labelMissing()"
                 [amountError]="submitted() && amountInvalid()"
+                [focusField]="focusField()"
                 (reconciledToggled)="toggleReconciled(entry)"
                 (categoryCreateRequested)="creatingCategory.set(true)"
                 (saved)="save()"

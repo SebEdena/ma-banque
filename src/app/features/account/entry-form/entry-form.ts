@@ -1,4 +1,14 @@
-import { ChangeDetectionStrategy, Component, computed, input, model, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  ElementRef,
+  afterNextRender,
+  computed,
+  input,
+  model,
+  output,
+  viewChild,
+} from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideCheck, lucideX } from '@ng-icons/lucide';
 
@@ -30,6 +40,14 @@ export interface EntryDraft {
 export const NEW_CATEGORY_VALUE = '__new__';
 
 /**
+ * Which field the form opens focused on — the one the user clicked in the
+ * row it replaced, so the swap into edit mode lands the caret where the
+ * pointer already was. `label` is the default, and what the keyboard path
+ * (Enter on a focused row) gets.
+ */
+export type EntryFormField = 'date' | 'category' | 'label' | 'amount';
+
+/**
  * The inline entry form, rendered in the creation row above the list and in
  * place of an edited row — one component instantiated twice rather than two
  * markups to keep in step. Only ever one at a time: the container's
@@ -57,11 +75,18 @@ export class EntryForm {
   readonly saving = input(false);
   readonly labelError = input(false);
   readonly amountError = input(false);
+  readonly focusField = input<EntryFormField>('label');
 
   readonly saved = output<void>();
   readonly cancelled = output<void>();
   readonly reconciledToggled = output<void>();
   readonly categoryCreateRequested = output<void>();
+
+  private readonly dateField = viewChild.required<ElementRef<HTMLInputElement>>('dateField');
+  private readonly categoryField =
+    viewChild.required<ElementRef<HTMLSelectElement>>('categoryField');
+  private readonly labelField = viewChild.required<ElementRef<HTMLInputElement>>('labelField');
+  private readonly amountField = viewChild.required<ElementRef<HTMLInputElement>>('amountField');
 
   protected readonly newCategoryValue = NEW_CATEGORY_VALUE;
 
@@ -75,6 +100,35 @@ export class EntryForm {
       UNCATEGORIZED
     );
   });
+
+  constructor() {
+    // The form is created when editing starts, so its first render is the
+    // only moment the requested field exists to be focused — a later read of
+    // `focusField` would fight the user's own focus.
+    afterNextRender(() => this.focusRequestedField());
+  }
+
+  private focusRequestedField(): void {
+    switch (this.focusField()) {
+      case 'date':
+        this.dateField().nativeElement.focus();
+        return;
+      case 'category':
+        this.categoryField().nativeElement.focus();
+        return;
+      case 'amount':
+        this.focusAndSelect(this.amountField().nativeElement);
+        return;
+      default:
+        this.focusAndSelect(this.labelField().nativeElement);
+    }
+  }
+
+  /** Text fields open with their content selected, so typing replaces it. */
+  private focusAndSelect(field: HTMLInputElement): void {
+    field.focus();
+    field.select();
+  }
 
   protected setCategory(select: HTMLSelectElement): void {
     if (select.value === NEW_CATEGORY_VALUE) {

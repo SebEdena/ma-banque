@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
 import { Category } from '@core/categories-api/categories-api';
-import { EntryDraft, EntryForm, NEW_CATEGORY_VALUE } from './entry-form';
+import { EntryDraft, EntryForm, EntryFormField, NEW_CATEGORY_VALUE } from './entry-form';
 
 function category(overrides: Partial<Category> = {}): Category {
   return {
@@ -29,6 +29,7 @@ function draft(overrides: Partial<EntryDraft> = {}): EntryDraft {
 async function createEntryForm(
   value: EntryDraft = draft(),
   categories: Category[] = [category()],
+  focusField?: EntryFormField,
 ): Promise<ComponentFixture<EntryForm>> {
   await TestBed.configureTestingModule({ imports: [EntryForm] }).compileComponents();
 
@@ -37,7 +38,11 @@ async function createEntryForm(
   fixture.componentRef.setInput('categories', categories);
   fixture.componentRef.setInput('accountColor', '#3b82f6');
   fixture.componentRef.setInput('reconciled', false);
+  if (focusField !== undefined) {
+    fixture.componentRef.setInput('focusField', focusField);
+  }
   fixture.detectChanges();
+  await fixture.whenStable();
   return fixture;
 }
 
@@ -150,6 +155,26 @@ describe('EntryForm', () => {
 
     expect(toggled).toBe(1);
     expect(one(fixture, 'entry-form-reconciled')?.getAttribute('aria-checked')).toBe('false');
+  });
+
+  it('opens focused on the field the container asked for', async () => {
+    for (const [field, testId] of [
+      ['date', 'entry-form-date'],
+      ['category', 'entry-form-category'],
+      ['amount', 'entry-form-amount'],
+    ] as const) {
+      TestBed.resetTestingModule();
+      const fixture = await createEntryForm(draft(), [category()], field);
+      expect(document.activeElement).toBe(one(fixture, testId));
+    }
+  });
+
+  it('opens focused on the label by default, with its text selected', async () => {
+    const fixture = await createEntryForm(draft({ label: 'Courses' }));
+    const label = one(fixture, 'entry-form-label') as HTMLInputElement;
+
+    expect(document.activeElement).toBe(label);
+    expect(label.selectionEnd).toBe('Courses'.length);
   });
 
   it('emits save and cancel, and disables saving while a save is in flight', async () => {
