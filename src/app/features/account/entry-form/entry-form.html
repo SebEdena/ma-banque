@@ -16,12 +16,13 @@
 </button>
 
 <input
+  #dateField
   id="entry-form-date"
   type="date"
   data-testid="entry-form-date"
   data-accent
   aria-label="Date de l’écriture"
-  class="w-[88px] shrink-0 rounded-[7px] border border-border bg-card px-1.5 py-1 text-[12.5px] outline-none"
+  class="w-[116px] shrink-0 rounded-[7px] border border-border bg-card px-1.5 py-1 text-[12.5px] outline-none"
   [value]="draft().date"
   (change)="patch({ date: $any($event.target).value })"
 />
@@ -34,6 +35,7 @@
     <ng-icon [name]="categorySwatch().icon" size="13" />
   </span>
   <select
+    #categoryField
     id="entry-form-category"
     data-testid="entry-form-category"
     data-accent
@@ -61,6 +63,7 @@
 <span class="flex min-w-0 flex-1 flex-col gap-1">
   <span class="flex items-center gap-2">
     <input
+      #labelField
       id="entry-form-label"
       type="text"
       data-testid="entry-form-label"
@@ -97,6 +100,7 @@
 <span class="flex shrink-0 flex-col items-end gap-1">
   <span class="flex items-center gap-1.5">
     <input
+      #amountField
       id="entry-form-amount"
       type="text"
       inputmode="decimal"
@@ -116,9 +120,12 @@
         data-accent-solid
         [attr.data-selected]="isDebit()"
         [attr.aria-pressed]="isDebit()"
-        class="rounded-md border border-border px-1.5 py-1 text-[11px] font-semibold outline-none"
-        [class.text-white]="isDebit()"
-        [style.background-color]="isDebit() ? accountColor() : 'transparent'"
+        class="rounded-md border px-1.5 py-1 text-[11px] font-semibold outline-none transition-colors"
+        [class]="
+          isDebit()
+            ? 'border-destructive bg-destructive text-white'
+            : 'border-border hover:border-destructive hover:text-destructive'
+        "
         (click)="setDebit(true)"
       >
         Débit
@@ -129,9 +136,12 @@
         data-accent-solid
         [attr.data-selected]="!isDebit()"
         [attr.aria-pressed]="!isDebit()"
-        class="rounded-md border border-border px-1.5 py-1 text-[11px] font-semibold outline-none"
-        [class.text-white]="!isDebit()"
-        [style.background-color]="isDebit() ? 'transparent' : accountColor()"
+        class="rounded-md border px-1.5 py-1 text-[11px] font-semibold outline-none transition-colors"
+        [class]="
+          isDebit()
+            ? 'border-border hover:border-emerald-600 hover:text-emerald-600 dark:hover:border-emerald-400 dark:hover:text-emerald-400'
+            : 'border-emerald-600 bg-emerald-600 text-white dark:border-emerald-500 dark:bg-emerald-500'
+        "
         (click)="setDebit(false)"
       >
         Crédit
@@ -155,8 +165,7 @@
     data-accent-solid
     title="Enregistrer"
     aria-label="Enregistrer l’écriture"
-    class="flex size-7 items-center justify-center rounded-lg text-white outline-none disabled:opacity-50"
-    [style.background-color]="accountColor()"
+    class="flex size-7 items-center justify-center rounded-lg bg-emerald-600 text-white outline-none transition-colors hover:bg-emerald-700 disabled:opacity-50 dark:bg-emerald-500 dark:hover:bg-emerald-600"
     [disabled]="saving()"
     (click)="saved.emit(); $event.stopPropagation()"
   >
@@ -165,10 +174,10 @@
   <button
     type="button"
     data-testid="entry-cancel"
-    data-accent
+    data-accent-solid
     title="Annuler"
     aria-label="Annuler la modification"
-    class="flex size-7 items-center justify-center rounded-lg text-muted-foreground outline-none"
+    class="flex size-7 items-center justify-center rounded-lg bg-destructive/10 text-destructive outline-none transition-colors hover:bg-destructive hover:text-white"
     (click)="cancelled.emit(); $event.stopPropagation()"
   >
     <ng-icon name="lucideX" size="14" />

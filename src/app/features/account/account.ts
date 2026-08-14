@@ -36,7 +36,7 @@ import {
 import { CategoryModal } from '@features/settings/categories/category-modal/category-modal';
 import { ConfirmDialog } from '@shared/confirm-dialog/confirm-dialog';
 import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
-import { EntryDraft, EntryForm } from './entry-form/entry-form';
+import { EntryDraft, EntryForm, EntryFormField } from './entry-form/entry-form';
 import { EntryRow } from './entry-row/entry-row';
 import { RowCategory, SYSTEM_CATEGORY, UNCATEGORIZED } from './row-category';
 
@@ -55,6 +55,29 @@ const ROW_HEIGHT = 66;
 
 /** Which row the inline form is open on: the creation row, or an entry's id. */
 type EditTarget = 'new' | number;
+
+/**
+ * The row column a click landed in, by the testid of the element it happened
+ * over, so the form that replaces the row opens on the matching field. Zones
+ * outside this map (the description line, the row's own padding) fall back to
+ * the label, which is also what the keyboard path gets.
+ */
+const FIELD_BY_ZONE: Readonly<Record<string, EntryFormField>> = {
+  'entry-date': 'date',
+  'entry-category': 'category',
+  'entry-label': 'label',
+  'entry-amount': 'amount',
+};
+
+/** Which field `startEdit` should hand the form, given the click that opened it. */
+function clickedField(event: Event | undefined): EntryFormField {
+  const target = event?.target;
+  if (!(target instanceof Element)) {
+    return 'label';
+  }
+  const zone = target.closest('[data-testid]')?.getAttribute('data-testid') ?? '';
+  return FIELD_BY_ZONE[zone] ?? 'label';
+}
 
 function emptyDraft(): EntryDraft {
   return {
@@ -173,6 +196,9 @@ export class Account {
   /** What the open form edits — see `EntryDraft` for why the amount is text. */
   protected readonly draft = signal<EntryDraft>(emptyDraft());
 
+  /** Which field the form about to open should focus — see `clickedField`. */
+  protected readonly focusField = signal<EntryFormField>('label');
+
   /**
    * The reconciled flag while creating. Not part of the draft: on an
    * existing entry the form's checkbox goes straight to `set_reconciled`,
@@ -260,16 +286,18 @@ export class Account {
   /** Opens the creation row at the top of the list, on an empty draft. */
   protected startCreate(): void {
     this.resetDraft();
+    this.focusField.set('label');
     this.editing.set('new');
   }
 
   /** Turns an existing row into the inline form; system entries stay read-only. */
-  protected startEdit(entry: Entry): void {
+  protected startEdit(entry: Entry, event?: Event): void {
     if (entry.is_system || this.editing() === entry.id) {
       return;
     }
 
     this.resetDraft();
+    this.focusField.set(clickedField(event));
     this.draft.set({
       label: entry.label,
       description: entry.description,
