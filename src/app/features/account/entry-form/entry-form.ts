@@ -62,7 +62,25 @@ export type EntryFormField = 'date' | 'category' | 'label' | 'amount';
   selector: 'app-entry-form',
   imports: [NgIcon],
   templateUrl: './entry-form.html',
-  styles: ':host { display: contents; }',
+  styles: `
+    :host {
+      display: contents;
+    }
+
+    /*
+      The label and description opt out of accent.css's focus ring. That one
+      is an outset outline offset a further 2px, so on the topmost row — the
+      creation row, or the first row under the list container's clipped top
+      border — it is drawn outside the row and cut off. Same accent, same
+      2px, painted inward so it can't reach past the field. Scoped here
+      rather than added to the shared stylesheet: it's these two fields'
+      position that needs it, not a flavour other controls should reach for.
+    */
+    [data-focus-inset]:focus-visible {
+      border-color: var(--account-color);
+      box-shadow: inset 0 0 0 2px var(--account-color);
+    }
+  `,
   styleUrl: '../accent.css',
   providers: [provideCatalogIcons(), provideIcons({ lucideCheck, lucideX })],
   changeDetection: ChangeDetectionStrategy.OnPush,

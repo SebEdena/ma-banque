@@ -37,20 +37,3 @@ a[data-accent]:hover {
   outline: 2px solid var(--account-color);
   outline-offset: 2px;
 }
-
-/*
-  A third flavour, for controls sitting flush against the edge of the row
-  that clips them — the inline form's label and description, whose row is the
-  first one under the list container's `overflow-hidden` border. The rings
-  above are drawn *outside* the element and offset further still, so on that
-  row they get cut off. This one is painted inward instead: same accent, same
-  2px, but it can't reach past the field it belongs to.
-*/
-[data-accent-inset] {
-  accent-color: var(--account-color);
-}
-
-[data-accent-inset]:focus-visible {
-  border-color: var(--account-color);
-  box-shadow: inset 0 0 0 2px var(--account-color);
-}
