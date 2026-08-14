@@ -40,6 +40,7 @@ import {
   SortDirection,
   parseEntryError,
 } from '@core/entries-api/entries-api';
+import { CategoryModal } from '@features/settings/categories/category-modal/category-modal';
 import { ConfirmDialog } from '@shared/confirm-dialog/confirm-dialog';
 import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
 
@@ -78,6 +79,14 @@ const UNCATEGORIZED: RowCategory = {
 /** Which row the inline form is open on: the creation row, or an entry's id. */
 type EditTarget = 'new' | number;
 
+/**
+ * The category select's quick-create option. A sentinel option rather than a
+ * button beside the field: the select is native precisely because a floating
+ * panel would be clipped by the virtual-scroll viewport's overflow, and an
+ * extra option keeps the affordance where the user is already looking.
+ */
+const NEW_CATEGORY_VALUE = '__new__';
+
 /** Everything a `list_entries` page request depends on besides its offset. */
 interface PageQuery {
   accountId: number;
@@ -108,6 +117,7 @@ interface PageQuery {
     DateFormatPipe,
     CurrencyFormatPipe,
     ConfirmDialog,
+    CategoryModal,
   ],
   templateUrl: './account.html',
   styleUrl: './account.css',
@@ -179,6 +189,10 @@ export class Account {
   protected readonly saving = signal(false);
   protected readonly submitted = signal(false);
   protected readonly confirmingDelete = signal<Entry | null>(null);
+
+  /** Whether the quick-create category modal is open over the form. */
+  protected readonly creatingCategory = signal(false);
+  protected readonly newCategoryValue = NEW_CATEGORY_VALUE;
 
   protected readonly draftLabel = signal('');
   protected readonly draftDescription = signal('');
@@ -294,8 +308,27 @@ export class Account {
     this.editing.set(null);
   }
 
-  protected setCategory(value: string): void {
-    this.draftCategoryId.set(value === '' ? null : Number(value));
+  protected setCategory(select: HTMLSelectElement): void {
+    if (select.value === NEW_CATEGORY_VALUE) {
+      // The option is a trigger, not a value: the field goes back to showing
+      // what it did, so cancelling the modal doesn't leave it on a
+      // non-category. A save moves it on through `draftCategoryId`.
+      select.value = String(this.draftCategoryId() ?? '');
+      this.creatingCategory.set(true);
+      return;
+    }
+    this.draftCategoryId.set(select.value === '' ? null : Number(select.value));
+  }
+
+  /**
+   * Selects the quick-created category on the row straight away, then
+   * refetches the list so the new option arrives in the backend's own name
+   * order rather than appended to the end.
+   */
+  protected async onCategoryCreated(category: Category): Promise<void> {
+    this.creatingCategory.set(false);
+    this.draftCategoryId.set(category.id);
+    await this.loadCategories();
   }
 
   /** Rewrites the amount's sign, which is all the debit/credit selector is. */

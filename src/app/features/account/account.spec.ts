@@ -77,9 +77,29 @@ function stubEntriesApi(entries: Entry[]): StubEntriesApi {
   };
 }
 
+interface StubCategoriesApi {
+  listCategories: ReturnType<typeof vi.fn>;
+  createCategory: ReturnType<typeof vi.fn>;
+}
+
+/** Keeps the created category in the list it hands back, in name order like the backend. */
+function stubCategoriesApi(categories: Category[] = [category()]): StubCategoriesApi {
+  let stored = [...categories];
+  let nextId = Math.max(0, ...stored.map((candidate) => candidate.id)) + 1;
+
+  return {
+    listCategories: vi.fn(() => Promise.resolve([...stored])),
+    createCategory: vi.fn((input: { name: string; color: string; icon: string }) => {
+      const created = category({ ...input, id: nextId++ });
+      stored = [...stored, created].sort((a, b) => a.name.localeCompare(b.name));
+      return Promise.resolve(created);
+    }),
+  };
+}
+
 async function createAccount(
   entriesApi: StubEntriesApi,
-  categories: Category[] = [category()],
+  categoriesApi: StubCategoriesApi = stubCategoriesApi(),
 ): Promise<ComponentFixture<Account>> {
   await TestBed.configureTestingModule({
     imports: [Account],
@@ -101,10 +121,7 @@ async function createAccount(
           listArchivedAccounts: vi.fn().mockResolvedValue([]),
         },
       },
-      {
-        provide: CategoriesApi,
-        useValue: { listCategories: vi.fn().mockResolvedValue(categories) },
-      },
+      { provide: CategoriesApi, useValue: categoriesApi },
       { provide: EntriesApi, useValue: entriesApi },
       {
         provide: DisplaySettingsService,
@@ -428,6 +445,63 @@ describe('Account', () => {
     expect(entriesApi.setReconciled).toHaveBeenCalledWith(7, true);
     expect(entriesApi.listEntries).toHaveBeenCalledTimes(1);
     expect(one(fixture, 'entry-reconciled')?.dataset['reconciled']).toBe('true');
+  });
+
+  it('opens the category modal from the select’s quick-create option', async () => {
+    const fixture = await createAccount(stubEntriesApi([entry()]));
+
+    await click(fixture, 'entries-new');
+    await select(fixture, 'entry-form-category', '__new__');
+
+    expect(one(fixture, 'category-name')).not.toBeNull();
+    // The trigger option isn't a value: the field stays on what it showed.
+    expect((one(fixture, 'entry-form-category') as HTMLSelectElement).value).toBe('');
+  });
+
+  it('selects the quick-created category on the row without reopening the dropdown', async () => {
+    const categoriesApi = stubCategoriesApi([category({ id: 1, name: 'Alimentation' })]);
+    const entriesApi = stubEntriesApi([entry()]);
+    const fixture = await createAccount(entriesApi, categoriesApi);
+
+    await click(fixture, 'entries-new');
+    await select(fixture, 'entry-form-category', '__new__');
+    await type(fixture, 'category-name', 'Cadeaux');
+    await click(fixture, 'icon-option');
+    await click(fixture, 'category-save');
+
+    expect(categoriesApi.createCategory).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Cadeaux' }),
+    );
+    expect(one(fixture, 'category-name')).toBeNull();
+
+    const field = one(fixture, 'entry-form-category') as HTMLSelectElement;
+    expect(field.value).toBe('2');
+    expect(Array.from(field.options).map((option) => option.textContent?.trim())).toContain(
+      'Cadeaux',
+    );
+
+    await type(fixture, 'entry-form-label', 'Anniversaire');
+    await type(fixture, 'entry-form-amount', '-20');
+    await click(fixture, 'entry-save');
+
+    expect(entriesApi.createEntry).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({
+        category_id: 2,
+      }),
+    );
+  });
+
+  it('leaves the category unchanged when the quick-create modal is cancelled', async () => {
+    const fixture = await createAccount(stubEntriesApi([entry()]));
+
+    await click(fixture, 'entries-new');
+    await select(fixture, 'entry-form-category', '1');
+    await select(fixture, 'entry-form-category', '__new__');
+    await click(fixture, 'category-cancel');
+
+    expect(one(fixture, 'category-name')).toBeNull();
+    expect((one(fixture, 'entry-form-category') as HTMLSelectElement).value).toBe('1');
   });
 
   it('flips the type selector with the amount’s sign, in both directions', async () => {
