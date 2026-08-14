@@ -534,15 +534,18 @@ describe('Account', () => {
     const fixture = await createAccount(stubEntriesApi([entry()]));
 
     await click(fixture, 'entries-new');
+    // The creation row opens on débit, which a number input has no way to show
+    // as a lone sign — it lands on the first digits typed instead.
     await type(fixture, 'entry-form-amount', '30');
-    expect(one(fixture, 'entry-form-credit')?.dataset['selected']).toBe('true');
-
-    await type(fixture, 'entry-form-amount', '-30');
+    expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('-30');
     expect(one(fixture, 'entry-form-debit')?.dataset['selected']).toBe('true');
 
     await click(fixture, 'entry-form-credit');
     expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('30');
     expect(one(fixture, 'entry-form-credit')?.dataset['selected']).toBe('true');
+
+    await type(fixture, 'entry-form-amount', '-30');
+    expect(one(fixture, 'entry-form-debit')?.dataset['selected']).toBe('true');
   });
 });
 

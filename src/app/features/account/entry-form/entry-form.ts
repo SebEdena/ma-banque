@@ -4,11 +4,14 @@ import {
   ElementRef,
   afterNextRender,
   computed,
+  effect,
   input,
   model,
   output,
+  signal,
   viewChild,
 } from '@angular/core';
+import { FieldTree, form, requiredError, schema, submit, validate } from '@angular/forms/signals';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideCheck, lucideX } from '@ng-icons/lucide';
 
@@ -20,8 +23,7 @@ import { RowCategory, UNCATEGORIZED } from '../row-category';
  * What the inline row form edits. `amount` is the field's **raw text, sign
  * included** — the debit/credit selector is a view over that sign rather
  * than a second piece of state, so the two can't drift apart
- * (`docs/spec/06-entries.md`). Turning it into the number to send is the
- * container's job, since rejecting it is a toast.
+ * (`docs/spec/06-entries.md`).
  */
 export interface EntryDraft {
   label: string;
@@ -30,6 +32,44 @@ export interface EntryDraft {
   categoryId: number | null;
   amount: string;
 }
+
+const LABEL_REQUIRED_MESSAGE = 'Libellé obligatoire';
+const AMOUNT_INVALID_MESSAGE = 'Montant invalide';
+
+/**
+ * The amount field's text as the signed major-unit number to send, or `null`
+ * when it isn't a number — including when only the sign has been picked. What
+ * `money::to_cents` would reject on the far side (sub-cent precision
+ * especially) is left for it to reject, so both paths say the same thing.
+ */
+export function parseAmount(text: string): number | null {
+  const raw = text.trim();
+  const magnitude = raw.replace(/^-/, '');
+  const value = Number(magnitude);
+  if (magnitude === '' || !Number.isFinite(value)) {
+    return null;
+  }
+  return raw.startsWith('-') ? -value : value;
+}
+
+/**
+ * What makes a draft saveable, expressed once here rather than recomputed by
+ * whoever holds the draft. Both rules are presentation-layer: the label one
+ * mirrors `usecases::entry`'s `EmptyLabel`, and the amount one only asks
+ * whether the text reads as a number. Sub-cent precision is deliberately not
+ * checked — that is `money::to_cents`' rule, and it stays a toast raised by
+ * the backend rather than a second copy of the rule living here.
+ */
+const entryDraftSchema = schema<EntryDraft>((draft) => {
+  validate(draft.label, ({ value }) =>
+    value().trim() === '' ? requiredError({ message: LABEL_REQUIRED_MESSAGE }) : null,
+  );
+  validate(draft.amount, ({ value }) =>
+    parseAmount(value()) === null
+      ? { kind: 'unreadableAmount', message: AMOUNT_INVALID_MESSAGE }
+      : null,
+  );
+});
 
 /**
  * The category select's quick-create option. A sentinel option rather than a
@@ -57,6 +97,10 @@ export type EntryFormField = 'date' | 'category' | 'label' | 'amount';
  * is an input rather than part of the draft because on an existing entry the
  * checkbox goes straight to `set_reconciled` instead of through the save
  * button — which is the container's call to make, not this component's.
+ *
+ * It does own its own validation, through Signal Forms: `entryDraftSchema`
+ * says what a saveable draft is, and `saved` only fires for one, carrying the
+ * parsed amount so the container never re-reads the rule.
  */
 @Component({
   selector: 'app-entry-form',
@@ -80,6 +124,21 @@ export type EntryFormField = 'date' | 'category' | 'label' | 'amount';
       border-color: var(--account-color);
       box-shadow: inset 0 0 0 2px var(--account-color);
     }
+
+    /*
+      The amount field is a number input for the browser's own number syntax,
+      not for its spinners: the column is 90px of right-aligned monospace, and
+      a pair of arrows would sit on top of the digits.
+    */
+    input[type='number'] {
+      appearance: textfield;
+    }
+
+    input[type='number']::-webkit-inner-spin-button,
+    input[type='number']::-webkit-outer-spin-button {
+      margin: 0;
+      appearance: none;
+    }
   `,
   styleUrl: '../accent.css',
   providers: [provideCatalogIcons(), provideIcons({ lucideCheck, lucideX })],
@@ -91,14 +150,20 @@ export class EntryForm {
   readonly accountColor = input.required<string>();
   readonly reconciled = input.required<boolean>();
   readonly saving = input(false);
-  readonly labelError = input(false);
-  readonly amountError = input(false);
   readonly focusField = input<EntryFormField>('label');
 
-  readonly saved = output<void>();
+  /** A save attempt on a valid draft, carrying its parsed signed amount. */
+  readonly saved = output<number>();
   readonly cancelled = output<void>();
   readonly reconciledToggled = output<void>();
   readonly categoryCreateRequested = output<void>();
+
+  /**
+   * A save attempt the amount blocked. The inline error is this component's,
+   * but `docs/spec/06-entries.md` also asks for a toast, and toasts belong to
+   * the container.
+   */
+  readonly amountRejected = output<void>();
 
   private readonly dateField = viewChild.required<ElementRef<HTMLInputElement>>('dateField');
   private readonly categoryField =
@@ -108,7 +173,24 @@ export class EntryForm {
 
   protected readonly newCategoryValue = NEW_CATEGORY_VALUE;
 
+  /** The draft as a validated field tree — see `entryDraftSchema`. */
+  private readonly fields = form(this.draft, entryDraftSchema);
+
+  protected readonly labelError = computed(() => this.messageOf(this.fields.label));
+  protected readonly amountError = computed(() => this.messageOf(this.fields.amount));
+
   protected readonly isDebit = computed(() => this.draft().amount.trim().startsWith('-'));
+
+  /** Whether the amount field currently has focus — see `amountDisplay`. */
+  protected readonly amountEditing = signal(false);
+
+  /**
+   * What gets written into the amount input's `value`, held still while the
+   * field has focus. `type="number"` blanks any DOM value write that isn't a
+   * complete number, so echoing the draft back between keystrokes would erase
+   * a leading `-` or a trailing decimal point as it was being typed.
+   */
+  protected readonly amountDisplay = signal('');
 
   /** The swatch shown next to the category select. */
   protected readonly categorySwatch = computed<RowCategory>(() => {
@@ -124,6 +206,40 @@ export class EntryForm {
     // only moment the requested field exists to be focused — a later read of
     // `focusField` would fight the user's own focus.
     afterNextRender(() => this.focusRequestedField());
+
+    effect(() => {
+      const amount = this.draft().amount;
+      if (!this.amountEditing()) {
+        this.amountDisplay.set(amount);
+      }
+    });
+  }
+
+  /**
+   * Marks every field touched and, if the draft holds up, emits it. `submit()`
+   * is the only thing that marks the tree touched — no field is bound through
+   * `[formField]` — so `touched()` reads as "a save was attempted", which is
+   * the moment the inline errors are allowed to appear.
+   */
+  protected async attemptSave(): Promise<void> {
+    await submit(this.fields, {
+      action: async () => {
+        const amount = parseAmount(this.draft().amount);
+        if (amount !== null) {
+          this.saved.emit(amount);
+        }
+      },
+      onInvalid: () => {
+        if (this.fields.amount().invalid()) {
+          this.amountRejected.emit();
+        }
+      },
+    });
+  }
+
+  private messageOf(field: FieldTree<string>): string | null {
+    const state = field();
+    return state.touched() && state.invalid() ? (state.errors()[0]?.message ?? null) : null;
   }
 
   private focusRequestedField(): void {
@@ -158,6 +274,34 @@ export class EntryForm {
       return;
     }
     this.patch({ categoryId: select.value === '' ? null : Number(select.value) });
+  }
+
+  protected onAmountInput(field: HTMLInputElement): void {
+    if (field.validity.badInput) {
+      // A value in progress the browser refuses to hand over — a lone `-`, or
+      // `12.` mid-decimal — reads back as empty. Taking it would drop the sign
+      // the user just typed and flip the debit/credit selector under them.
+      return;
+    }
+
+    const amount = this.withDebitSign(field.value);
+    if (amount !== field.value) {
+      field.value = amount;
+    }
+    this.patch({ amount });
+  }
+
+  /**
+   * Carries a debit sign the field can't display over to the first magnitude
+   * typed. `type="number"` has no way to render a lone `-`, so a row that
+   * opens on one — or one where Débit was picked while the field was empty —
+   * looks empty; without this the sign would be lost on the next keystroke.
+   * Once the field holds a magnitude its text is the only source of the sign
+   * again, so deleting the `-` still means crédit.
+   */
+  private withDebitSign(raw: string): string {
+    const hasMagnitude = this.draft().amount.trim().replace(/^-/, '') !== '';
+    return !hasMagnitude && this.isDebit() && raw !== '' && !raw.startsWith('-') ? `-${raw}` : raw;
   }
 
   /** Rewrites the amount's sign, which is all the debit/credit selector is. */

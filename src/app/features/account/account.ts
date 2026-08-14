@@ -187,7 +187,6 @@ export class Account {
   /** The row the inline form is open on, or `null` when the list is idle. */
   protected readonly editing = signal<EditTarget | null>(null);
   protected readonly saving = signal(false);
-  protected readonly submitted = signal(false);
   protected readonly confirmingDelete = signal<Entry | null>(null);
 
   /** Whether the quick-create category modal is open over the form. */
@@ -205,16 +204,6 @@ export class Account {
    * and only the creation row has a flag left to save.
    */
   protected readonly draftReconciled = signal(false);
-
-  protected readonly labelMissing = computed(() => this.draft().label.trim() === '');
-
-  /**
-   * Whether the amount field's text isn't a number. Shown inline once a save
-   * has been attempted, on top of the toast `save()` raises: the toast is
-   * what `docs/spec/06-entries.md` asks for, the inline error is what tells
-   * the user which field to fix without reading it.
-   */
-  protected readonly amountInvalid = computed(() => this.amountValue() === null);
 
   /**
    * Bumped on every filter/sort/account change so a page that arrives after
@@ -323,16 +312,21 @@ export class Account {
     await this.loadCategories();
   }
 
-  protected async save(): Promise<void> {
-    this.submitted.set(true);
-    const target = this.editing();
-    if (target === null || this.labelMissing() || this.saving()) {
-      return;
-    }
+  /**
+   * The unreadable-amount toast `docs/spec/06-entries.md` asks for. The form
+   * raises the inline half itself, off its own schema.
+   */
+  protected rejectAmount(): void {
+    toast.error(ENTRY_INVALID_AMOUNT_MESSAGE);
+  }
 
-    const amount = this.amountValue();
-    if (amount === null) {
-      toast.error(ENTRY_INVALID_AMOUNT_MESSAGE);
+  /**
+   * Saves a draft the form has already found valid — it hands over the amount
+   * it parsed, so what counts as saveable is stated in one place only.
+   */
+  protected async save(amount: number): Promise<void> {
+    const target = this.editing();
+    if (target === null || this.saving()) {
       return;
     }
 
@@ -411,25 +405,8 @@ export class Account {
   }
 
   private resetDraft(): void {
-    this.submitted.set(false);
     this.draft.set(emptyDraft());
     this.draftReconciled.set(false);
-  }
-
-  /**
-   * The amount field's text as the signed major-unit number to send, or
-   * `null` when it isn't a number — including when only the sign was picked.
-   * What `money::to_cents` would reject on the far side (sub-cent precision
-   * especially) is left for it to reject, so both paths say the same thing.
-   */
-  private amountValue(): number | null {
-    const raw = this.draft().amount.trim().replaceAll(',', '.');
-    const digits = raw.replace(/^-/, '');
-    const magnitude = Number(digits);
-    if (digits === '' || !Number.isFinite(magnitude)) {
-      return null;
-    }
-    return raw.startsWith('-') ? -magnitude : magnitude;
   }
 
   private anchorIndex(target: string): number {

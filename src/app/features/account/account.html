@@ -162,11 +162,10 @@
             [accountColor]="account.color"
             [reconciled]="draftReconciled()"
             [saving]="saving()"
-            [labelError]="submitted() && labelMissing()"
-            [amountError]="submitted() && amountInvalid()"
             (reconciledToggled)="draftReconciled.set(!draftReconciled())"
             (categoryCreateRequested)="creatingCategory.set(true)"
-            (saved)="save()"
+            (amountRejected)="rejectAmount()"
+            (saved)="save($event)"
             (cancelled)="cancelEdit()"
           />
         </div>
@@ -211,12 +210,11 @@
                 [accountColor]="account.color"
                 [reconciled]="entry.reconciled"
                 [saving]="saving()"
-                [labelError]="submitted() && labelMissing()"
-                [amountError]="submitted() && amountInvalid()"
                 [focusField]="focusField()"
                 (reconciledToggled)="toggleReconciled(entry)"
                 (categoryCreateRequested)="creatingCategory.set(true)"
-                (saved)="save()"
+                (amountRejected)="rejectAmount()"
+                (saved)="save($event)"
                 (cancelled)="cancelEdit()"
               />
             } @else {

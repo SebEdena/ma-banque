@@ -57,6 +57,12 @@ function type(fixture: ComponentFixture<EntryForm>, testId: string, value: strin
   fixture.detectChanges();
 }
 
+async function save(fixture: ComponentFixture<EntryForm>): Promise<void> {
+  (one(fixture, 'entry-save') as HTMLButtonElement).click();
+  await fixture.whenStable();
+  fixture.detectChanges();
+}
+
 function select(fixture: ComponentFixture<EntryForm>, value: string): void {
   const element = one(fixture, 'entry-form-category') as HTMLSelectElement;
   element.value = value;
@@ -96,7 +102,7 @@ describe('EntryForm', () => {
   });
 
   it('flips the type selector with the amount’s sign, in both directions', async () => {
-    const fixture = await createEntryForm();
+    const fixture = await createEntryForm(draft({ amount: '' }));
 
     type(fixture, 'entry-form-amount', '30');
     expect(one(fixture, 'entry-form-credit')?.dataset['selected']).toBe('true');
@@ -107,6 +113,25 @@ describe('EntryForm', () => {
     (one(fixture, 'entry-form-credit') as HTMLButtonElement).click();
     fixture.detectChanges();
     expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('30');
+  });
+
+  it('carries a debit sign the number input can’t show onto the first digits typed', async () => {
+    const fixture = await createEntryForm(draft({ amount: '-' }));
+    const seen: EntryDraft[] = [];
+    fixture.componentInstance.draft.subscribe((value) => seen.push(value));
+
+    type(fixture, 'entry-form-amount', '30');
+
+    expect(seen.at(-1)?.amount).toBe('-30');
+    expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('-30');
+    expect(one(fixture, 'entry-form-debit')?.dataset['selected']).toBe('true');
+
+    // Once the field holds a magnitude, its text is the only source of the sign
+    // again — dropping the `-` still means crédit.
+    type(fixture, 'entry-form-amount', '30');
+
+    expect(seen.at(-1)?.amount).toBe('30');
+    expect(one(fixture, 'entry-form-credit')?.dataset['selected']).toBe('true');
   });
 
   it('treats the quick-create option as a trigger, not a value', async () => {
@@ -122,23 +147,28 @@ describe('EntryForm', () => {
     expect((one(fixture, 'entry-form-category') as HTMLSelectElement).value).toBe('1');
   });
 
-  it('shows the label error only when the container says the label is missing', async () => {
-    const fixture = await createEntryForm();
+  it('holds an empty label back, inline, only once a save has been attempted', async () => {
+    const fixture = await createEntryForm(draft({ amount: '-12.40' }));
+    let saves = 0;
+    fixture.componentInstance.saved.subscribe(() => (saves += 1));
     expect(one(fixture, 'entry-form-label-error')).toBeNull();
 
-    fixture.componentRef.setInput('labelError', true);
-    fixture.detectChanges();
+    await save(fixture);
 
-    expect(one(fixture, 'entry-form-label-error')).not.toBeNull();
+    expect(saves).toBe(0);
+    expect(one(fixture, 'entry-form-label-error')?.textContent?.trim()).toBe('Libellé obligatoire');
   });
 
-  it('shows the amount error only when the container says the amount is invalid', async () => {
-    const fixture = await createEntryForm();
+  it('holds an unreadable amount back, inline and as a toast the container owns', async () => {
+    const fixture = await createEntryForm(draft({ label: 'Courses' }));
+    let rejected = 0;
+    fixture.componentInstance.amountRejected.subscribe(() => (rejected += 1));
+    // The row opens on a lone sign, which isn't a number yet.
     expect(one(fixture, 'entry-form-amount-error')).toBeNull();
 
-    fixture.componentRef.setInput('amountError', true);
-    fixture.detectChanges();
+    await save(fixture);
 
+    expect(rejected).toBe(1);
     expect(one(fixture, 'entry-form-amount-error')?.textContent?.trim()).toBe('Montant invalide');
     expect((one(fixture, 'entry-form-amount') as HTMLInputElement).className).toContain(
       'border-destructive',
@@ -177,16 +207,16 @@ describe('EntryForm', () => {
     expect(label.selectionEnd).toBe('Courses'.length);
   });
 
-  it('emits save and cancel, and disables saving while a save is in flight', async () => {
-    const fixture = await createEntryForm();
-    let saves = 0;
+  it('emits the parsed amount on save, and disables saving while one is in flight', async () => {
+    const fixture = await createEntryForm(draft({ label: 'Courses', amount: '-12.40' }));
+    const amounts: number[] = [];
     let cancels = 0;
-    fixture.componentInstance.saved.subscribe(() => (saves += 1));
+    fixture.componentInstance.saved.subscribe((amount) => amounts.push(amount));
     fixture.componentInstance.cancelled.subscribe(() => (cancels += 1));
 
-    (one(fixture, 'entry-save') as HTMLButtonElement).click();
+    await save(fixture);
     (one(fixture, 'entry-cancel') as HTMLButtonElement).click();
-    expect([saves, cancels]).toEqual([1, 1]);
+    expect([amounts, cancels]).toEqual([[-12.4], 1]);
 
     fixture.componentRef.setInput('saving', true);
     fixture.detectChanges();
