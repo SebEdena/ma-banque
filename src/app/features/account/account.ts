@@ -1,5 +1,4 @@
 import { CdkVirtualScrollViewport, ScrollingModule } from '@angular/cdk/scrolling';
-import { NgTemplateOutlet } from '@angular/common';
 import {
   ChangeDetectionStrategy,
   Component,
@@ -13,24 +12,18 @@ import { toSignal } from '@angular/core/rxjs-interop';
 import { ActivatedRoute, RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
-  lucideCheck,
   lucideChevronRight,
   lucideChevronsUpDown,
-  lucideFlag,
-  lucideLock,
   lucidePlus,
   lucideRotateCcw,
   lucideSearch,
-  lucideTrash2,
-  lucideX,
 } from '@ng-icons/lucide';
 import { toast } from '@spartan-ng/brain/sonner';
 
-import { parseIsoDate, todayIso } from '@core/accounts-api/accounts-api';
+import { todayIso } from '@core/accounts-api/accounts-api';
 import { AccountsStore } from '@core/accounts-api/accounts-store';
 import { CategoriesApi, Category, parseCategoryError } from '@core/categories-api/categories-api';
 import { CurrencyFormatPipe } from '@core/display-settings/currency-format.pipe';
-import { DateFormatPipe } from '@core/display-settings/date-format.pipe';
 import { DisplaySettingsService } from '@core/display-settings/display-settings';
 import {
   ENTRY_INVALID_AMOUNT_MESSAGE,
@@ -43,6 +36,9 @@ import {
 import { CategoryModal } from '@features/settings/categories/category-modal/category-modal';
 import { ConfirmDialog } from '@shared/confirm-dialog/confirm-dialog';
 import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
+import { EntryDraft, EntryForm } from './entry-form/entry-form';
+import { EntryRow } from './entry-row/entry-row';
+import { RowCategory, SYSTEM_CATEGORY, UNCATEGORIZED } from './row-category';
 
 /**
  * How many entries a `list_entries` call asks for. Not user-configurable
@@ -57,35 +53,18 @@ const PREFETCH_MARGIN = 20;
 /** Row height in pixels, fixed so CDK Virtual Scroll can size the scrollbar. */
 const ROW_HEIGHT = 66;
 
-/** What a row shows in its category column, system entries included. */
-interface RowCategory {
-  name: string;
-  color: string;
-  icon: string;
-}
-
-const SYSTEM_CATEGORY: RowCategory = {
-  name: 'Solde initial',
-  color: '#64748b',
-  icon: 'lucideFlag',
-};
-
-const UNCATEGORIZED: RowCategory = {
-  name: '—',
-  color: '#94a3b8',
-  icon: 'lucideEllipsis',
-};
-
 /** Which row the inline form is open on: the creation row, or an entry's id. */
 type EditTarget = 'new' | number;
 
-/**
- * The category select's quick-create option. A sentinel option rather than a
- * button beside the field: the select is native precisely because a floating
- * panel would be clipped by the virtual-scroll viewport's overflow, and an
- * extra option keeps the affordance where the user is already looking.
- */
-const NEW_CATEGORY_VALUE = '__new__';
+function emptyDraft(): EntryDraft {
+  return {
+    label: '',
+    description: '',
+    date: todayIso(),
+    categoryId: null,
+    amount: '-',
+  };
+}
 
 /** Everything a `list_entries` page request depends on besides its offset. */
 interface PageQuery {
@@ -101,6 +80,10 @@ interface PageQuery {
  * date-range filter, a reverse-order control, jump-to-date, inline
  * creation/editing, deletion and the per-row reconciled toggle.
  *
+ * The container of the screen: it owns the API calls, the paging state and
+ * the draft the inline form edits, and delegates a row's markup to the
+ * presentational `EntryRow`/`EntryForm`.
+ *
  * Pages are appended to one buffer that always starts at offset 0, because
  * CDK Virtual Scroll renders a single array: a page starting further in
  * would have nothing to sit behind it. That's also why jump-to-date loads
@@ -112,28 +95,23 @@ interface PageQuery {
   imports: [
     RouterLink,
     NgIcon,
-    NgTemplateOutlet,
     ScrollingModule,
-    DateFormatPipe,
     CurrencyFormatPipe,
     ConfirmDialog,
     CategoryModal,
+    EntryRow,
+    EntryForm,
   ],
   templateUrl: './account.html',
-  styleUrl: './account.css',
+  styleUrls: ['./account.css', './accent.css'],
   providers: [
     provideCatalogIcons(),
     provideIcons({
-      lucideCheck,
       lucideChevronRight,
       lucideChevronsUpDown,
-      lucideFlag,
-      lucideLock,
       lucidePlus,
       lucideRotateCcw,
       lucideSearch,
-      lucideTrash2,
-      lucideX,
     }),
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -176,7 +154,6 @@ export class Account {
   protected readonly filtersActive = computed(() => this.from() !== null || this.to() !== null);
 
   protected readonly rowHeight = ROW_HEIGHT;
-  protected readonly parseIsoDate = parseIsoDate;
   protected readonly trackById = (_index: number, entry: Entry): number => entry.id;
 
   protected readonly categories = signal<Category[]>([]);
@@ -192,28 +169,18 @@ export class Account {
 
   /** Whether the quick-create category modal is open over the form. */
   protected readonly creatingCategory = signal(false);
-  protected readonly newCategoryValue = NEW_CATEGORY_VALUE;
 
-  protected readonly draftLabel = signal('');
-  protected readonly draftDescription = signal('');
-  protected readonly draftDate = signal(todayIso());
-  protected readonly draftCategoryId = signal<number | null>(null);
-  protected readonly draftReconciled = signal(false);
+  /** What the open form edits — see `EntryDraft` for why the amount is text. */
+  protected readonly draft = signal<EntryDraft>(emptyDraft());
 
   /**
-   * The amount field's text, sign included — the debit/credit selector is a
-   * view over that sign rather than a second piece of state, so the two
-   * can't drift apart (`docs/spec/06-entries.md`).
+   * The reconciled flag while creating. Not part of the draft: on an
+   * existing entry the form's checkbox goes straight to `set_reconciled`,
+   * and only the creation row has a flag left to save.
    */
-  protected readonly draftAmount = signal('');
-  protected readonly draftIsDebit = computed(() => this.draftAmount().trim().startsWith('-'));
-  protected readonly labelMissing = computed(() => this.draftLabel().trim() === '');
+  protected readonly draftReconciled = signal(false);
 
-  /** The swatch the form shows next to its category select. */
-  protected readonly draftCategory = computed<RowCategory>(() => {
-    const id = this.draftCategoryId();
-    return (id === null ? undefined : this.categoriesById().get(id)) ?? UNCATEGORIZED;
-  });
+  protected readonly labelMissing = computed(() => this.draft().label.trim() === '');
 
   /**
    * Bumped on every filter/sort/account change so a page that arrives after
@@ -295,29 +262,18 @@ export class Account {
     }
 
     this.resetDraft();
-    this.draftLabel.set(entry.label);
-    this.draftDescription.set(entry.description);
-    this.draftDate.set(entry.date);
-    this.draftCategoryId.set(entry.category_id);
-    this.draftAmount.set(String(entry.amount));
-    this.draftReconciled.set(entry.reconciled);
+    this.draft.set({
+      label: entry.label,
+      description: entry.description,
+      date: entry.date,
+      categoryId: entry.category_id,
+      amount: String(entry.amount),
+    });
     this.editing.set(entry.id);
   }
 
   protected cancelEdit(): void {
     this.editing.set(null);
-  }
-
-  protected setCategory(select: HTMLSelectElement): void {
-    if (select.value === NEW_CATEGORY_VALUE) {
-      // The option is a trigger, not a value: the field goes back to showing
-      // what it did, so cancelling the modal doesn't leave it on a
-      // non-category. A save moves it on through `draftCategoryId`.
-      select.value = String(this.draftCategoryId() ?? '');
-      this.creatingCategory.set(true);
-      return;
-    }
-    this.draftCategoryId.set(select.value === '' ? null : Number(select.value));
   }
 
   /**
@@ -327,14 +283,8 @@ export class Account {
    */
   protected async onCategoryCreated(category: Category): Promise<void> {
     this.creatingCategory.set(false);
-    this.draftCategoryId.set(category.id);
+    this.draft.update((draft) => ({ ...draft, categoryId: category.id }));
     await this.loadCategories();
-  }
-
-  /** Rewrites the amount's sign, which is all the debit/credit selector is. */
-  protected setDebit(debit: boolean): void {
-    const magnitude = this.draftAmount().trim().replace(/^-/, '');
-    this.draftAmount.set(debit ? `-${magnitude}` : magnitude);
   }
 
   protected async save(): Promise<void> {
@@ -350,12 +300,13 @@ export class Account {
       return;
     }
 
+    const draft = this.draft();
     const input: EntryInput = {
-      label: this.draftLabel().trim(),
-      category_id: this.draftCategoryId(),
-      date: this.draftDate(),
+      label: draft.label.trim(),
+      category_id: draft.categoryId,
+      date: draft.date,
       amount,
-      description: this.draftDescription().trim(),
+      description: draft.description.trim(),
     };
 
     this.saving.set(true);
@@ -379,19 +330,6 @@ export class Account {
       this.saving.set(false);
       this.reload();
     }
-  }
-
-  /** The reconciled flag the form shows: the entry's, or the draft's while creating. */
-  protected formReconciled(entry: Entry | null): boolean {
-    return entry === null ? this.draftReconciled() : entry.reconciled;
-  }
-
-  protected toggleFormReconciled(entry: Entry | null): void {
-    if (entry === null) {
-      this.draftReconciled.update((reconciled) => !reconciled);
-      return;
-    }
-    void this.toggleReconciled(entry);
   }
 
   /**
@@ -438,11 +376,7 @@ export class Account {
 
   private resetDraft(): void {
     this.submitted.set(false);
-    this.draftLabel.set('');
-    this.draftDescription.set('');
-    this.draftDate.set(todayIso());
-    this.draftCategoryId.set(null);
-    this.draftAmount.set('-');
+    this.draft.set(emptyDraft());
     this.draftReconciled.set(false);
   }
 
@@ -453,7 +387,7 @@ export class Account {
    * especially) is left for it to reject, so both paths say the same thing.
    */
   private amountValue(): number | null {
-    const raw = this.draftAmount().trim().replaceAll(',', '.');
+    const raw = this.draft().amount.trim().replaceAll(',', '.');
     const digits = raw.replace(/^-/, '');
     const magnitude = Number(digits);
     if (digits === '' || !Number.isFinite(magnitude)) {

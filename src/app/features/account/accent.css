@@ -1,0 +1,39 @@
+/*
+  Business requirements §5: the current account's color tints every
+  interactive element on this screen. `--account-color` is bound once on the
+  screen's root and inherits into the row components, so each control opts in
+  with `data-accent` rather than carrying its own colour binding.
+
+  Shared by `Account` and its presentational children: view encapsulation
+  scopes these rules per component, so every component that renders a
+  `data-accent` control has to carry the stylesheet itself.
+*/
+[data-accent] {
+  accent-color: var(--account-color);
+}
+
+[data-accent]:focus-visible {
+  outline: 2px solid var(--account-color);
+  outline-offset: 2px;
+}
+
+button[data-accent]:hover,
+a[data-accent]:hover {
+  color: var(--account-color);
+  border-color: var(--account-color);
+}
+
+/*
+  Controls that already wear the accent as a background — or that own their
+  hover colours, like the destructive delete button. They opt into the focus
+  ring only: the hover recolour above would tint their label to the very
+  colour they sit on.
+*/
+[data-accent-solid] {
+  accent-color: var(--account-color);
+}
+
+[data-accent-solid]:focus-visible {
+  outline: 2px solid var(--account-color);
+  outline-offset: 2px;
+}

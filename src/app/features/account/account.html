@@ -156,7 +156,18 @@
           [style.border-bottom-color]="account.color"
           [style.background-color]="account.color + '14'"
         >
-          <ng-container *ngTemplateOutlet="entryForm; context: { entry: null }" />
+          <app-entry-form
+            [(draft)]="draft"
+            [categories]="categories()"
+            [accountColor]="account.color"
+            [reconciled]="draftReconciled()"
+            [saving]="saving()"
+            [labelError]="submitted() && labelMissing()"
+            (reconciledToggled)="draftReconciled.set(!draftReconciled())"
+            (categoryCreateRequested)="creatingCategory.set(true)"
+            (saved)="save()"
+            (cancelled)="cancelEdit()"
+          />
         </div>
       }
 
@@ -193,286 +204,34 @@
             (keydown.enter)="startEdit(entry)"
           >
             @if (editing() === entry.id) {
-              <ng-container *ngTemplateOutlet="entryForm; context: { entry: entry }" />
+              <app-entry-form
+                [(draft)]="draft"
+                [categories]="categories()"
+                [accountColor]="account.color"
+                [reconciled]="entry.reconciled"
+                [saving]="saving()"
+                [labelError]="submitted() && labelMissing()"
+                (reconciledToggled)="toggleReconciled(entry)"
+                (categoryCreateRequested)="creatingCategory.set(true)"
+                (saved)="save()"
+                (cancelled)="cancelEdit()"
+              />
             } @else {
-              @if (entry.is_system) {
-                <span
-                  data-testid="entry-system-checkbox"
-                  title="Modifiable depuis les paramètres du compte"
-                  class="flex size-[19px] shrink-0 items-center justify-center rounded-md border-[1.5px] border-border bg-muted text-muted-foreground"
-                >
-                  <ng-icon name="lucideLock" size="10" />
-                </span>
-              } @else {
-                <button
-                  type="button"
-                  role="checkbox"
-                  data-testid="entry-reconciled"
-                  data-accent-solid
-                  [attr.data-reconciled]="entry.reconciled"
-                  [attr.aria-checked]="entry.reconciled"
-                  [attr.aria-label]="entry.reconciled ? 'Écriture pointée' : 'Écriture non pointée'"
-                  class="flex size-[19px] shrink-0 items-center justify-center rounded-md border-[1.5px] text-white outline-none"
-                  [style.background-color]="entry.reconciled ? account.color : 'transparent'"
-                  [style.border-color]="entry.reconciled ? account.color : ''"
-                  (click)="toggleReconciled(entry); $event.stopPropagation()"
-                >
-                  @if (entry.reconciled) {
-                    <ng-icon name="lucideCheck" size="12" />
-                  }
-                </button>
-              }
-
-              <span
-                data-testid="entry-date"
-                class="w-[88px] shrink-0 text-[13px] text-muted-foreground"
-              >
-                {{ parseIsoDate(entry.date) | dateFormat: displaySettings.dateFormat() }}
-              </span>
-
-              <span
-                data-testid="entry-category"
-                class="flex w-[170px] shrink-0 items-center gap-2.5"
-              >
-                <span
-                  class="flex size-[30px] shrink-0 items-center justify-center rounded-[9px] text-white"
-                  [style.background-color]="categoryOf(entry).color"
-                >
-                  <ng-icon [name]="categoryOf(entry).icon" size="15" />
-                </span>
-                <span class="truncate text-[12.5px] font-semibold text-muted-foreground">
-                  {{ categoryOf(entry).name }}
-                </span>
-              </span>
-
-              <span class="min-w-0 flex-1">
-                <span
-                  data-testid="entry-label"
-                  class="block truncate text-[14.5px] font-bold"
-                  [class.text-muted-foreground]="entry.is_system"
-                >
-                  {{ entry.is_system ? 'Solde de départ' : entry.label }}
-                </span>
-                @if (entry.description) {
-                  <span class="block truncate text-[12.5px] text-muted-foreground">
-                    {{ entry.description }}
-                  </span>
-                }
-              </span>
-
-              <span
-                data-testid="entry-amount"
-                class="w-[120px] shrink-0 text-right font-mono text-[15px] font-semibold"
-                [class]="
-                  entry.amount < 0 ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'
-                "
-              >
-                {{ entry.amount | currencyFormat: displaySettings.currencyFormat() }}
-              </span>
-
-              <span class="flex w-16 shrink-0 justify-end">
-                @if (entry.is_system) {
-                  <span
-                    data-testid="entry-locked"
-                    title="Modifiable depuis les paramètres du compte"
-                    class="flex size-7 items-center justify-center text-muted-foreground opacity-60"
-                  >
-                    <ng-icon name="lucideLock" size="14" />
-                  </span>
-                } @else {
-                  <button
-                    type="button"
-                    data-testid="entry-delete"
-                    data-accent-solid
-                    title="Supprimer"
-                    aria-label="Supprimer l’écriture"
-                    class="flex size-7 items-center justify-center rounded-lg bg-destructive/10 text-destructive outline-none transition-colors hover:bg-destructive hover:text-white"
-                    (click)="confirmingDelete.set(entry); $event.stopPropagation()"
-                  >
-                    <ng-icon name="lucideTrash2" size="14" />
-                  </button>
-                }
-              </span>
+              <app-entry-row
+                [entry]="entry"
+                [category]="categoryOf(entry)"
+                [accountColor]="account.color"
+                [dateFormat]="displaySettings.dateFormat()"
+                [currencyFormat]="displaySettings.currencyFormat()"
+                (reconciledToggled)="toggleReconciled(entry)"
+                (deleteRequested)="confirmingDelete.set(entry)"
+              />
             }
           </div>
         </cdk-virtual-scroll-viewport>
       }
     </div>
   </div>
-
-  <!--
-    One form for both the creation row and an edited row: `entry` is null
-    while creating, and otherwise the entry being edited — which the
-    reconciled checkbox needs, since it goes straight to `set_reconciled`
-    rather than through the save button.
-  -->
-  <ng-template #entryForm let-entry="entry">
-    <button
-      type="button"
-      role="checkbox"
-      data-testid="entry-form-reconciled"
-      data-accent-solid
-      [attr.aria-checked]="formReconciled(entry)"
-      [attr.aria-label]="formReconciled(entry) ? 'Écriture pointée' : 'Écriture non pointée'"
-      class="flex size-[19px] shrink-0 items-center justify-center rounded-md border-[1.5px] border-border text-white outline-none"
-      [style.background-color]="formReconciled(entry) ? account.color : 'transparent'"
-      [style.border-color]="formReconciled(entry) ? account.color : ''"
-      (click)="toggleFormReconciled(entry)"
-    >
-      @if (formReconciled(entry)) {
-        <ng-icon name="lucideCheck" size="12" />
-      }
-    </button>
-
-    <input
-      id="entry-form-date"
-      type="date"
-      data-testid="entry-form-date"
-      data-accent
-      aria-label="Date de l’écriture"
-      class="w-[88px] shrink-0 rounded-[7px] border border-border bg-card px-1.5 py-1 text-[12.5px] outline-none"
-      [value]="draftDate()"
-      (change)="draftDate.set($any($event.target).value)"
-    />
-
-    <span class="flex w-[170px] shrink-0 items-center gap-2">
-      <span
-        class="flex size-6 shrink-0 items-center justify-center rounded-[7px] text-white"
-        [style.background-color]="draftCategory().color"
-      >
-        <ng-icon [name]="draftCategory().icon" size="13" />
-      </span>
-      <select
-        id="entry-form-category"
-        data-testid="entry-form-category"
-        data-accent
-        aria-label="Poste de l’écriture"
-        class="min-w-0 flex-1 rounded-[7px] border border-border bg-card px-1.5 py-1 text-[12px] font-semibold outline-none"
-        (change)="setCategory($any($event.target))"
-      >
-        <!--
-          Selected marked per option rather than bound on the `<select>`,
-          which resolves its value before `@for` has rendered the options to
-          choose from.
-        -->
-        <option value="" [selected]="draftCategoryId() === null">Aucun poste</option>
-        @for (category of categories(); track category.id) {
-          <option [value]="category.id" [selected]="category.id === draftCategoryId()">
-            {{ category.name }}
-          </option>
-        }
-        <option data-testid="entry-form-category-new" [value]="newCategoryValue">
-          + Nouvelle catégorie…
-        </option>
-      </select>
-    </span>
-
-    <span class="flex min-w-0 flex-1 flex-col gap-1">
-      <span class="flex items-center gap-2">
-        <input
-          id="entry-form-label"
-          type="text"
-          data-testid="entry-form-label"
-          data-accent
-          placeholder="Libellé"
-          aria-label="Libellé de l’écriture"
-          class="min-w-0 flex-1 rounded-[7px] border border-border bg-card px-2 py-1 text-[13.5px] font-bold outline-none"
-          [class.border-destructive]="submitted() && labelMissing()"
-          [value]="draftLabel()"
-          (input)="draftLabel.set($any($event.target).value)"
-        />
-        @if (submitted() && labelMissing()) {
-          <span
-            data-testid="entry-form-label-error"
-            class="shrink-0 text-[11px] font-semibold text-destructive"
-          >
-            Libellé obligatoire
-          </span>
-        }
-      </span>
-      <input
-        id="entry-form-description"
-        type="text"
-        data-testid="entry-form-description"
-        data-accent
-        placeholder="Description (optionnel)"
-        aria-label="Description de l’écriture"
-        class="w-full rounded-[7px] border border-border bg-card px-2 py-0.5 text-[12px] text-muted-foreground outline-none"
-        [value]="draftDescription()"
-        (input)="draftDescription.set($any($event.target).value)"
-      />
-    </span>
-
-    <span class="flex shrink-0 items-center gap-1.5">
-      <input
-        id="entry-form-amount"
-        type="text"
-        inputmode="decimal"
-        data-testid="entry-form-amount"
-        data-accent
-        placeholder="0,00"
-        aria-label="Montant de l’écriture"
-        class="w-[90px] rounded-[7px] border border-border bg-card px-2 py-1.5 text-right font-mono text-[14px] font-semibold outline-none"
-        [value]="draftAmount()"
-        (input)="draftAmount.set($any($event.target).value)"
-      />
-      <span class="flex gap-[3px]">
-        <button
-          type="button"
-          data-testid="entry-form-debit"
-          data-accent-solid
-          [attr.data-selected]="draftIsDebit()"
-          [attr.aria-pressed]="draftIsDebit()"
-          class="rounded-md border border-border px-1.5 py-1 text-[11px] font-semibold outline-none"
-          [class.text-white]="draftIsDebit()"
-          [style.background-color]="draftIsDebit() ? account.color : 'transparent'"
-          (click)="setDebit(true)"
-        >
-          Débit
-        </button>
-        <button
-          type="button"
-          data-testid="entry-form-credit"
-          data-accent-solid
-          [attr.data-selected]="!draftIsDebit()"
-          [attr.aria-pressed]="!draftIsDebit()"
-          class="rounded-md border border-border px-1.5 py-1 text-[11px] font-semibold outline-none"
-          [class.text-white]="!draftIsDebit()"
-          [style.background-color]="draftIsDebit() ? 'transparent' : account.color"
-          (click)="setDebit(false)"
-        >
-          Crédit
-        </button>
-      </span>
-    </span>
-
-    <span class="flex w-16 shrink-0 items-center justify-end gap-1">
-      <button
-        type="button"
-        data-testid="entry-save"
-        data-accent-solid
-        title="Enregistrer"
-        aria-label="Enregistrer l’écriture"
-        class="flex size-7 items-center justify-center rounded-lg text-white outline-none disabled:opacity-50"
-        [style.background-color]="account.color"
-        [disabled]="saving()"
-        (click)="save(); $event.stopPropagation()"
-      >
-        <ng-icon name="lucideCheck" size="14" />
-      </button>
-      <button
-        type="button"
-        data-testid="entry-cancel"
-        data-accent
-        title="Annuler"
-        aria-label="Annuler la modification"
-        class="flex size-7 items-center justify-center rounded-lg text-muted-foreground outline-none"
-        (click)="cancelEdit(); $event.stopPropagation()"
-      >
-        <ng-icon name="lucideX" size="14" />
-      </button>
-    </span>
-  </ng-template>
 
   @if (creatingCategory()) {
     <app-category-modal
