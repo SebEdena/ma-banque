@@ -11,7 +11,7 @@ Out of scope: any new user-facing behavior — this ticket only adds test covera
 
 **Blocked by:** `entries` ticket 04 — Category quick-create from the entry row
 
-**Status:** done — lint/tsc clean; actual WDIO run not executed locally (this environment is Linux WSL, and the suite is gated to `platform() === 'win32'` with no `msedgedriver` available here). Will be validated by CI's `e2e.yml` (windows-latest) on the PR.
+**Status:** done — lint/tsc clean, and the suite was run locally (`cargo tauri build --debug --no-bundle` then `npm run e2e`, Linux/WebKitWebDriver): all four entries scenarios and the categories blocked-with-count scenario pass. The one remaining red test is pre-existing and unrelated — `smoke.e2e.ts`'s "choosing the default location proceeds to the routed shell" hits Mocha's 60s timeout because first-launch folder init is slow under WSL; it fails identically without this ticket's changes, and the specs that follow it pass, so the shell does come up. CI (`e2e.yml`, windows-latest) is the authority on the Windows webview.
 
 - [x] `e2e/entries.e2e.ts` exists: create an entry via the inline row, edit it in place, toggle reconciled, delete it behind confirmation
 - [x] `e2e/entries.e2e.ts` covers creating a category via the entry row's quick-create shortcut and confirms it's selected
