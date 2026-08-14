@@ -1,0 +1,90 @@
+@if (entry().is_system) {
+  <span
+    data-testid="entry-system-checkbox"
+    title="Modifiable depuis les paramètres du compte"
+    class="flex size-[19px] shrink-0 items-center justify-center rounded-md border-[1.5px] border-border bg-muted text-muted-foreground"
+  >
+    <ng-icon name="lucideLock" size="10" />
+  </span>
+} @else {
+  <button
+    type="button"
+    role="checkbox"
+    data-testid="entry-reconciled"
+    data-accent-solid
+    [attr.data-reconciled]="entry().reconciled"
+    [attr.aria-checked]="entry().reconciled"
+    [attr.aria-label]="entry().reconciled ? 'Écriture pointée' : 'Écriture non pointée'"
+    class="flex size-[19px] shrink-0 items-center justify-center rounded-md border-[1.5px] text-white outline-none"
+    [style.background-color]="entry().reconciled ? accountColor() : 'transparent'"
+    [style.border-color]="entry().reconciled ? accountColor() : ''"
+    (click)="reconciledToggled.emit(); $event.stopPropagation()"
+  >
+    @if (entry().reconciled) {
+      <ng-icon name="lucideCheck" size="12" />
+    }
+  </button>
+}
+
+<span data-testid="entry-date" class="w-[88px] shrink-0 text-[13px] text-muted-foreground">
+  {{ parseIsoDate(entry().date) | dateFormat: dateFormat() }}
+</span>
+
+<span data-testid="entry-category" class="flex w-[170px] shrink-0 items-center gap-2.5">
+  <span
+    class="flex size-[30px] shrink-0 items-center justify-center rounded-[9px] text-white"
+    [style.background-color]="category().color"
+  >
+    <ng-icon [name]="category().icon" size="15" />
+  </span>
+  <span class="truncate text-[12.5px] font-semibold text-muted-foreground">
+    {{ category().name }}
+  </span>
+</span>
+
+<span class="min-w-0 flex-1">
+  <span
+    data-testid="entry-label"
+    class="block truncate text-[14.5px] font-bold"
+    [class.text-muted-foreground]="entry().is_system"
+  >
+    {{ entry().is_system ? 'Solde de départ' : entry().label }}
+  </span>
+  @if (entry().description) {
+    <span class="block truncate text-[12.5px] text-muted-foreground">
+      {{ entry().description }}
+    </span>
+  }
+</span>
+
+<span
+  data-testid="entry-amount"
+  class="w-[120px] shrink-0 text-right font-mono text-[15px] font-semibold"
+  [class]="entry().amount < 0 ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'"
+>
+  {{ entry().amount | currencyFormat: currencyFormat() }}
+</span>
+
+<span class="flex w-16 shrink-0 justify-end">
+  @if (entry().is_system) {
+    <span
+      data-testid="entry-locked"
+      title="Modifiable depuis les paramètres du compte"
+      class="flex size-7 items-center justify-center text-muted-foreground opacity-60"
+    >
+      <ng-icon name="lucideLock" size="14" />
+    </span>
+  } @else {
+    <button
+      type="button"
+      data-testid="entry-delete"
+      data-accent-solid
+      title="Supprimer"
+      aria-label="Supprimer l’écriture"
+      class="flex size-7 items-center justify-center rounded-lg bg-destructive/10 text-destructive outline-none transition-colors hover:bg-destructive hover:text-white"
+      (click)="deleteRequested.emit(); $event.stopPropagation()"
+    >
+      <ng-icon name="lucideTrash2" size="14" />
+    </button>
+  }
+</span>

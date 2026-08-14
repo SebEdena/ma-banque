@@ -1,0 +1,165 @@
+<button
+  type="button"
+  role="checkbox"
+  data-testid="entry-form-reconciled"
+  data-accent-solid
+  [attr.aria-checked]="reconciled()"
+  [attr.aria-label]="reconciled() ? 'Écriture pointée' : 'Écriture non pointée'"
+  class="flex size-[19px] shrink-0 items-center justify-center rounded-md border-[1.5px] border-border text-white outline-none"
+  [style.background-color]="reconciled() ? accountColor() : 'transparent'"
+  [style.border-color]="reconciled() ? accountColor() : ''"
+  (click)="reconciledToggled.emit()"
+>
+  @if (reconciled()) {
+    <ng-icon name="lucideCheck" size="12" />
+  }
+</button>
+
+<input
+  id="entry-form-date"
+  type="date"
+  data-testid="entry-form-date"
+  data-accent
+  aria-label="Date de l’écriture"
+  class="w-[88px] shrink-0 rounded-[7px] border border-border bg-card px-1.5 py-1 text-[12.5px] outline-none"
+  [value]="draft().date"
+  (change)="patch({ date: $any($event.target).value })"
+/>
+
+<span class="flex w-[170px] shrink-0 items-center gap-2">
+  <span
+    class="flex size-6 shrink-0 items-center justify-center rounded-[7px] text-white"
+    [style.background-color]="categorySwatch().color"
+  >
+    <ng-icon [name]="categorySwatch().icon" size="13" />
+  </span>
+  <select
+    id="entry-form-category"
+    data-testid="entry-form-category"
+    data-accent
+    aria-label="Poste de l’écriture"
+    class="min-w-0 flex-1 rounded-[7px] border border-border bg-card px-1.5 py-1 text-[12px] font-semibold outline-none"
+    (change)="setCategory($any($event.target))"
+  >
+    <!--
+      Selected marked per option rather than bound on the `<select>`,
+      which resolves its value before `@for` has rendered the options to
+      choose from.
+    -->
+    <option value="" [selected]="draft().categoryId === null">Aucun poste</option>
+    @for (category of categories(); track category.id) {
+      <option [value]="category.id" [selected]="category.id === draft().categoryId">
+        {{ category.name }}
+      </option>
+    }
+    <option data-testid="entry-form-category-new" [value]="newCategoryValue">
+      + Nouvelle catégorie…
+    </option>
+  </select>
+</span>
+
+<span class="flex min-w-0 flex-1 flex-col gap-1">
+  <span class="flex items-center gap-2">
+    <input
+      id="entry-form-label"
+      type="text"
+      data-testid="entry-form-label"
+      data-accent
+      placeholder="Libellé"
+      aria-label="Libellé de l’écriture"
+      class="min-w-0 flex-1 rounded-[7px] border border-border bg-card px-2 py-1 text-[13.5px] font-bold outline-none"
+      [class.border-destructive]="labelError()"
+      [value]="draft().label"
+      (input)="patch({ label: $any($event.target).value })"
+    />
+    @if (labelError()) {
+      <span
+        data-testid="entry-form-label-error"
+        class="shrink-0 text-[11px] font-semibold text-destructive"
+      >
+        Libellé obligatoire
+      </span>
+    }
+  </span>
+  <input
+    id="entry-form-description"
+    type="text"
+    data-testid="entry-form-description"
+    data-accent
+    placeholder="Description (optionnel)"
+    aria-label="Description de l’écriture"
+    class="w-full rounded-[7px] border border-border bg-card px-2 py-0.5 text-[12px] text-muted-foreground outline-none"
+    [value]="draft().description"
+    (input)="patch({ description: $any($event.target).value })"
+  />
+</span>
+
+<span class="flex shrink-0 items-center gap-1.5">
+  <input
+    id="entry-form-amount"
+    type="text"
+    inputmode="decimal"
+    data-testid="entry-form-amount"
+    data-accent
+    placeholder="0,00"
+    aria-label="Montant de l’écriture"
+    class="w-[90px] rounded-[7px] border border-border bg-card px-2 py-1.5 text-right font-mono text-[14px] font-semibold outline-none"
+    [value]="draft().amount"
+    (input)="patch({ amount: $any($event.target).value })"
+  />
+  <span class="flex gap-[3px]">
+    <button
+      type="button"
+      data-testid="entry-form-debit"
+      data-accent-solid
+      [attr.data-selected]="isDebit()"
+      [attr.aria-pressed]="isDebit()"
+      class="rounded-md border border-border px-1.5 py-1 text-[11px] font-semibold outline-none"
+      [class.text-white]="isDebit()"
+      [style.background-color]="isDebit() ? accountColor() : 'transparent'"
+      (click)="setDebit(true)"
+    >
+      Débit
+    </button>
+    <button
+      type="button"
+      data-testid="entry-form-credit"
+      data-accent-solid
+      [attr.data-selected]="!isDebit()"
+      [attr.aria-pressed]="!isDebit()"
+      class="rounded-md border border-border px-1.5 py-1 text-[11px] font-semibold outline-none"
+      [class.text-white]="!isDebit()"
+      [style.background-color]="isDebit() ? 'transparent' : accountColor()"
+      (click)="setDebit(false)"
+    >
+      Crédit
+    </button>
+  </span>
+</span>
+
+<span class="flex w-16 shrink-0 items-center justify-end gap-1">
+  <button
+    type="button"
+    data-testid="entry-save"
+    data-accent-solid
+    title="Enregistrer"
+    aria-label="Enregistrer l’écriture"
+    class="flex size-7 items-center justify-center rounded-lg text-white outline-none disabled:opacity-50"
+    [style.background-color]="accountColor()"
+    [disabled]="saving()"
+    (click)="saved.emit(); $event.stopPropagation()"
+  >
+    <ng-icon name="lucideCheck" size="14" />
+  </button>
+  <button
+    type="button"
+    data-testid="entry-cancel"
+    data-accent
+    title="Annuler"
+    aria-label="Annuler la modification"
+    class="flex size-7 items-center justify-center rounded-lg text-muted-foreground outline-none"
+    (click)="cancelled.emit(); $event.stopPropagation()"
+  >
+    <ng-icon name="lucideX" size="14" />
+  </button>
+</span>
