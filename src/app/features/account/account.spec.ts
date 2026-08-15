@@ -161,22 +161,16 @@ function one(fixture: ComponentFixture<Account>, testId: string): HTMLElement | 
 /**
  * `hlm-date-picker-input` renders its actual `<input>` inside its own
  * template, keyed by `inputId` rather than a `data-testid` this file's `one`
- * could reach — so the entry-form date field is found by that id instead.
+ * could reach — so date fields are found by that id instead. Every picker in
+ * this screen sets `inputId` to the same string as its `data-testid`.
  */
-function entryFormDateInput(fixture: ComponentFixture<Account>): HTMLInputElement {
-  return (fixture.nativeElement as HTMLElement).querySelector(
-    '#entry-form-date',
-  ) as HTMLInputElement;
+function dateInput(fixture: ComponentFixture<Account>, id: string): HTMLInputElement {
+  return (fixture.nativeElement as HTMLElement).querySelector(`#${id}`) as HTMLInputElement;
 }
 
-/** Types into the entry-form date field and commits it — that field only parses on blur/Enter. */
+/** Types into a date-picker field and commits it — those fields only parse on blur/Enter. */
 async function setEntryDate(fixture: ComponentFixture<Account>, value: string): Promise<void> {
-  const input = entryFormDateInput(fixture);
-  input.focus();
-  input.value = value;
-  input.dispatchEvent(new Event('input'));
-  input.dispatchEvent(new Event('blur'));
-  await settle(fixture);
+  await setDate(fixture, 'entry-form-date', value);
 }
 
 function textIn(row: HTMLElement, testId: string): string {
@@ -190,12 +184,18 @@ async function click(fixture: ComponentFixture<Account>, testId: string): Promis
 
 async function setDate(
   fixture: ComponentFixture<Account>,
-  testId: string,
+  id: string,
   value: string,
 ): Promise<void> {
-  const input = one(fixture, testId) as HTMLInputElement;
+  const input = dateInput(fixture, id);
+  input.focus();
   input.value = value;
-  input.dispatchEvent(new Event('change'));
+  input.dispatchEvent(new Event('input'));
+  // A real `.blur()` (not a synthetic dispatched event) actually clears
+  // `document.activeElement` — otherwise a later `.focus()` on a different
+  // field fires a second, real blur here, re-parsing this field's
+  // already-reformatted display text with the ISO-only parser and clearing it.
+  input.blur();
   await settle(fixture);
 }
 
@@ -311,8 +311,9 @@ describe('Account', () => {
     ]);
     const fixture = await createAccount(entriesApi);
 
-    await setDate(fixture, 'entries-from', '2026-02-01');
-    await setDate(fixture, 'entries-to', '2026-02-28');
+    // Typed per the display-settings format (DMY here), not the ISO the model stores.
+    await setDate(fixture, 'entries-from', '01/02/2026');
+    await setDate(fixture, 'entries-to', '28/02/2026');
 
     expect(queryOf(entriesApi)).toMatchObject({ from: '2026-02-01', to: '2026-02-28', offset: 0 });
     expect(rows(fixture).map((row) => textIn(row, 'entry-label'))).toEqual(['Dedans']);
@@ -322,7 +323,7 @@ describe('Account', () => {
     const entriesApi = stubEntriesApi([entry()]);
     const fixture = await createAccount(entriesApi);
 
-    await setDate(fixture, 'entries-from', '2026-02-01');
+    await setDate(fixture, 'entries-from', '01/02/2026');
     await click(fixture, 'entries-reset-filters');
 
     expect(queryOf(entriesApi)).toMatchObject({ from: null, to: null });
@@ -355,7 +356,7 @@ describe('Account', () => {
       .spyOn(viewportOf(fixture), 'scrollToIndex')
       .mockImplementation(() => undefined);
 
-    await setDate(fixture, 'entries-jump-date', '2026-01-05');
+    await setDate(fixture, 'entries-jump-date', '05/01/2026');
     await click(fixture, 'entries-jump');
 
     // Most-recent-first from 2026-03-01, one entry per day: 2026-01-05 is 55
@@ -372,7 +373,7 @@ describe('Account', () => {
     await click(fixture, 'entries-new');
     await type(fixture, 'entry-form-label', 'Boulangerie');
     await type(fixture, 'entry-form-amount', '-12.40');
-    await setEntryDate(fixture, '2026-03-05');
+    await setEntryDate(fixture, '05/03/2026');
     await select(fixture, 'entry-form-category', '1');
     await click(fixture, 'entry-save');
 

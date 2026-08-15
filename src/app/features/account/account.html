@@ -52,27 +52,49 @@
           class="flex items-center gap-1.5 rounded-[9px] border border-border bg-card px-2.5 py-1.5"
         >
           <label class="text-xs font-semibold text-muted-foreground" for="entries-from">Du</label>
-          <input
-            id="entries-from"
-            type="date"
-            data-testid="entries-from"
-            data-accent
-            class="bg-transparent text-[13px] outline-none"
-            [value]="from() ?? ''"
-            (change)="setFrom($any($event.target).value)"
-          />
+          <hlm-date-picker
+            captionLayout="dropdown"
+            [date]="fromDate()"
+            [formatDate]="formatFilterDate()"
+            (dateChange)="onFromChange($event)"
+            class="shrink-0"
+          >
+            <hlm-date-picker-input
+              inputId="entries-from"
+              data-testid="entries-from"
+              data-accent
+              aria-label="Date de début"
+              calendarAriaLabel="Ouvrir le calendrier"
+              clearAriaLabel="Effacer la date de début"
+              [showClear]="false"
+              [formatInputDate]="formatFilterDate()"
+              [parseDate]="parseFilterDate"
+              class="w-[128px] h-auto shrink-0 border-none bg-transparent p-0 text-[13px] shadow-none ring-0 has-[[data-slot=input-group-control]:focus-visible]:border-none has-[[data-slot=input-group-control]:focus-visible]:ring-0 [&_input]:h-auto [&_input]:py-0 [&_[data-slot=input-group-addon]]:py-0"
+            />
+          </hlm-date-picker>
           <label class="ml-1 text-xs font-semibold text-muted-foreground" for="entries-to"
             >Au</label
           >
-          <input
-            id="entries-to"
-            type="date"
-            data-testid="entries-to"
-            data-accent
-            class="bg-transparent text-[13px] outline-none"
-            [value]="to() ?? ''"
-            (change)="setTo($any($event.target).value)"
-          />
+          <hlm-date-picker
+            captionLayout="dropdown"
+            [date]="toDate()"
+            [formatDate]="formatFilterDate()"
+            (dateChange)="onToChange($event)"
+            class="shrink-0"
+          >
+            <hlm-date-picker-input
+              inputId="entries-to"
+              data-testid="entries-to"
+              data-accent
+              aria-label="Date de fin"
+              calendarAriaLabel="Ouvrir le calendrier"
+              clearAriaLabel="Effacer la date de fin"
+              [showClear]="false"
+              [formatInputDate]="formatFilterDate()"
+              [parseDate]="parseFilterDate"
+              class="w-[128px] h-auto shrink-0 border-none bg-transparent p-0 text-[13px] shadow-none ring-0 has-[[data-slot=input-group-control]:focus-visible]:border-none has-[[data-slot=input-group-control]:focus-visible]:ring-0 [&_input]:h-auto [&_input]:py-0 [&_[data-slot=input-group-addon]]:py-0"
+            />
+          </hlm-date-picker>
         </div>
 
         <button
@@ -118,18 +140,29 @@
         <div
           class="flex items-center gap-1.5 rounded-[9px] border border-border bg-card px-2.5 py-1.5"
         >
-          <label class="text-xs font-semibold text-muted-foreground" for="entries-jump">
+          <label class="text-xs font-semibold text-muted-foreground" for="entries-jump-date">
             Aller au
           </label>
-          <input
-            id="entries-jump"
-            type="date"
-            data-testid="entries-jump-date"
-            data-accent
-            class="bg-transparent text-[13px] outline-none"
-            [value]="jumpTarget()"
-            (change)="jumpTarget.set($any($event.target).value)"
-          />
+          <hlm-date-picker
+            captionLayout="dropdown"
+            [date]="jumpDate()"
+            [formatDate]="formatFilterDate()"
+            (dateChange)="onJumpChange($event)"
+            class="shrink-0"
+          >
+            <hlm-date-picker-input
+              inputId="entries-jump-date"
+              data-testid="entries-jump-date"
+              data-accent
+              aria-label="Date cible"
+              calendarAriaLabel="Ouvrir le calendrier"
+              clearAriaLabel="Effacer la date cible"
+              [showClear]="false"
+              [formatInputDate]="formatFilterDate()"
+              [parseDate]="parseFilterDate"
+              class="w-[128px] h-auto shrink-0 border-none bg-transparent p-0 text-[13px] shadow-none ring-0 has-[[data-slot=input-group-control]:focus-visible]:border-none has-[[data-slot=input-group-control]:focus-visible]:ring-0 [&_input]:h-auto [&_input]:py-0 [&_[data-slot=input-group-addon]]:py-0"
+            />
+          </hlm-date-picker>
           <button
             type="button"
             data-testid="entries-jump"
