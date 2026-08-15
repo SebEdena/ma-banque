@@ -45,30 +45,61 @@
   >
     <ng-icon [name]="categorySwatch().icon" size="13" />
   </span>
-  <select
-    #categoryField
-    id="entry-form-category"
-    data-testid="entry-form-category"
-    data-accent
-    aria-label="Poste de l’écriture"
-    class="min-w-0 flex-1 border-none bg-transparent p-0 text-[12px] font-semibold outline-none"
-    (change)="setCategory($any($event.target))"
+  <hlm-select
+    class="min-w-0 flex-1"
+    [value]="categoryValue()"
+    [itemToString]="categoryItemToString"
+    (valueChange)="onCategoryChange($event)"
   >
-    <!--
-      Selected marked per option rather than bound on the `<select>`,
-      which resolves its value before `@for` has rendered the options to
-      choose from.
-    -->
-    <option value="" [selected]="draft().categoryId === null">Aucun poste</option>
-    @for (category of categories(); track category.id) {
-      <option [value]="category.id" [selected]="category.id === draft().categoryId">
-        {{ category.name }}
-      </option>
-    }
-    <option data-testid="entry-form-category-new" [value]="newCategoryValue">
-      + Nouvelle catégorie…
-    </option>
-  </select>
+    <hlm-select-trigger
+      #categoryField
+      [buttonId]="'entry-form-category'"
+      data-testid="entry-form-category"
+      data-accent
+      aria-label="Poste de l’écriture"
+      class="h-auto w-full border-none bg-transparent p-0 text-[12px] font-semibold shadow-none focus-visible:ring-0"
+    >
+      <hlm-select-value placeholder="Aucun poste" />
+    </hlm-select-trigger>
+    <hlm-select-content *hlmSelectPortal class="min-w-[210px] p-1">
+      <hlm-select-item class="cursor-pointer font-semibold" [value]="null">
+        <span
+          class="flex size-[22px] shrink-0 items-center justify-center rounded-[6px] text-white"
+          [style.background-color]="uncategorized.color"
+        >
+          <ng-icon [name]="uncategorized.icon" size="12" />
+        </span>
+        Aucun poste
+      </hlm-select-item>
+      @for (category of categories(); track category.id) {
+        <hlm-select-item
+          class="cursor-pointer font-semibold"
+          [attr.data-testid]="'entry-form-category-option-' + category.id"
+          [value]="category.id"
+        >
+          <span
+            class="flex size-[22px] shrink-0 items-center justify-center rounded-[6px] text-white"
+            [style.background-color]="category.color"
+          >
+            <ng-icon [name]="category.icon" size="12" />
+          </span>
+          {{ category.name }}
+        </hlm-select-item>
+      }
+      <hlm-select-item
+        class="cursor-pointer font-semibold"
+        data-testid="entry-form-category-new"
+        [value]="newCategoryValue"
+      >
+        <span
+          class="flex size-[22px] shrink-0 items-center justify-center rounded-[6px] bg-emerald-600 text-white dark:bg-emerald-500"
+        >
+          <ng-icon name="lucidePlus" size="12" />
+        </span>
+        Nouvelle catégorie…
+      </hlm-select-item>
+    </hlm-select-content>
+  </hlm-select>
 </span>
 
 <span class="flex min-w-0 flex-1 flex-col gap-1">

@@ -4,7 +4,8 @@ import { provideNativeDateAdapter } from '@spartan-ng/brain/date-time';
 
 import { Category } from '@core/categories-api/categories-api';
 import { FRENCH_CALENDAR_I18N } from '@core/display-settings/calendar-i18n';
-import { EntryDraft, EntryForm, EntryFormField, NEW_CATEGORY_VALUE } from './entry-form';
+import '@core/testing/jsdom-polyfills';
+import { EntryDraft, EntryForm, EntryFormField } from './entry-form';
 
 function category(overrides: Partial<Category> = {}): Category {
   return {
@@ -83,10 +84,16 @@ async function save(fixture: ComponentFixture<EntryForm>): Promise<void> {
   fixture.detectChanges();
 }
 
-function select(fixture: ComponentFixture<EntryForm>, value: string): void {
-  const element = one(fixture, 'entry-form-category') as HTMLSelectElement;
-  element.value = value;
-  element.dispatchEvent(new Event('change'));
+/**
+ * `hlm-select`'s dropdown is a `hlm-select-item` list portaled to
+ * `document.body` — reachable by `data-testid`, but only while open — rather
+ * than a native `<select>`'s options. Opens the trigger, clicks the item,
+ * and lets the (default) auto-close on select settle.
+ */
+function selectCategory(fixture: ComponentFixture<EntryForm>, itemTestId: string): void {
+  one(fixture, 'entry-form-category')?.querySelector('button')?.click();
+  fixture.detectChanges();
+  (document.querySelector(`[data-testid="${itemTestId}"]`) as HTMLElement).click();
   fixture.detectChanges();
 }
 
@@ -100,7 +107,7 @@ describe('EntryForm', () => {
     expect((one(fixture, 'entry-form-description') as HTMLInputElement).value).toBe('Samedi');
     expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('-25.5');
     expect(dateInput(fixture).value).toBe('2026-03-05');
-    expect((one(fixture, 'entry-form-category') as HTMLSelectElement).value).toBe('1');
+    expect(one(fixture, 'entry-form-category')?.textContent?.trim()).toBe('Alimentation');
   });
 
   it('writes every edited field back through the draft model', async () => {
@@ -111,7 +118,7 @@ describe('EntryForm', () => {
     type(fixture, 'entry-form-label', 'Boulangerie');
     type(fixture, 'entry-form-description', 'Pain');
     type(fixture, 'entry-form-amount', '-12.40');
-    select(fixture, '1');
+    selectCategory(fixture, 'entry-form-category-option-1');
 
     expect(seen.at(-1)).toMatchObject({
       label: 'Boulangerie',
@@ -159,12 +166,12 @@ describe('EntryForm', () => {
     let requested = 0;
     fixture.componentInstance.categoryCreateRequested.subscribe(() => (requested += 1));
 
-    select(fixture, NEW_CATEGORY_VALUE);
+    selectCategory(fixture, 'entry-form-category-new');
 
     expect(requested).toBe(1);
     // The field goes back to what it showed, so cancelling the modal that the
     // container opens doesn't leave it on a non-category.
-    expect((one(fixture, 'entry-form-category') as HTMLSelectElement).value).toBe('1');
+    expect(one(fixture, 'entry-form-category')?.textContent?.trim()).toBe('Alimentation');
   });
 
   it('holds an empty label back, inline, only once a save has been attempted', async () => {
@@ -219,7 +226,10 @@ describe('EntryForm', () => {
     ] as const) {
       TestBed.resetTestingModule();
       const fixture = await createEntryForm(draft(), [category()], field);
-      expect(document.activeElement).toBe(one(fixture, testId));
+      const target = one(fixture, testId);
+      // The category select's focusable control is its trigger `<button>`,
+      // nested inside the element `data-testid` reaches.
+      expect(document.activeElement).toBe(target?.querySelector('button') ?? target);
     }
   });
 
