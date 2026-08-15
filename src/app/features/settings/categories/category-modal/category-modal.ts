@@ -20,12 +20,8 @@ import { NgIcon } from '@ng-icons/core';
 import { toast } from '@spartan-ng/brain/sonner';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 
-import {
-  CategoriesApi,
-  Category,
-  CategoryInput,
-  parseCategoryError,
-} from '@core/categories-api/categories-api';
+import { Category, CategoryInput, parseCategoryError } from '@core/categories-api/categories-api';
+import { CategoriesStore } from '@core/categories-api/categories-store';
 import { ModalShell } from '@shared/modal-shell/modal-shell';
 import { ColorPicker } from '@shared/pickers/color-picker/color-picker';
 import { DEFAULT_COLOR } from '@shared/pickers/color-swatches';
@@ -47,7 +43,7 @@ import { IconPicker } from '@shared/pickers/icon-picker/icon-picker';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CategoryModal implements OnInit {
-  private readonly categoriesApi = inject(CategoriesApi);
+  private readonly categoriesStore = inject(CategoriesStore);
 
   /** The category being edited, or `null` to create a new one. */
   readonly category = input<Category | null>(null);
@@ -103,8 +99,8 @@ export class CategoryModal implements OnInit {
       const category = this.category();
       this.saved.emit(
         category === null
-          ? await this.categoriesApi.createCategory(input)
-          : await this.categoriesApi.updateCategory(category.id, input),
+          ? await this.categoriesStore.create(input)
+          : await this.categoriesStore.update(category.id, input),
       );
     } catch (error) {
       toast.error(parseCategoryError(error));

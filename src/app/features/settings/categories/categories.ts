@@ -4,7 +4,8 @@ import { lucideCircleAlert, lucidePencil, lucidePlus, lucideTrash2 } from '@ng-i
 import { toast } from '@spartan-ng/brain/sonner';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 
-import { CategoriesApi, Category, parseCategoryError } from '@core/categories-api/categories-api';
+import { Category, parseCategoryError } from '@core/categories-api/categories-api';
+import { CategoriesStore } from '@core/categories-api/categories-store';
 import { ConfirmDialog } from '@shared/confirm-dialog/confirm-dialog';
 import { ModalShell } from '@shared/modal-shell/modal-shell';
 import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
@@ -31,18 +32,14 @@ import { CategoryModal } from './category-modal/category-modal';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Categories {
-  private readonly categoriesApi = inject(CategoriesApi);
+  private readonly categoriesStore = inject(CategoriesStore);
 
-  protected readonly categories = signal<Category[]>([]);
+  protected readonly categories = this.categoriesStore.categories;
 
   /** The category the modal is editing, `null` for a create, `undefined` when closed. */
   protected readonly editing = signal<Category | null | undefined>(undefined);
   protected readonly confirmingDelete = signal<Category | null>(null);
   protected readonly deleteBlocked = signal<Category | null>(null);
-
-  constructor() {
-    void this.load();
-  }
 
   protected startCreate(): void {
     this.editing.set(null);
@@ -56,9 +53,8 @@ export class Categories {
     this.editing.set(undefined);
   }
 
-  protected async onSaved(): Promise<void> {
+  protected onSaved(): void {
     this.closeModal();
-    await this.load();
   }
 
   protected startDelete(category: Category): void {
@@ -77,23 +73,18 @@ export class Categories {
 
     this.confirmingDelete.set(null);
     try {
-      await this.categoriesApi.deleteCategory(category.id);
+      await this.categoriesStore.delete(category.id);
     } catch (error) {
       toast.error(parseCategoryError(error));
+      // The store's delete only reloads on success — refresh here too, in
+      // case the rejection (a stale usage count) means the list itself is
+      // now stale.
+      await this.categoriesStore.reload();
     }
-    await this.load();
   }
 
   /** The blocked message's "utilisé par N écriture(s)", agreeing in number. */
   protected usageLabel(category: Category): string {
     return category.usage_count === 1 ? '1 écriture' : `${category.usage_count} écritures`;
-  }
-
-  private async load(): Promise<void> {
-    try {
-      this.categories.set(await this.categoriesApi.listCategories());
-    } catch (error) {
-      toast.error(parseCategoryError(error));
-    }
   }
 }
