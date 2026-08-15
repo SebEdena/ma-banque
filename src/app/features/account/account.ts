@@ -19,6 +19,7 @@ import {
   lucideSearch,
 } from '@ng-icons/lucide';
 import { toast } from '@spartan-ng/brain/sonner';
+import { HlmTooltipImports } from '@spartan-ng/helm/tooltip';
 
 import { todayIso } from '@core/accounts-api/accounts-api';
 import { AccountsStore } from '@core/accounts-api/accounts-store';
@@ -107,6 +108,7 @@ function emptyDraft(): EntryDraft {
     CategoryModal,
     EntryRow,
     EntryForm,
+    ...HlmTooltipImports,
   ],
   templateUrl: './account.html',
   styleUrls: ['./account.css', './accent.css'],

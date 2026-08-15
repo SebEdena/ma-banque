@@ -1,6 +1,7 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideCheck, lucideFlag, lucideLock, lucideTrash2 } from '@ng-icons/lucide';
+import { HlmTooltipImports } from '@spartan-ng/helm/tooltip';
 
 import { parseIsoDate } from '@core/accounts-api/accounts-api';
 import { CurrencyFormatPipe } from '@core/display-settings/currency-format.pipe';
@@ -23,7 +24,7 @@ import { RowCategory } from '../row-category';
  */
 @Component({
   selector: 'app-entry-row',
-  imports: [NgIcon, DateFormatPipe, CurrencyFormatPipe],
+  imports: [NgIcon, DateFormatPipe, CurrencyFormatPipe, ...HlmTooltipImports],
   templateUrl: './entry-row.html',
   styles: ':host { display: contents; }',
   styleUrl: '../accent.css',

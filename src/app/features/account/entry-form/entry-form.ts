@@ -14,8 +14,13 @@ import {
 import { FieldTree, form, requiredError, schema, submit, validate } from '@angular/forms/signals';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideCheck, lucideX } from '@ng-icons/lucide';
+import { HlmDatePickerImports } from '@spartan-ng/helm/date-picker';
+import { HlmTooltipImports } from '@spartan-ng/helm/tooltip';
 
+import { parseIsoDate, toIsoDate } from '@core/accounts-api/accounts-api';
 import { Category } from '@core/categories-api/categories-api';
+import type { DateFormat } from '@core/display-settings/display-settings.types';
+import { formatDate } from '@core/display-settings/format';
 import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
 import { RowCategory, UNCATEGORIZED } from '../row-category';
 
@@ -104,7 +109,7 @@ export type EntryFormField = 'date' | 'category' | 'label' | 'amount';
  */
 @Component({
   selector: 'app-entry-form',
-  imports: [NgIcon],
+  imports: [NgIcon, ...HlmDatePickerImports, ...HlmTooltipImports],
   templateUrl: './entry-form.html',
   styles: `
     :host {
@@ -151,6 +156,7 @@ export class EntryForm {
   readonly reconciled = input.required<boolean>();
   readonly saving = input(false);
   readonly focusField = input<EntryFormField>('label');
+  readonly dateFormat = input.required<DateFormat>();
 
   /** A save attempt on a valid draft, carrying its parsed signed amount. */
   readonly saved = output<number>();
@@ -165,7 +171,12 @@ export class EntryForm {
    */
   readonly amountRejected = output<void>();
 
-  private readonly dateField = viewChild.required<ElementRef<HTMLInputElement>>('dateField');
+  /**
+   * The date picker's own `<input>` lives inside its component's template,
+   * so this reads the wrapper's host element rather than the field
+   * directly — `focusRequestedField` reaches into it with `querySelector`.
+   */
+  private readonly dateField = viewChild.required('dateField', { read: ElementRef });
   private readonly categoryField =
     viewChild.required<ElementRef<HTMLSelectElement>>('categoryField');
   private readonly labelField = viewChild.required<ElementRef<HTMLInputElement>>('labelField');
@@ -200,6 +211,23 @@ export class EntryForm {
       UNCATEGORIZED
     );
   });
+
+  protected readonly parseIsoDate = parseIsoDate;
+  protected readonly draftDate = computed(() => parseIsoDate(this.draft().date));
+
+  /** Display format while the field isn't focused — matches the read-only row's own format. */
+  protected readonly formatDraftDate = computed(() => {
+    const format = this.dateFormat();
+    return (date: Date): string => formatDate(date, format);
+  });
+
+  /** Typing/edit format is always ISO — unambiguous regardless of `dateFormat`. */
+  protected readonly formatInputIsoDate = (date: Date): string => toIsoDate(date);
+
+  protected parseInputIsoDate(value: string): Date | null {
+    const date = parseIsoDate(value);
+    return Number.isNaN(date.getTime()) ? null : date;
+  }
 
   constructor() {
     // The form is created when editing starts, so its first render is the
@@ -242,10 +270,17 @@ export class EntryForm {
     return state.touched() && state.invalid() ? (state.errors()[0]?.message ?? null) : null;
   }
 
+  protected onDateChange(date: Date | null): void {
+    if (date === null) {
+      return;
+    }
+    this.patch({ date: toIsoDate(date) });
+  }
+
   private focusRequestedField(): void {
     switch (this.focusField()) {
       case 'date':
-        this.dateField().nativeElement.focus();
+        this.dateField().nativeElement.querySelector('input')?.focus();
         return;
       case 'category':
         this.categoryField().nativeElement.focus();

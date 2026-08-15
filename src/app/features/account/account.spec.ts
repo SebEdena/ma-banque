@@ -2,11 +2,14 @@ import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { provideBrnCalendarI18n } from '@spartan-ng/brain/calendar';
+import { provideNativeDateAdapter } from '@spartan-ng/brain/date-time';
 import { of } from 'rxjs';
 
 import { AccountsApi } from '@core/accounts-api/accounts-api';
 import { AccountsStore } from '@core/accounts-api/accounts-store';
 import { CategoriesApi, Category } from '@core/categories-api/categories-api';
+import { FRENCH_CALENDAR_I18N } from '@core/display-settings/calendar-i18n';
 import { DisplaySettingsService } from '@core/display-settings/display-settings';
 import { EntriesApi, Entry, ListEntriesQuery } from '@core/entries-api/entries-api';
 import { accountFixture } from '@core/testing/account.fixture';
@@ -105,6 +108,8 @@ async function createAccount(
     imports: [Account],
     providers: [
       provideRouter([]),
+      provideNativeDateAdapter(),
+      provideBrnCalendarI18n(FRENCH_CALENDAR_I18N),
       {
         provide: ActivatedRoute,
         useValue: {
@@ -151,6 +156,27 @@ function rows(fixture: ComponentFixture<Account>): HTMLElement[] {
 
 function one(fixture: ComponentFixture<Account>, testId: string): HTMLElement | null {
   return (fixture.nativeElement as HTMLElement).querySelector(`[data-testid="${testId}"]`);
+}
+
+/**
+ * `hlm-date-picker-input` renders its actual `<input>` inside its own
+ * template, keyed by `inputId` rather than a `data-testid` this file's `one`
+ * could reach — so the entry-form date field is found by that id instead.
+ */
+function entryFormDateInput(fixture: ComponentFixture<Account>): HTMLInputElement {
+  return (fixture.nativeElement as HTMLElement).querySelector(
+    '#entry-form-date',
+  ) as HTMLInputElement;
+}
+
+/** Types into the entry-form date field and commits it — that field only parses on blur/Enter. */
+async function setEntryDate(fixture: ComponentFixture<Account>, value: string): Promise<void> {
+  const input = entryFormDateInput(fixture);
+  input.focus();
+  input.value = value;
+  input.dispatchEvent(new Event('input'));
+  input.dispatchEvent(new Event('blur'));
+  await settle(fixture);
 }
 
 function textIn(row: HTMLElement, testId: string): string {
@@ -346,7 +372,7 @@ describe('Account', () => {
     await click(fixture, 'entries-new');
     await type(fixture, 'entry-form-label', 'Boulangerie');
     await type(fixture, 'entry-form-amount', '-12.40');
-    await setDate(fixture, 'entry-form-date', '2026-03-05');
+    await setEntryDate(fixture, '2026-03-05');
     await select(fixture, 'entry-form-category', '1');
     await click(fixture, 'entry-save');
 

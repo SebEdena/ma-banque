@@ -13,12 +13,19 @@
     "module": "preserve",
     "paths": {
       "@spartan-ng/helm/button": ["./src/app/shared/components/ui/button/src/index.ts"],
-      "@spartan-ng/helm/utils": ["./src/app/shared/components/ui/utils/src/index.ts"],
+      "@spartan-ng/helm/calendar": ["./src/app/shared/components/ui/calendar/src/index.ts"],
+      "@spartan-ng/helm/date-picker": ["./src/app/shared/components/ui/date-picker/src/index.ts"],
+      "@spartan-ng/helm/input": ["./src/app/shared/components/ui/input/src/index.ts"],
+      "@spartan-ng/helm/input-group": ["./src/app/shared/components/ui/input-group/src/index.ts"],
+      "@spartan-ng/helm/popover": ["./src/app/shared/components/ui/popover/src/index.ts"],
+      "@spartan-ng/helm/select": ["./src/app/shared/components/ui/select/src/index.ts"],
       "@spartan-ng/helm/sonner": ["./src/app/shared/components/ui/sonner/src/index.ts"],
+      "@spartan-ng/helm/textarea": ["./src/app/shared/components/ui/textarea/src/index.ts"],
       "@spartan-ng/helm/tooltip": ["./src/app/shared/components/ui/tooltip/src/index.ts"],
+      "@spartan-ng/helm/utils": ["./src/app/shared/components/ui/utils/src/index.ts"],
       "@core/*": ["./src/app/core/*"],
-      "@shared/*": ["./src/app/shared/*"],
-      "@features/*": ["./src/app/features/*"]
+      "@features/*": ["./src/app/features/*"],
+      "@shared/*": ["./src/app/shared/*"]
     }
   },
   "angularCompilerOptions": {
