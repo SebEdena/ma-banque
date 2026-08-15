@@ -30,13 +30,15 @@
     calendarAriaLabel="Ouvrir le calendrier"
     clearAriaLabel="Effacer la date"
     [showClear]="false"
-    [formatInputDate]="formatInputIsoDate"
-    [parseDate]="parseInputIsoDate"
+    [formatInputDate]="formatDraftDate()"
+    [parseDate]="parseInputDate"
     class="text-[12.5px]"
   />
 </hlm-date-picker>
 
-<span class="flex w-[170px] shrink-0 items-center gap-2">
+<span
+  class="flex w-[170px] shrink-0 items-center gap-2 rounded-[7px] border border-border bg-card px-1.5 py-1"
+>
   <span
     class="flex size-6 shrink-0 items-center justify-center rounded-[7px] text-white"
     [style.background-color]="categorySwatch().color"
@@ -49,7 +51,7 @@
     data-testid="entry-form-category"
     data-accent
     aria-label="Poste de l’écriture"
-    class="min-w-0 flex-1 rounded-[7px] border border-border bg-card px-1.5 py-1 text-[12px] font-semibold outline-none"
+    class="min-w-0 flex-1 border-none bg-transparent p-0 text-[12px] font-semibold outline-none"
     (change)="setCategory($any($event.target))"
   >
     <!--

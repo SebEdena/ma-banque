@@ -20,7 +20,7 @@ import { HlmTooltipImports } from '@spartan-ng/helm/tooltip';
 import { parseIsoDate, toIsoDate } from '@core/accounts-api/accounts-api';
 import { Category } from '@core/categories-api/categories-api';
 import type { DateFormat } from '@core/display-settings/display-settings.types';
-import { formatDate } from '@core/display-settings/format';
+import { formatDate, parseFormattedDate } from '@core/display-settings/format';
 import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
 import { RowCategory, UNCATEGORIZED } from '../row-category';
 
@@ -221,13 +221,9 @@ export class EntryForm {
     return (date: Date): string => formatDate(date, format);
   });
 
-  /** Typing/edit format is always ISO — unambiguous regardless of `dateFormat`. */
-  protected readonly formatInputIsoDate = (date: Date): string => toIsoDate(date);
-
-  protected parseInputIsoDate(value: string): Date | null {
-    const date = parseIsoDate(value);
-    return Number.isNaN(date.getTime()) ? null : date;
-  }
+  /** Typing/edit format matches the display format — no surprise reformat on focus. */
+  protected readonly parseInputDate = (value: string): Date | null =>
+    parseFormattedDate(value, this.dateFormat());
 
   constructor() {
     // The form is created when editing starts, so its first render is the

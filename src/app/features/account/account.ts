@@ -19,14 +19,16 @@ import {
   lucideSearch,
 } from '@ng-icons/lucide';
 import { toast } from '@spartan-ng/brain/sonner';
+import { HlmDatePickerImports } from '@spartan-ng/helm/date-picker';
 import { HlmTooltipImports } from '@spartan-ng/helm/tooltip';
 
-import { todayIso } from '@core/accounts-api/accounts-api';
+import { parseIsoDate, todayIso, toIsoDate } from '@core/accounts-api/accounts-api';
 import { AccountsStore } from '@core/accounts-api/accounts-store';
 import { Category } from '@core/categories-api/categories-api';
 import { CategoriesStore } from '@core/categories-api/categories-store';
 import { CurrencyFormatPipe } from '@core/display-settings/currency-format.pipe';
 import { DisplaySettingsService } from '@core/display-settings/display-settings';
+import { formatDate, parseFormattedDate } from '@core/display-settings/format';
 import {
   ENTRY_INVALID_AMOUNT_MESSAGE,
   Entry,
@@ -108,6 +110,7 @@ function emptyDraft(): EntryDraft {
     CategoryModal,
     EntryRow,
     EntryForm,
+    ...HlmDatePickerImports,
     ...HlmTooltipImports,
   ],
   templateUrl: './account.html',
@@ -162,6 +165,30 @@ export class Account {
   protected readonly loading = this.pager.loading;
   protected readonly filtersActive = computed(() => this.from() !== null || this.to() !== null);
 
+  protected readonly fromDate = computed(() => {
+    const value = this.from();
+    return value !== null ? parseIsoDate(value) : undefined;
+  });
+
+  protected readonly toDate = computed(() => {
+    const value = this.to();
+    return value !== null ? parseIsoDate(value) : undefined;
+  });
+
+  protected readonly jumpDate = computed(() => {
+    const value = this.jumpTarget();
+    return value !== '' ? parseIsoDate(value) : undefined;
+  });
+
+  protected readonly formatFilterDate = computed(() => {
+    const format = this.displaySettings.dateFormat();
+    return (date: Date): string => formatDate(date, format);
+  });
+
+  /** Typing/edit format matches the display format — no surprise reformat on focus. */
+  protected readonly parseFilterDate = (value: string): Date | null =>
+    parseFormattedDate(value, this.displaySettings.dateFormat());
+
   protected readonly rowHeight = ROW_HEIGHT;
   protected readonly trackById = (_index: number, entry: Entry): number => entry.id;
 
@@ -202,12 +229,16 @@ export class Account {
     this.sort.update((sort) => (sort === 'DESC' ? 'ASC' : 'DESC'));
   }
 
-  protected setFrom(value: string): void {
-    this.from.set(value || null);
+  protected onFromChange(date: Date | null): void {
+    this.from.set(date ? toIsoDate(date) : null);
   }
 
-  protected setTo(value: string): void {
-    this.to.set(value || null);
+  protected onToChange(date: Date | null): void {
+    this.to.set(date ? toIsoDate(date) : null);
+  }
+
+  protected onJumpChange(date: Date | null): void {
+    this.jumpTarget.set(date ? toIsoDate(date) : '');
   }
 
   protected resetFilters(): void {
