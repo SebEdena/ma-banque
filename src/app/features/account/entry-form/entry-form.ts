@@ -13,8 +13,10 @@ import {
 } from '@angular/core';
 import { FieldTree, form, requiredError, schema, submit, validate } from '@angular/forms/signals';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideCheck, lucideX } from '@ng-icons/lucide';
+import { lucideCheck, lucidePlus, lucideX } from '@ng-icons/lucide';
+import { BrnSelect } from '@spartan-ng/brain/select';
 import { HlmDatePickerImports } from '@spartan-ng/helm/date-picker';
+import { HlmSelectImports } from '@spartan-ng/helm/select';
 import { HlmTooltipImports } from '@spartan-ng/helm/tooltip';
 
 import { parseIsoDate, toIsoDate } from '@core/accounts-api/accounts-api';
@@ -78,9 +80,8 @@ const entryDraftSchema = schema<EntryDraft>((draft) => {
 
 /**
  * The category select's quick-create option. A sentinel option rather than a
- * button beside the field: the select is native precisely because a floating
- * panel would be clipped by the virtual-scroll viewport's overflow, and an
- * extra option keeps the affordance where the user is already looking.
+ * button beside the field: an extra option keeps the affordance where the
+ * user is already looking, instead of a second control competing for space.
  */
 export const NEW_CATEGORY_VALUE = '__new__';
 
@@ -109,7 +110,7 @@ export type EntryFormField = 'date' | 'category' | 'label' | 'amount';
  */
 @Component({
   selector: 'app-entry-form',
-  imports: [NgIcon, ...HlmDatePickerImports, ...HlmTooltipImports],
+  imports: [NgIcon, ...HlmDatePickerImports, ...HlmSelectImports, ...HlmTooltipImports],
   templateUrl: './entry-form.html',
   styles: `
     :host {
@@ -146,7 +147,7 @@ export type EntryFormField = 'date' | 'category' | 'label' | 'amount';
     }
   `,
   styleUrl: '../accent.css',
-  providers: [provideCatalogIcons(), provideIcons({ lucideCheck, lucideX })],
+  providers: [provideCatalogIcons(), provideIcons({ lucideCheck, lucidePlus, lucideX })],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class EntryForm {
@@ -177,8 +178,8 @@ export class EntryForm {
    * directly — `focusRequestedField` reaches into it with `querySelector`.
    */
   private readonly dateField = viewChild.required('dateField', { read: ElementRef });
-  private readonly categoryField =
-    viewChild.required<ElementRef<HTMLSelectElement>>('categoryField');
+  private readonly categoryField = viewChild.required('categoryField', { read: ElementRef });
+  private readonly categorySelect = viewChild.required(BrnSelect);
   private readonly labelField = viewChild.required<ElementRef<HTMLInputElement>>('labelField');
   private readonly amountField = viewChild.required<ElementRef<HTMLInputElement>>('amountField');
 
@@ -211,6 +212,24 @@ export class EntryForm {
       UNCATEGORIZED
     );
   });
+
+  protected readonly categoryValue = computed<number | null>(() => this.draft().categoryId);
+
+  /** The "Aucun poste" option's own swatch — same style as a real category's. */
+  protected readonly uncategorized = UNCATEGORIZED;
+
+  /** Trigger label for the selected value — the id itself isn't readable. */
+  protected readonly categoryItemToString = (
+    value: number | typeof NEW_CATEGORY_VALUE | null | undefined,
+  ) => {
+    if (value === null || value === undefined) {
+      return '';
+    }
+    if (value === NEW_CATEGORY_VALUE) {
+      return 'Nouvelle catégorie…';
+    }
+    return this.categories().find((candidate) => candidate.id === value)?.name ?? '';
+  };
 
   protected readonly parseIsoDate = parseIsoDate;
   protected readonly draftDate = computed(() => parseIsoDate(this.draft().date));
@@ -279,7 +298,7 @@ export class EntryForm {
         this.dateField().nativeElement.querySelector('input')?.focus();
         return;
       case 'category':
-        this.categoryField().nativeElement.focus();
+        this.categoryField().nativeElement.querySelector('button')?.focus();
         return;
       case 'amount':
         this.focusAndSelect(this.amountField().nativeElement);
@@ -295,16 +314,19 @@ export class EntryForm {
     field.select();
   }
 
-  protected setCategory(select: HTMLSelectElement): void {
-    if (select.value === NEW_CATEGORY_VALUE) {
-      // The option is a trigger, not a value: the field goes back to showing
-      // what it did, so cancelling the modal doesn't leave it on a
-      // non-category. A save moves it on through the draft.
-      select.value = String(this.draft().categoryId ?? '');
+  protected onCategoryChange(value: number | typeof NEW_CATEGORY_VALUE | null | undefined): void {
+    if (value === NEW_CATEGORY_VALUE) {
+      // The option is a trigger, not a value. `categoryValue` is already
+      // bound back to the draft's own id, but `hlm-select`'s internal
+      // selection is a `model()` that a same-value template write can't
+      // dirty-check its way past — writing it back directly is what
+      // actually reverts the trigger, so cancelling the modal that opens
+      // doesn't leave it showing a non-category.
+      this.categorySelect().writeValue(this.draft().categoryId);
       this.categoryCreateRequested.emit();
       return;
     }
-    this.patch({ categoryId: select.value === '' ? null : Number(select.value) });
+    this.patch({ categoryId: value ?? null });
   }
 
   protected onAmountInput(field: HTMLInputElement): void {

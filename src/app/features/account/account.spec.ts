@@ -13,6 +13,7 @@ import { FRENCH_CALENDAR_I18N } from '@core/display-settings/calendar-i18n';
 import { DisplaySettingsService } from '@core/display-settings/display-settings';
 import { EntriesApi, Entry, ListEntriesQuery } from '@core/entries-api/entries-api';
 import { accountFixture } from '@core/testing/account.fixture';
+import '@core/testing/jsdom-polyfills';
 import { Account } from './account';
 
 function entry(overrides: Partial<Entry> = {}): Entry {
@@ -210,15 +211,33 @@ async function type(
   await settle(fixture);
 }
 
-async function select(
+/**
+ * `hlm-select`'s dropdown is a `hlm-select-item` list portaled to
+ * `document.body` — reachable by `data-testid`, but only while open — rather
+ * than a native `<select>`'s options. Opens the trigger, clicks the item,
+ * and lets the (default) auto-close on select settle.
+ */
+async function selectCategory(
   fixture: ComponentFixture<Account>,
-  testId: string,
-  value: string,
+  itemTestId: string,
 ): Promise<void> {
-  const element = one(fixture, testId) as HTMLSelectElement;
-  element.value = value;
-  element.dispatchEvent(new Event('change'));
+  one(fixture, 'entry-form-category')?.querySelector('button')?.click();
   await settle(fixture);
+  (document.querySelector(`[data-testid="${itemTestId}"]`) as HTMLElement).click();
+  await settle(fixture);
+}
+
+/** The category options currently rendered in the (opened) dropdown, by their visible text. */
+async function categoryOptionLabels(fixture: ComponentFixture<Account>): Promise<string[]> {
+  const trigger = one(fixture, 'entry-form-category')?.querySelector('button');
+  trigger?.click();
+  await settle(fixture);
+  const labels = Array.from(document.querySelectorAll('[data-slot="select-item"]')).map(
+    (item) => item.textContent?.trim() ?? '',
+  );
+  trigger?.click();
+  await settle(fixture);
+  return labels;
 }
 
 /** The `listEntries` query of the nth call, newest last. */
@@ -374,7 +393,7 @@ describe('Account', () => {
     await type(fixture, 'entry-form-label', 'Boulangerie');
     await type(fixture, 'entry-form-amount', '-12.40');
     await setEntryDate(fixture, '05/03/2026');
-    await select(fixture, 'entry-form-category', '1');
+    await selectCategory(fixture, 'entry-form-category-option-1');
     await click(fixture, 'entry-save');
 
     expect(entriesApi.createEntry).toHaveBeenCalledWith(1, {
@@ -504,11 +523,11 @@ describe('Account', () => {
     const fixture = await createAccount(stubEntriesApi([entry()]));
 
     await click(fixture, 'entries-new');
-    await select(fixture, 'entry-form-category', '__new__');
+    await selectCategory(fixture, 'entry-form-category-new');
 
     expect(one(fixture, 'category-name')).not.toBeNull();
     // The trigger option isn't a value: the field stays on what it showed.
-    expect((one(fixture, 'entry-form-category') as HTMLSelectElement).value).toBe('');
+    expect(one(fixture, 'entry-form-category')?.textContent?.trim()).toBe('Aucun poste');
   });
 
   it('selects the quick-created category on the row without reopening the dropdown', async () => {
@@ -517,7 +536,7 @@ describe('Account', () => {
     const fixture = await createAccount(entriesApi, categoriesApi);
 
     await click(fixture, 'entries-new');
-    await select(fixture, 'entry-form-category', '__new__');
+    await selectCategory(fixture, 'entry-form-category-new');
     await type(fixture, 'category-name', 'Cadeaux');
     await click(fixture, 'icon-option');
     await click(fixture, 'category-save');
@@ -527,11 +546,8 @@ describe('Account', () => {
     );
     expect(one(fixture, 'category-name')).toBeNull();
 
-    const field = one(fixture, 'entry-form-category') as HTMLSelectElement;
-    expect(field.value).toBe('2');
-    expect(Array.from(field.options).map((option) => option.textContent?.trim())).toContain(
-      'Cadeaux',
-    );
+    expect(one(fixture, 'entry-form-category')?.textContent?.trim()).toBe('Cadeaux');
+    expect(await categoryOptionLabels(fixture)).toContain('Cadeaux');
 
     await type(fixture, 'entry-form-label', 'Anniversaire');
     await type(fixture, 'entry-form-amount', '-20');
@@ -549,12 +565,12 @@ describe('Account', () => {
     const fixture = await createAccount(stubEntriesApi([entry()]));
 
     await click(fixture, 'entries-new');
-    await select(fixture, 'entry-form-category', '1');
-    await select(fixture, 'entry-form-category', '__new__');
+    await selectCategory(fixture, 'entry-form-category-option-1');
+    await selectCategory(fixture, 'entry-form-category-new');
     await click(fixture, 'category-cancel');
 
     expect(one(fixture, 'category-name')).toBeNull();
-    expect((one(fixture, 'entry-form-category') as HTMLSelectElement).value).toBe('1');
+    expect(one(fixture, 'entry-form-category')?.textContent?.trim()).toBe('Alimentation');
   });
 
   it('flips the type selector with the amount’s sign, in both directions', async () => {
