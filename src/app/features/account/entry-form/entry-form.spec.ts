@@ -1,6 +1,9 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideBrnCalendarI18n } from '@spartan-ng/brain/calendar';
+import { provideNativeDateAdapter } from '@spartan-ng/brain/date-time';
 
 import { Category } from '@core/categories-api/categories-api';
+import { FRENCH_CALENDAR_I18N } from '@core/display-settings/calendar-i18n';
 import { EntryDraft, EntryForm, EntryFormField, NEW_CATEGORY_VALUE } from './entry-form';
 
 function category(overrides: Partial<Category> = {}): Category {
@@ -31,13 +34,19 @@ async function createEntryForm(
   categories: Category[] = [category()],
   focusField?: EntryFormField,
 ): Promise<ComponentFixture<EntryForm>> {
-  await TestBed.configureTestingModule({ imports: [EntryForm] }).compileComponents();
+  await TestBed.configureTestingModule({
+    imports: [EntryForm],
+    providers: [provideNativeDateAdapter(), provideBrnCalendarI18n(FRENCH_CALENDAR_I18N)],
+  }).compileComponents();
 
   const fixture = TestBed.createComponent(EntryForm);
   fixture.componentRef.setInput('draft', value);
   fixture.componentRef.setInput('categories', categories);
   fixture.componentRef.setInput('accountColor', '#3b82f6');
   fixture.componentRef.setInput('reconciled', false);
+  // YMD matches the ISO `YYYY-MM-DD` fixture dates below, so the picker's
+  // display format doesn't need its own conversion in every assertion.
+  fixture.componentRef.setInput('dateFormat', 'YMD');
   if (focusField !== undefined) {
     fixture.componentRef.setInput('focusField', focusField);
   }
@@ -48,6 +57,17 @@ async function createEntryForm(
 
 function one(fixture: ComponentFixture<EntryForm>, testId: string): HTMLElement | null {
   return (fixture.nativeElement as HTMLElement).querySelector(`[data-testid="${testId}"]`);
+}
+
+/**
+ * `hlm-date-picker-input` renders its actual `<input>` inside its own
+ * template, keyed by `inputId` rather than a `data-testid` `one` could
+ * reach — so the date field is found by that id instead.
+ */
+function dateInput(fixture: ComponentFixture<EntryForm>): HTMLInputElement {
+  return (fixture.nativeElement as HTMLElement).querySelector(
+    '#entry-form-date',
+  ) as HTMLInputElement;
 }
 
 function type(fixture: ComponentFixture<EntryForm>, testId: string, value: string): void {
@@ -79,7 +99,7 @@ describe('EntryForm', () => {
     expect((one(fixture, 'entry-form-label') as HTMLInputElement).value).toBe('Courses');
     expect((one(fixture, 'entry-form-description') as HTMLInputElement).value).toBe('Samedi');
     expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('-25.5');
-    expect((one(fixture, 'entry-form-date') as HTMLInputElement).value).toBe('2026-03-05');
+    expect(dateInput(fixture).value).toBe('2026-03-05');
     expect((one(fixture, 'entry-form-category') as HTMLSelectElement).value).toBe('1');
   });
 
@@ -187,9 +207,13 @@ describe('EntryForm', () => {
     expect(one(fixture, 'entry-form-reconciled')?.getAttribute('aria-checked')).toBe('false');
   });
 
+  it('opens focused on the date field', async () => {
+    const fixture = await createEntryForm(draft(), [category()], 'date');
+    expect(document.activeElement).toBe(dateInput(fixture));
+  });
+
   it('opens focused on the field the container asked for', async () => {
     for (const [field, testId] of [
-      ['date', 'entry-form-date'],
       ['category', 'entry-form-category'],
       ['amount', 'entry-form-amount'],
     ] as const) {

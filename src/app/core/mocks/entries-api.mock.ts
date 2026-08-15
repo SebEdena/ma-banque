@@ -1,3 +1,4 @@
+import { toIsoDate } from '@core/accounts-api/accounts-api';
 import {
   EntriesApi,
   Entry,
@@ -45,7 +46,7 @@ function seed(accountId: number): Entry[] {
       id: accountId * 10_000 + index + 1,
       account_id: accountId,
       ...template,
-      date: isoDate(new Date(2026, 6, 31 - index * 2)),
+      date: toIsoDate(new Date(2026, 6, 31 - index * 2)),
       is_system: false,
       reconciled: index % 3 === 0,
     });
@@ -77,13 +78,6 @@ function validate(input: EntryInput): { kind: string } | null {
     return { kind: 'InvalidAmount' };
   }
   return null;
-}
-
-/** Local date parts, not `toISOString()` — which would shift a day west of UTC. */
-function isoDate(date: Date): string {
-  const month = String(date.getMonth() + 1).padStart(2, '0');
-  const day = String(date.getDate()).padStart(2, '0');
-  return `${date.getFullYear()}-${month}-${day}`;
 }
 
 /**

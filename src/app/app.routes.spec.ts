@@ -1,8 +1,11 @@
 import { TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
+import { provideBrnCalendarI18n } from '@spartan-ng/brain/calendar';
+import { provideNativeDateAdapter } from '@spartan-ng/brain/date-time';
 
 import { AccountsStore } from '@core/accounts-api/accounts-store';
+import { FRENCH_CALENDAR_I18N } from '@core/display-settings/calendar-i18n';
 import { routes } from './app.routes';
 
 describe('app routes', () => {
@@ -44,7 +47,11 @@ describe('app routes', () => {
       }),
     });
     TestBed.configureTestingModule({
-      providers: [provideRouter(routes)],
+      providers: [
+        provideRouter(routes),
+        provideNativeDateAdapter(),
+        provideBrnCalendarI18n(FRENCH_CALENDAR_I18N),
+      ],
     });
   });
 

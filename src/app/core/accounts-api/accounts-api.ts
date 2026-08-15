@@ -136,10 +136,14 @@ export function parseIsoDate(value: string): Date {
   return new Date(year, month - 1, day);
 }
 
-/** Today as the `YYYY-MM-DD` both the backend and `<input type="date">` speak. */
+/** The inverse of `parseIsoDate`: a `Date`'s local parts as `YYYY-MM-DD`. */
+export function toIsoDate(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${date.getFullYear()}-${month}-${day}`;
+}
+
+/** Today as the `YYYY-MM-DD` the backend speaks. */
 export function todayIso(): string {
-  const now = new Date();
-  const month = String(now.getMonth() + 1).padStart(2, '0');
-  const day = String(now.getDate()).padStart(2, '0');
-  return `${now.getFullYear()}-${month}-${day}`;
+  return toIsoDate(new Date());
 }

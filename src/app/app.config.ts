@@ -1,10 +1,13 @@
 import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
 import { provideRouter } from '@angular/router';
+import { provideBrnCalendarI18n } from '@spartan-ng/brain/calendar';
+import { provideNativeDateAdapter } from '@spartan-ng/brain/date-time';
 
 import { mockBackend } from '../environments/environment';
 import { routes } from './app.routes';
 import { AccountsApi } from './core/accounts-api/accounts-api';
 import { CategoriesApi } from './core/categories-api/categories-api';
+import { FRENCH_CALENDAR_I18N } from './core/display-settings/calendar-i18n';
 import { EntriesApi } from './core/entries-api/entries-api';
 import { InMemoryAccountsApi } from './core/mocks/accounts-api.mock';
 import { InMemoryCategoriesApi } from './core/mocks/categories-api.mock';
@@ -28,5 +31,11 @@ const mockProviders = mockBackend
   : [];
 
 export const appConfig: ApplicationConfig = {
-  providers: [provideBrowserGlobalErrorListeners(), provideRouter(routes), ...mockProviders],
+  providers: [
+    provideBrowserGlobalErrorListeners(),
+    provideRouter(routes),
+    provideNativeDateAdapter(),
+    provideBrnCalendarI18n(FRENCH_CALENDAR_I18N),
+    ...mockProviders,
+  ],
 };
