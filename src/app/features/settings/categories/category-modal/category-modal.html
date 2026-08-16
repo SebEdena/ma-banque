@@ -7,7 +7,7 @@
     {{ editing() ? 'Modifier le poste' : 'Nouveau poste' }}
   </h2>
 
-  <form [formGroup]="form" class="flex flex-col gap-4" (ngSubmit)="save()">
+  <form [formGroup]="form" class="flex flex-col gap-4" (ngSubmit)="trySave()">
     <div class="flex flex-col gap-1.5">
       <label for="category-name" class="text-sm font-semibold">Nom</label>
       <div class="flex items-center gap-3">

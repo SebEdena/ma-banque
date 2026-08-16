@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
+import { toast } from '@spartan-ng/brain/sonner';
 
 import { Account, AccountsApi } from '@core/accounts-api/accounts-api';
 import { AccountsStore } from '@core/accounts-api/accounts-store';
@@ -210,6 +211,49 @@ describe('Home', () => {
 
     expect(compiled.querySelector('app-account-settings-modal')).not.toBeNull();
     expect(compiled.textContent).toContain('Nouveau compte');
+  });
+
+  it('creates the account the modal submitted and closes the modal', async () => {
+    const accountsApi = stubApi([], [], { createAccount: vi.fn().mockResolvedValue(account()) });
+    const fixture = await createHome(accountsApi);
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    click(fixture, 'new-account');
+    fixture.detectChanges();
+    const name = compiled.querySelector('[data-testid="account-name"]') as HTMLInputElement;
+    name.value = 'Compte courant';
+    name.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    click(fixture, 'account-save');
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(accountsApi.createAccount).toHaveBeenCalledWith(
+      expect.objectContaining({ name: 'Compte courant' }),
+    );
+    expect(compiled.querySelector('app-account-settings-modal')).toBeNull();
+  });
+
+  it('keeps the modal open and toasts when the create is rejected', async () => {
+    const error = vi.spyOn(toast, 'error').mockImplementation(() => '');
+    const accountsApi = stubApi([], [], {
+      createAccount: vi.fn().mockRejectedValue({ kind: 'OpeningDateNotBeforeFirstEntry' }),
+    });
+    const fixture = await createHome(accountsApi);
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    click(fixture, 'new-account');
+    fixture.detectChanges();
+    const name = compiled.querySelector('[data-testid="account-name"]') as HTMLInputElement;
+    name.value = 'Compte courant';
+    name.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    click(fixture, 'account-save');
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(compiled.querySelector('app-account-settings-modal')).not.toBeNull();
+    expect(error).toHaveBeenCalled();
   });
 
   it('no longer shows the temporary data-folder proof', async () => {

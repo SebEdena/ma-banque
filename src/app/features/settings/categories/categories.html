@@ -53,9 +53,18 @@
 </div>
 
 @if (editing(); as category) {
-  <app-category-modal [category]="category" (cancelled)="closeModal()" (saved)="onSaved()" />
+  <app-category-modal
+    [category]="category"
+    [saving]="saving()"
+    (cancelled)="closeModal()"
+    (submitted)="onCategorySubmitted($event)"
+  />
 } @else if (editing() === null) {
-  <app-category-modal (cancelled)="closeModal()" (saved)="onSaved()" />
+  <app-category-modal
+    [saving]="saving()"
+    (cancelled)="closeModal()"
+    (submitted)="onCategorySubmitted($event)"
+  />
 }
 
 @if (confirmingDelete(); as category) {

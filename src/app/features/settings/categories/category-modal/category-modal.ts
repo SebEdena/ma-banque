@@ -2,7 +2,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  inject,
   input,
   OnInit,
   output,
@@ -17,11 +16,9 @@ import {
   Validators,
 } from '@angular/forms';
 import { NgIcon } from '@ng-icons/core';
-import { toast } from '@spartan-ng/brain/sonner';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 
-import { Category, CategoryInput, parseCategoryError } from '@core/categories-api/categories-api';
-import { CategoriesStore } from '@core/categories-api/categories-store';
+import { Category, CategoryInput } from '@core/categories-api/categories-api';
 import { ModalShell } from '@shared/modal-shell/modal-shell';
 import { ColorPicker } from '@shared/pickers/color-picker/color-picker';
 import { DEFAULT_COLOR } from '@shared/pickers/color-swatches';
@@ -34,6 +31,13 @@ import { IconPicker } from '@shared/pickers/icon-picker/icon-picker';
  * than on a default, so the user has to make a deliberate choice — which is
  * what makes "aucune icône sélectionnée" a validation state worth having
  * (`docs/spec/04-categories.md`).
+ *
+ * Presentational: it validates the form and emits `submitted` with the
+ * built `CategoryInput` rather than calling `CategoriesStore` itself — the
+ * container decides create vs. update (it already holds the category being
+ * edited), owns the backend call and its error toast, and passes `saving`
+ * back down while the call is in flight. Mirrors the entries screen's
+ * `EntryForm`/`Account` split.
  */
 @Component({
   selector: 'app-category-modal',
@@ -43,22 +47,22 @@ import { IconPicker } from '@shared/pickers/icon-picker/icon-picker';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class CategoryModal implements OnInit {
-  private readonly categoriesStore = inject(CategoriesStore);
-
   /** The category being edited, or `null` to create a new one. */
   readonly category = input<Category | null>(null);
+  readonly saving = input(false);
 
   readonly cancelled = output<void>();
-  readonly saved = output<Category>();
+
+  /** A save attempt on a valid form, carrying the input the container should save. */
+  readonly submitted = output<CategoryInput>();
 
   protected readonly editing = computed(() => this.category() !== null);
-  protected readonly saving = signal(false);
-  protected readonly submitted = signal(false);
+  protected readonly attempted = signal(false);
 
   protected readonly icon = signal<string | null>(null);
   protected readonly color = signal(DEFAULT_COLOR);
 
-  protected readonly showIconError = computed(() => this.icon() === null && this.submitted());
+  protected readonly showIconError = computed(() => this.icon() === null && this.attempted());
 
   protected readonly form = new FormGroup({
     name: new FormControl('', {
@@ -81,32 +85,18 @@ export class CategoryModal implements OnInit {
 
   protected showNameError(): boolean {
     const name = this.form.controls.name;
-    return name.invalid && (name.touched || this.submitted());
+    return name.invalid && (name.touched || this.attempted());
   }
 
-  protected async save(): Promise<void> {
-    this.submitted.set(true);
+  protected trySave(): void {
+    this.attempted.set(true);
     const icon = this.icon();
-    if (this.form.invalid || icon === null || this.saving()) {
+    if (this.form.invalid || icon === null) {
       return;
     }
 
     const { name, description } = this.form.getRawValue();
-    const input: CategoryInput = { name, color: this.color(), icon, description };
-
-    this.saving.set(true);
-    try {
-      const category = this.category();
-      this.saved.emit(
-        category === null
-          ? await this.categoriesStore.create(input)
-          : await this.categoriesStore.update(category.id, input),
-      );
-    } catch (error) {
-      toast.error(parseCategoryError(error));
-    } finally {
-      this.saving.set(false);
-    }
+    this.submitted.emit({ name, color: this.color(), icon, description });
   }
 }
 
