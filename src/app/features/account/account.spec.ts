@@ -1,10 +1,9 @@
 import { CdkVirtualScrollViewport } from '@angular/cdk/scrolling';
 import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { ActivatedRoute, convertToParamMap, provideRouter } from '@angular/router';
+import { provideRouter } from '@angular/router';
 import { provideBrnCalendarI18n } from '@spartan-ng/brain/calendar';
 import { provideNativeDateAdapter } from '@spartan-ng/brain/date-time';
-import { of } from 'rxjs';
 
 import { AccountsApi } from '@core/accounts-api/accounts-api';
 import { AccountsStore } from '@core/accounts-api/accounts-store';
@@ -112,13 +111,6 @@ async function createAccount(
       provideNativeDateAdapter(),
       provideBrnCalendarI18n(FRENCH_CALENDAR_I18N),
       {
-        provide: ActivatedRoute,
-        useValue: {
-          paramMap: of(convertToParamMap({ id: '1' })),
-          snapshot: { paramMap: convertToParamMap({ id: '1' }) },
-        },
-      },
-      {
         provide: AccountsApi,
         useValue: {
           listActiveAccounts: vi
@@ -139,6 +131,7 @@ async function createAccount(
   await TestBed.inject(AccountsStore).loaded;
 
   const fixture = TestBed.createComponent(Account);
+  fixture.componentRef.setInput('accountId', 1);
   fixture.detectChanges();
   await settle(fixture);
   return fixture;
