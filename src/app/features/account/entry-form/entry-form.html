@@ -21,86 +21,81 @@
   [date]="draftDate()"
   [formatDate]="formatDraftDate()"
   (dateChange)="onDateChange($event)"
-  class="w-[150px] shrink-0"
+  class="w-[132px] shrink-0"
 >
   <hlm-date-picker-input
     inputId="entry-form-date"
-    data-accent
     aria-label="Date de l’écriture"
     calendarAriaLabel="Ouvrir le calendrier"
     clearAriaLabel="Effacer la date"
     [showClear]="false"
     [formatInputDate]="formatDraftDate()"
     [parseDate]="parseInputDate"
-    class="text-[12.5px]"
+    class="bg-card text-[12.5px]"
   />
 </hlm-date-picker>
 
-<span
+<hlm-select
   class="flex w-[170px] shrink-0 items-center gap-2 rounded-[7px] border border-border bg-card px-1.5 py-1"
+  [value]="categoryValue()"
+  [itemToString]="categoryItemToString"
+  (valueChange)="onCategoryChange($event)"
 >
-  <span
-    class="flex size-6 shrink-0 items-center justify-center rounded-[7px] text-white"
-    [style.background-color]="categorySwatch().color"
+  <hlm-select-trigger
+    #categoryField
+    [buttonId]="'entry-form-category'"
+    data-testid="entry-form-category"
+    data-focus-ring
+    aria-label="Poste de l’écriture"
+    class="h-auto w-full border-none bg-transparent p-0 text-[12px] font-semibold shadow-none focus-visible:ring-0"
   >
-    <ng-icon [name]="categorySwatch().icon" size="13" />
-  </span>
-  <hlm-select
-    class="min-w-0 flex-1"
-    [value]="categoryValue()"
-    [itemToString]="categoryItemToString"
-    (valueChange)="onCategoryChange($event)"
-  >
-    <hlm-select-trigger
-      #categoryField
-      [buttonId]="'entry-form-category'"
-      data-testid="entry-form-category"
-      data-accent
-      aria-label="Poste de l’écriture"
-      class="h-auto w-full border-none bg-transparent p-0 text-[12px] font-semibold shadow-none focus-visible:ring-0"
+    <span
+      class="flex size-6 shrink-0 items-center justify-center rounded-[7px] text-white"
+      [style.background-color]="categorySwatch().color"
     >
-      <hlm-select-value placeholder="Aucun poste" />
-    </hlm-select-trigger>
-    <hlm-select-content *hlmSelectPortal class="min-w-[210px] p-1">
-      <hlm-select-item class="cursor-pointer font-semibold" [value]="null">
-        <span
-          class="flex size-[22px] shrink-0 items-center justify-center rounded-[6px] text-white"
-          [style.background-color]="uncategorized.color"
-        >
-          <ng-icon [name]="uncategorized.icon" size="12" />
-        </span>
-        Aucun poste
-      </hlm-select-item>
-      @for (category of categories(); track category.id) {
-        <hlm-select-item
-          class="cursor-pointer font-semibold"
-          [attr.data-testid]="'entry-form-category-option-' + category.id"
-          [value]="category.id"
-        >
-          <span
-            class="flex size-[22px] shrink-0 items-center justify-center rounded-[6px] text-white"
-            [style.background-color]="category.color"
-          >
-            <ng-icon [name]="category.icon" size="12" />
-          </span>
-          {{ category.name }}
-        </hlm-select-item>
-      }
+      <ng-icon [name]="categorySwatch().icon" size="13" />
+    </span>
+    <hlm-select-value placeholder="Aucun poste" />
+  </hlm-select-trigger>
+  <hlm-select-content *hlmSelectPortal class="w-max min-w-[210px] p-1">
+    <hlm-select-item class="cursor-pointer font-semibold" [value]="null">
+      <span
+        class="flex size-[22px] shrink-0 items-center justify-center rounded-[6px] text-white"
+        [style.background-color]="uncategorized.color"
+      >
+        <ng-icon [name]="uncategorized.icon" size="12" />
+      </span>
+      <span class="whitespace-nowrap">Aucun poste</span>
+    </hlm-select-item>
+    @for (category of categories(); track category.id) {
       <hlm-select-item
         class="cursor-pointer font-semibold"
-        data-testid="entry-form-category-new"
-        [value]="newCategoryValue"
+        [attr.data-testid]="'entry-form-category-option-' + category.id"
+        [value]="category.id"
       >
         <span
-          class="flex size-[22px] shrink-0 items-center justify-center rounded-[6px] bg-emerald-600 text-white dark:bg-emerald-500"
+          class="flex size-[22px] shrink-0 items-center justify-center rounded-[6px] text-white"
+          [style.background-color]="category.color"
         >
-          <ng-icon name="lucidePlus" size="12" />
+          <ng-icon [name]="category.icon" size="12" />
         </span>
-        Nouvelle catégorie…
+        <span class="whitespace-nowrap">{{ category.name }}</span>
       </hlm-select-item>
-    </hlm-select-content>
-  </hlm-select>
-</span>
+    }
+    <hlm-select-item
+      class="cursor-pointer font-semibold"
+      data-testid="entry-form-category-new"
+      [value]="newCategoryValue"
+    >
+      <span
+        class="flex size-[22px] shrink-0 items-center justify-center rounded-[6px] bg-emerald-600 text-white dark:bg-emerald-500"
+      >
+        <ng-icon name="lucidePlus" size="12" />
+      </span>
+      <span class="whitespace-nowrap">Nouvelle catégorie…</span>
+    </hlm-select-item>
+  </hlm-select-content>
+</hlm-select>
 
 <span class="flex min-w-0 flex-1 flex-col gap-1">
   <span class="flex items-center gap-2">
@@ -109,7 +104,7 @@
       id="entry-form-label"
       type="text"
       data-testid="entry-form-label"
-      data-focus-inset
+      data-focus-ring
       placeholder="Libellé"
       aria-label="Libellé de l’écriture"
       class="min-w-0 flex-1 rounded-[7px] border border-border bg-card px-2 py-1 text-[13.5px] font-bold outline-none"
@@ -130,7 +125,7 @@
     id="entry-form-description"
     type="text"
     data-testid="entry-form-description"
-    data-focus-inset
+    data-focus-ring
     placeholder="Description (optionnel)"
     aria-label="Description de l’écriture"
     class="w-full rounded-[7px] border border-border bg-card px-2 py-0.5 text-[12px] text-muted-foreground outline-none"
@@ -140,24 +135,7 @@
 </span>
 
 <span class="flex shrink-0 flex-col items-end gap-1">
-  <span class="flex items-center gap-1.5">
-    <input
-      #amountField
-      id="entry-form-amount"
-      type="number"
-      step="0.01"
-      inputmode="decimal"
-      data-testid="entry-form-amount"
-      data-accent
-      placeholder="0,00"
-      aria-label="Montant de l’écriture"
-      class="w-[90px] rounded-[7px] border border-border bg-card px-2 py-1.5 text-right font-mono text-[14px] font-semibold outline-none"
-      [class.border-destructive]="amountError() !== null"
-      [value]="amountDisplay()"
-      (focus)="amountEditing.set(true)"
-      (blur)="amountEditing.set(false)"
-      (input)="onAmountInput($any($event.target))"
-    />
+  <span class="flex items-center gap-1">
     <span class="flex gap-[3px]">
       <button
         type="button"
@@ -192,6 +170,23 @@
         Crédit
       </button>
     </span>
+    <input
+      #amountField
+      id="entry-form-amount"
+      type="number"
+      step="0.01"
+      inputmode="decimal"
+      data-testid="entry-form-amount"
+      data-focus-ring
+      placeholder="0,00"
+      aria-label="Montant de l’écriture"
+      class="w-[90px] rounded-[7px] border border-border bg-card px-2 py-1.5 text-right font-mono text-[14px] font-semibold outline-none"
+      [class.border-destructive]="amountError() !== null"
+      [value]="amountDisplay()"
+      (focus)="amountEditing.set(true)"
+      (blur)="amountEditing.set(false)"
+      (input)="onAmountInput($any($event.target))"
+    />
   </span>
   @if (amountError(); as message) {
     <span

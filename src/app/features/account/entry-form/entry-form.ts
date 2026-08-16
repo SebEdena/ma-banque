@@ -118,17 +118,17 @@ export type EntryFormField = 'date' | 'category' | 'label' | 'amount';
     }
 
     /*
-      The label and description opt out of accent.css's focus ring. That one
-      is an outset outline offset a further 2px, so on the topmost row — the
-      creation row, or the first row under the list container's clipped top
-      border — it is drawn outside the row and cut off. Same accent, same
-      2px, painted inward so it can't reach past the field. Scoped here
-      rather than added to the shared stylesheet: it's these two fields'
-      position that needs it, not a flavour other controls should reach for.
+      Every field in this row borrows the date picker's own focus ring shape
+      (a 3px halo, not accent.css's outset outline) so the row reads as one
+      set of fields — tinted with the account colour instead of the picker's
+      neutral --ring token, so accent.css's §5 requirement still holds.
+      Scoped here rather than added to the shared stylesheet: it's this
+      row's own fields that need the picker's look, not a flavour other
+      controls should reach for.
     */
-    [data-focus-inset]:focus-visible {
+    [data-focus-ring]:focus-visible {
       border-color: var(--account-color);
-      box-shadow: inset 0 0 0 2px var(--account-color);
+      box-shadow: 0 0 0 3px color-mix(in oklab, var(--account-color) 50%, transparent);
     }
 
     /*
