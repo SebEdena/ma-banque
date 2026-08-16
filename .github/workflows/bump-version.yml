@@ -148,11 +148,7 @@ jobs:
   trigger-release:
     name: Trigger release build
     needs: [bump-version, warm-release-cache]
-    runs-on: ubuntu-latest
-    permissions:
-      actions: write
-    steps:
-      - name: Dispatch release workflow
-        env:
-          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
-        run: gh workflow run release.yml --repo "$GITHUB_REPOSITORY" --ref "v${{ needs.bump-version.outputs.new_version }}"
+    uses: ./.github/workflows/release.yml
+    secrets: inherit
+    with:
+      tag: v${{ needs.bump-version.outputs.new_version }}
