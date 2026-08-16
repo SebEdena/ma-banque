@@ -41,6 +41,16 @@ export class Categories {
   protected readonly confirmingDelete = signal<Category | null>(null);
   protected readonly deleteBlocked = signal<Category | null>(null);
 
+  constructor() {
+    // `usage_count` only changes on the store's own writes (create/update/
+    // delete), not when an entry elsewhere starts or stops referencing a
+    // category — refresh on entering this screen so the delete gate isn't
+    // deciding off a stale count.
+    this.categoriesStore.reload().catch((error: unknown) => {
+      console.error('failed to reload categories', error);
+    });
+  }
+
   protected startCreate(): void {
     this.editing.set(null);
   }
