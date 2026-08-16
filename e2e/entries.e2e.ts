@@ -1,7 +1,7 @@
 import { $ } from '@wdio/globals';
 
 import { accountCard } from './support/accounts';
-import { categoryOption, entryRow } from './support/entries';
+import { entryRow } from './support/entries';
 import { ensureRoutedShell } from './support/routed-shell';
 
 describe('entries', () => {
@@ -23,8 +23,6 @@ describe('entries', () => {
     await expect($('[data-testid="entry-new-row"]')).toExist();
 
     await (await $('[data-testid="entry-form-label"]')).setValue('Courses e2e');
-    // A period, not a comma: the field is `type="number"`, whose value syntax
-    // is locale-independent whatever separator the keyboard produces.
     await (await $('[data-testid="entry-form-amount"]')).setValue('-12.50');
     await (await $('[data-testid="entry-save"]')).click();
 
@@ -56,16 +54,16 @@ describe('entries', () => {
 
   it('creates a category from the entry row and leaves it selected', async () => {
     await entryRow('Courses e2e modifiées').click();
-    await (await $('[data-testid="entry-form-category"]')).selectByAttribute('value', '__new__');
+    await (await $('[data-testid="entry-form-category"]')).click();
+    await (await $('[data-testid="entry-form-category-new"]')).click();
 
     await (await $('[data-testid="category-name"]')).setValue('Poste écriture e2e');
     await (await $('[data-testid="icon-option"]')).click();
     await (await $('[data-testid="category-save"]')).click();
 
-    // Not an `option:checked` selector: WebKit (the Linux webview) doesn't
-    // match it for a selection Angular made by property rather than by the
-    // `selected` attribute.
-    await expect(categoryOption('Poste écriture e2e')).toBeSelected();
+    await expect($('[data-testid="entry-form-category"]')).toHaveText('Poste écriture e2e', {
+      containing: true,
+    });
 
     // Asserted by selector rather than `getText` so the whole chain is
     // re-queried on each poll: saving refetches the list, and an element

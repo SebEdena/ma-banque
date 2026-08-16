@@ -7,9 +7,7 @@ export function entryRow(label: string) {
   );
 }
 
-/** The entry form's category `<option>` named `name`. */
+/** The entry form's category picker option named `name`, once opened. */
 export function categoryOption(name: string) {
-  return $(
-    `//select[@data-testid="entry-form-category"]/option[normalize-space(text())="${name}"]`,
-  );
+  return $(`//*[@role="option"][.//span[normalize-space(text())="${name}"]]`);
 }

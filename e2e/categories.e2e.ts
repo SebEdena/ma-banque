@@ -2,7 +2,7 @@ import { $ } from '@wdio/globals';
 
 import { accountCard } from './support/accounts';
 import { categoryCard } from './support/categories';
-import { entryRow } from './support/entries';
+import { categoryOption, entryRow } from './support/entries';
 import { ensureRoutedShell } from './support/routed-shell';
 
 describe('categories', () => {
@@ -61,9 +61,8 @@ describe('categories', () => {
       await (await $('[data-testid="entries-new"]')).click();
       await (await $('[data-testid="entry-form-label"]')).setValue('Écriture classée e2e');
       await (await $('[data-testid="entry-form-amount"]')).setValue('-20');
-      await (
-        await $('[data-testid="entry-form-category"]')
-      ).selectByVisibleText('Poste utilisé e2e');
+      await (await $('[data-testid="entry-form-category"]')).click();
+      await (await categoryOption('Poste utilisé e2e')).click();
       await (await $('[data-testid="entry-save"]')).click();
       await expect(entryRow('Écriture classée e2e')).toExist();
 
