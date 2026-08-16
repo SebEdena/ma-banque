@@ -84,7 +84,7 @@ function emptyDraft(): EntryDraft {
     description: '',
     date: todayIso(),
     categoryId: null,
-    amount: '-',
+    amount: '',
   };
 }
 

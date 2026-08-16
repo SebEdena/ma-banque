@@ -582,10 +582,10 @@ describe('Account', () => {
     const fixture = await createAccount(stubEntriesApi([entry()]));
 
     await click(fixture, 'entries-new');
-    // The creation row opens on débit, shown as the lone sign the amount
-    // field's plain-text value can hold — a `type="number"` field couldn't.
-    expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('-');
-    expect(one(fixture, 'entry-form-debit')?.dataset['selected']).toBe('true');
+    // The creation row opens on an empty field, which reads as non-negative
+    // and so shows crédit selected until a sign says otherwise.
+    expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('');
+    expect(one(fixture, 'entry-form-credit')?.dataset['selected']).toBe('true');
 
     await type(fixture, 'entry-form-amount', '-30');
     expect(one(fixture, 'entry-form-debit')?.dataset['selected']).toBe('true');
