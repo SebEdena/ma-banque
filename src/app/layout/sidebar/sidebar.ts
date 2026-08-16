@@ -3,7 +3,7 @@ import { RouterLink, RouterLinkActive } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideHouse, lucideSettings } from '@ng-icons/lucide';
 
-import { AccountsStore } from '@core/accounts-api/accounts-store';
+import { AccountsStore } from '@data/accounts/accounts-store';
 import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
 
 /**

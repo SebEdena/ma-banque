@@ -1,5 +1,5 @@
-import { Account, AccountInput, AccountsApi } from '@core/accounts-api/accounts-api';
 import { accountFixture } from '@core/testing/account.fixture';
+import { Account, AccountInput, AccountsApi } from './accounts-api';
 
 /**
  * In-memory stand-in for `AccountsApi`, activated by `--configuration mock`

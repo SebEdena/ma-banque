@@ -1,5 +1,5 @@
 import type { DisplaySettings } from '@core/display-settings/display-settings.types';
-import { SettingsApi } from '@core/settings-api/settings-api';
+import { SettingsApi } from './settings-api';
 
 /**
  * In-memory stand-in for `SettingsApi`, activated by `--configuration mock`

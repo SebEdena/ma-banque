@@ -2,7 +2,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideBrnCalendarI18n } from '@spartan-ng/brain/calendar';
 import { provideNativeDateAdapter } from '@spartan-ng/brain/date-time';
 
-import { Category } from '@core/categories-api/categories-api';
+import { Category } from '@data/categories/categories-api';
 import { FRENCH_CALENDAR_I18N } from '@core/display-settings/calendar-i18n';
 import '@core/testing/jsdom-polyfills';
 import { EntryDraft, EntryForm, EntryFormField } from './entry-form';

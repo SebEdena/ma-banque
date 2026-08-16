@@ -4,7 +4,7 @@ import { RouterTestingHarness } from '@angular/router/testing';
 import { provideBrnCalendarI18n } from '@spartan-ng/brain/calendar';
 import { provideNativeDateAdapter } from '@spartan-ng/brain/date-time';
 
-import { AccountsStore } from '@core/accounts-api/accounts-store';
+import { AccountsStore } from '@data/accounts/accounts-store';
 import { FRENCH_CALENDAR_I18N } from '@core/display-settings/calendar-i18n';
 import { routes } from './app.routes';
 

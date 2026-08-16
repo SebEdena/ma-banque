@@ -5,15 +5,15 @@ import { provideNativeDateAdapter } from '@spartan-ng/brain/date-time';
 
 import { mockBackend } from '../environments/environment';
 import { routes } from './app.routes';
-import { AccountsApi } from './core/accounts-api/accounts-api';
-import { CategoriesApi } from './core/categories-api/categories-api';
 import { FRENCH_CALENDAR_I18N } from './core/display-settings/calendar-i18n';
-import { EntriesApi } from './core/entries-api/entries-api';
-import { InMemoryAccountsApi } from './core/mocks/accounts-api.mock';
-import { InMemoryCategoriesApi } from './core/mocks/categories-api.mock';
-import { InMemoryEntriesApi } from './core/mocks/entries-api.mock';
-import { InMemorySettingsApi } from './core/mocks/settings-api.mock';
+import { InMemorySettingsApi } from './core/settings-api/settings-api.mock';
 import { SettingsApi } from './core/settings-api/settings-api';
+import { AccountsApi } from './data/accounts/accounts-api';
+import { InMemoryAccountsApi } from './data/accounts/accounts-api.mock';
+import { CategoriesApi } from './data/categories/categories-api';
+import { InMemoryCategoriesApi } from './data/categories/categories-api.mock';
+import { EntriesApi } from './data/entries/entries-api';
+import { InMemoryEntriesApi } from './data/entries/entries-api.mock';
 
 /**
  * Only non-empty when built with `--configuration mock` (`npm run

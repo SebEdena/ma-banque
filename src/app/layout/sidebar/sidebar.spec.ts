@@ -1,8 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
-import { Account, AccountsApi } from '@core/accounts-api/accounts-api';
-import { AccountsStore } from '@core/accounts-api/accounts-store';
+import { Account, AccountsApi } from '@data/accounts/accounts-api';
+import { AccountsStore } from '@data/accounts/accounts-store';
 import { Sidebar } from './sidebar';
 
 function account(overrides: Partial<Account> = {}): Account {

@@ -4,8 +4,8 @@ import { lucideCircleAlert, lucidePencil, lucidePlus, lucideTrash2 } from '@ng-i
 import { toast } from '@spartan-ng/brain/sonner';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 
-import { Category, CategoryInput, parseCategoryError } from '@core/categories-api/categories-api';
-import { CategoriesStore } from '@core/categories-api/categories-store';
+import { Category, CategoryInput, parseCategoryError } from '@data/categories/categories-api';
+import { CategoriesStore } from '@data/categories/categories-store';
 import { ConfirmDialog } from '@shared/confirm-dialog/confirm-dialog';
 import { ModalShell } from '@shared/modal-shell/modal-shell';
 import { provideCatalogIcons } from '@shared/pickers/icon-catalog';

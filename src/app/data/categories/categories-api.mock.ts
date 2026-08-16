@@ -1,4 +1,4 @@
-import { Category, CategoriesApi, CategoryInput } from '@core/categories-api/categories-api';
+import { Category, CategoriesApi, CategoryInput } from './categories-api';
 
 /** The seeded twelve, already in `list_categories`' case- and accent-insensitive name order. */
 const SEEDED: Category[] = [

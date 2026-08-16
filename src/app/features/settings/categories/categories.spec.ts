@@ -1,7 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { toast } from '@spartan-ng/brain/sonner';
 
-import { CategoriesApi, Category } from '@core/categories-api/categories-api';
+import { CategoriesApi, Category } from '@data/categories/categories-api';
 import { Categories } from './categories';
 
 function category(overrides: Partial<Category> = {}): Category {

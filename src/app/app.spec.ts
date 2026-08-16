@@ -2,8 +2,8 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 
 import { App } from './app';
-import { AccountsApi } from './core/accounts-api/accounts-api';
-import { FolderPrompt } from './core/folder-prompt/folder-prompt';
+import { AccountsApi } from './data/accounts/accounts-api';
+import { FolderPrompt } from './features/onboarding/folder-prompt/folder-prompt';
 import { SettingsApi } from './core/settings-api/settings-api';
 
 /**

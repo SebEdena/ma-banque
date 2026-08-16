@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { SettingsApi } from '../settings-api/settings-api';
+import { SettingsApi } from '@core/settings-api/settings-api';
 import { FolderPrompt } from './folder-prompt';
 
 vi.mock('@spartan-ng/brain/sonner', () => ({
