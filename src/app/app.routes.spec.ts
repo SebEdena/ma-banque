@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { provideRouter } from '@angular/router';
+import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { RouterTestingHarness } from '@angular/router/testing';
 import { provideBrnCalendarI18n } from '@spartan-ng/brain/calendar';
 import { provideNativeDateAdapter } from '@spartan-ng/brain/date-time';
@@ -48,7 +48,7 @@ describe('app routes', () => {
     });
     TestBed.configureTestingModule({
       providers: [
-        provideRouter(routes),
+        provideRouter(routes, withComponentInputBinding()),
         provideNativeDateAdapter(),
         provideBrnCalendarI18n(FRENCH_CALENDAR_I18N),
       ],

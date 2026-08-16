@@ -5,11 +5,12 @@ import {
   computed,
   effect,
   inject,
+  input,
+  numberAttribute,
   signal,
   viewChild,
 } from '@angular/core';
-import { toSignal } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, RouterLink } from '@angular/router';
+import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideChevronRight,
@@ -130,7 +131,6 @@ function emptyDraft(): EntryDraft {
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Account {
-  private readonly route = inject(ActivatedRoute);
   private readonly accountsStore = inject(AccountsStore);
   private readonly categoriesStore = inject(CategoriesStore);
   private readonly pager = inject(EntriesPager);
@@ -139,15 +139,7 @@ export class Account {
 
   private readonly viewport = viewChild(CdkVirtualScrollViewport);
 
-  /**
-   * The router reuses this component across `/account/:id` navigations, so
-   * the id has to come from the observable rather than a snapshot.
-   */
-  private readonly params = toSignal(this.route.paramMap, {
-    initialValue: this.route.snapshot.paramMap,
-  });
-
-  protected readonly accountId = computed(() => Number(this.params().get('id')));
+  readonly accountId = input.required({ transform: numberAttribute });
 
   protected readonly account = computed(
     () =>

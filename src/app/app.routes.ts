@@ -4,7 +4,7 @@ export const routes: Routes = [
   { path: '', pathMatch: 'full', redirectTo: 'home' },
   { path: 'home', loadComponent: () => import('./features/home/home').then((m) => m.Home) },
   {
-    path: 'account/:id',
+    path: 'account/:accountId',
     loadComponent: () => import('./features/account/account').then((m) => m.Account),
   },
   {
