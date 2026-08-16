@@ -2,11 +2,66 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.5.0] - 2026-08-16
+
+### Bug Fixes
+
+- Keep the label and description focus ring inside the row
+- Replace number amount field with a filtered text input
+- Interact with the category hlm-select via its combobox DOM
+- Default a new row's amount to empty, not a lone sign
+- Refresh usage counts when the Postes screen opens
+- Reuse appAmountInput for the opening balance field
+
+### Documentation
+
+- Add entries spec and ticket breakdown
+- Correct the note on where amount parsing lives
+
+### Features
+
+- Implement entries backend (ticket 01)
+- Entries screen with pagination and filters (ticket 02)
+- Inline entry create, edit, delete and reconcile (ticket 03)
+- Category quick-create from entry row (ticket 04)
+- Show an inline error for an unreadable amount, alongside the toast
+- Focus-on-click, wider date column, fixed debit/credit colours
+- Own the form's validation with Signal Forms, on a number amount field
+- Use spartan date picker and tooltips, center date column
+- Embed category icon in select, wire filters to spartan picker
+- Show category icons in the select's open dropdown
+
+### Miscellaneous Tasks
+
+- Mark ticket 01 done
+- Mark ticket 02 done and record cross-issue notes
+- Mark ticket 03 done and record cross-issue notes
+
+### Refactor
+
+- Address code review on the inline entry form
+- Split account screen into smart container and dumb row/form components
+- Scope the inset focus ring to the form that needs it
+- Extract paging/CRUD and category state out of Account
+- Bind the account id from the route via input()
+- Stop CategoryModal/AccountSettingsModal calling the store directly
+- Split core/ into true infra, domain data-access, and app shell
+
+### Styling
+
+- Unify entry row field styling and fix select popover sizing
+
+### Testing
+
+- E2e coverage for entries flows and deferred category-delete scenario (ticket 05)
+- Assert quick-created category selection portably (ticket 05)
+
 ## [0.4.0] - 2026-08-12
 
 ### Bug Fixes
 
 - Order names by a case- and accent-insensitive collation
+- Revert tauri-action to v1 — v2 doesn't exist
 
 ### Build
 
@@ -15,6 +70,10 @@ All notable changes to this project are documented in this file.
 ### CI/CD
 
 - Fall back to the nearest npm cache instead of a full miss
+- Bump tauri-action to v2 to clear Node 20 deprecation warning
+- Use PAT for release dispatch to avoid GITHUB_TOKEN permission cap
+- Use PAT for release creation, GITHUB_TOKEN intermittently lacks rights
+- Bump actions/cache to v6 to clear remaining Node 20 warning
 
 ### Documentation
 
