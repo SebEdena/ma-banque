@@ -26,6 +26,7 @@ import {
   todayIso,
 } from '@core/accounts-api/accounts-api';
 import { AccountsStore } from '@core/accounts-api/accounts-store';
+import { AmountInput, formatAmountInput, parseAmount } from '@shared/amount-input/amount-input';
 import { ModalShell } from '@shared/modal-shell/modal-shell';
 import { ColorPicker } from '@shared/pickers/color-picker/color-picker';
 import { DEFAULT_COLOR } from '@shared/pickers/color-swatches';
@@ -42,7 +43,14 @@ import { DEFAULT_ICON_NAME } from '@shared/pickers/icon-catalog';
  */
 @Component({
   selector: 'app-account-settings-modal',
-  imports: [ReactiveFormsModule, ModalShell, IconPicker, ColorPicker, ...HlmButtonImports],
+  imports: [
+    ReactiveFormsModule,
+    ModalShell,
+    IconPicker,
+    ColorPicker,
+    AmountInput,
+    ...HlmButtonImports,
+  ],
   templateUrl: './account-settings-modal.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -67,13 +75,15 @@ export class AccountSettingsModal implements OnInit {
       nonNullable: true,
       validators: [Validators.required, nonBlank],
     }),
-    // The typed major-unit value, handed to Rust exactly as entered — the
-    // f64-to-cents rounding is Rust's decision to make, not ours
-    // (technical-architecture.md §1.3). Negative is allowed on purpose: an
-    // account can open overdrawn, and the backend turns a negative opening
-    // balance into a DEBIT system entry.
-    openingBalance: new FormControl<number | null>(0, {
-      validators: [Validators.required],
+    // The field's raw text, mirroring the entry form's amount — see
+    // `amount-input.ts`. Parsed to the major-unit value on save and handed
+    // to Rust exactly as entered, since the f64-to-cents rounding is Rust's
+    // decision to make, not ours (technical-architecture.md §1.3). Negative
+    // is allowed on purpose: an account can open overdrawn, and the backend
+    // turns a negative opening balance into a DEBIT system entry.
+    openingBalance: new FormControl('0', {
+      nonNullable: true,
+      validators: [Validators.required, validAmount],
     }),
     createdDate: new FormControl(todayIso(), {
       nonNullable: true,
@@ -89,7 +99,7 @@ export class AccountSettingsModal implements OnInit {
 
     this.form.setValue({
       name: account.name,
-      openingBalance: account.opening_balance,
+      openingBalance: formatAmountInput(account.opening_balance),
       createdDate: account.created_date,
     });
     this.icon.set(account.icon);
@@ -113,7 +123,7 @@ export class AccountSettingsModal implements OnInit {
       color: this.color(),
       icon: this.icon(),
       created_date: createdDate,
-      opening_balance: openingBalance as number,
+      opening_balance: parseAmount(openingBalance) as number,
     };
 
     this.saving.set(true);
@@ -135,4 +145,9 @@ export class AccountSettingsModal implements OnInit {
 /** Rejects a name that is only whitespace, which `Validators.required` accepts. */
 function nonBlank(control: AbstractControl<string>): ValidationErrors | null {
   return control.value.trim() === '' ? { required: true } : null;
+}
+
+/** Rejects text `parseAmount` can't read as a signed major-unit amount. */
+function validAmount(control: AbstractControl<string>): ValidationErrors | null {
+  return parseAmount(control.value) === null ? { invalidAmount: true } : null;
 }

@@ -123,6 +123,17 @@ describe('AccountSettingsModal', () => {
       expect(vi.mocked(accountsApi.createAccount!).mock.calls[0][0].opening_balance).toBe(-250);
     });
 
+    it('accepts the fr-FR decimal comma the same as a dot', async () => {
+      const accountsApi = stubApi();
+      const fixture = await createModal(accountsApi);
+
+      type(fixture, 'account-name', 'Compte courant');
+      type(fixture, 'account-opening-balance', '1234,56');
+      await save(fixture);
+
+      expect(vi.mocked(accountsApi.createAccount!).mock.calls[0][0].opening_balance).toBe(1234.56);
+    });
+
     it('passes the icon and colour chosen from the shared pickers', async () => {
       const accountsApi = stubApi();
       const fixture = await createModal(accountsApi);
@@ -148,7 +159,9 @@ describe('AccountSettingsModal', () => {
 
       expect((fixture.nativeElement as HTMLElement).textContent).toContain('Paramètres du compte');
       expect(element<HTMLInputElement>(fixture, 'account-name').value).toBe('Livret A');
-      expect(element<HTMLInputElement>(fixture, 'account-opening-balance').value).toBe('1234.56');
+      // Not "1234.56": the field edits in the same fr-FR comma notation it
+      // was created in, matching the entry amount field.
+      expect(element<HTMLInputElement>(fixture, 'account-opening-balance').value).toBe('1234,56');
       expect(element<HTMLInputElement>(fixture, 'account-created-date').value).toBe('2026-01-15');
     });
 
