@@ -4,7 +4,7 @@ import { lucideCircleAlert, lucidePencil, lucidePlus, lucideTrash2 } from '@ng-i
 import { toast } from '@spartan-ng/brain/sonner';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 
-import { Category, parseCategoryError } from '@core/categories-api/categories-api';
+import { Category, CategoryInput, parseCategoryError } from '@core/categories-api/categories-api';
 import { CategoriesStore } from '@core/categories-api/categories-store';
 import { ConfirmDialog } from '@shared/confirm-dialog/confirm-dialog';
 import { ModalShell } from '@shared/modal-shell/modal-shell';
@@ -38,6 +38,7 @@ export class Categories {
 
   /** The category the modal is editing, `null` for a create, `undefined` when closed. */
   protected readonly editing = signal<Category | null | undefined>(undefined);
+  protected readonly saving = signal(false);
   protected readonly confirmingDelete = signal<Category | null>(null);
   protected readonly deleteBlocked = signal<Category | null>(null);
 
@@ -63,8 +64,31 @@ export class Categories {
     this.editing.set(undefined);
   }
 
-  protected onSaved(): void {
-    this.closeModal();
+  /**
+   * Saves what the modal found valid. The modal only validates and builds
+   * the input (`CategoryModal`, presentational); this container decides
+   * create vs. update off the category it's already holding, owns the
+   * backend call, and keeps the modal open on rejection.
+   */
+  protected async onCategorySubmitted(input: CategoryInput): Promise<void> {
+    const target = this.editing();
+    if (target === undefined || this.saving()) {
+      return;
+    }
+
+    this.saving.set(true);
+    try {
+      if (target === null) {
+        await this.categoriesStore.create(input);
+      } else {
+        await this.categoriesStore.update(target.id, input);
+      }
+      this.closeModal();
+    } catch (error) {
+      toast.error(parseCategoryError(error));
+    } finally {
+      this.saving.set(false);
+    }
   }
 
   protected startDelete(category: Category): void {

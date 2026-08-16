@@ -152,7 +152,11 @@
 }
 
 @if (creating()) {
-  <app-account-settings-modal (cancelled)="creating.set(false)" (saved)="creating.set(false)" />
+  <app-account-settings-modal
+    [saving]="savingAccount()"
+    (cancelled)="creating.set(false)"
+    (submitted)="onAccountSubmitted($event)"
+  />
 }
 
 @if (deleting(); as account) {

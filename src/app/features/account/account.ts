@@ -25,7 +25,7 @@ import { HlmTooltipImports } from '@spartan-ng/helm/tooltip';
 
 import { parseIsoDate, todayIso, toIsoDate } from '@core/accounts-api/accounts-api';
 import { AccountsStore } from '@core/accounts-api/accounts-store';
-import { Category } from '@core/categories-api/categories-api';
+import { CategoryInput, parseCategoryError } from '@core/categories-api/categories-api';
 import { CategoriesStore } from '@core/categories-api/categories-store';
 import { CurrencyFormatPipe } from '@core/display-settings/currency-format.pipe';
 import { DisplaySettingsService } from '@core/display-settings/display-settings';
@@ -197,6 +197,7 @@ export class Account {
 
   /** Whether the quick-create category modal is open over the form. */
   protected readonly creatingCategory = signal(false);
+  protected readonly savingCategory = signal(false);
 
   /** What the open form edits — see `EntryDraft` for why the amount is text. */
   protected readonly draft = signal<EntryDraft>(emptyDraft());
@@ -291,13 +292,24 @@ export class Account {
   }
 
   /**
-   * Selects the quick-created category on the row straight away. The list
-   * itself is already up to date — `CategoriesStore.create` (which the modal
-   * goes through) refetches before this handler runs.
+   * Saves what the quick-create modal found valid, then selects the created
+   * category on the row straight away. `CategoryModal` only validates and
+   * builds the input (presentational); this container owns the backend call,
+   * same split as `EntryForm`/`Account` for the entry itself. The list is
+   * already up to date once this resolves — `CategoriesStore.create`
+   * refetches before this handler continues.
    */
-  protected onCategoryCreated(category: Category): void {
-    this.creatingCategory.set(false);
-    this.draft.update((draft) => ({ ...draft, categoryId: category.id }));
+  protected async onCategorySubmitted(input: CategoryInput): Promise<void> {
+    this.savingCategory.set(true);
+    try {
+      const category = await this.categoriesStore.create(input);
+      this.creatingCategory.set(false);
+      this.draft.update((draft) => ({ ...draft, categoryId: category.id }));
+    } catch (error) {
+      toast.error(parseCategoryError(error));
+    } finally {
+      this.savingCategory.set(false);
+    }
   }
 
   /**

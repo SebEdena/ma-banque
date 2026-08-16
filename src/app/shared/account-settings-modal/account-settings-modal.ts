@@ -2,7 +2,6 @@ import {
   ChangeDetectionStrategy,
   Component,
   computed,
-  inject,
   input,
   OnInit,
   output,
@@ -16,16 +15,9 @@ import {
   ValidationErrors,
   Validators,
 } from '@angular/forms';
-import { toast } from '@spartan-ng/brain/sonner';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 
-import {
-  Account,
-  AccountInput,
-  parseAccountError,
-  todayIso,
-} from '@core/accounts-api/accounts-api';
-import { AccountsStore } from '@core/accounts-api/accounts-store';
+import { Account, AccountInput, todayIso } from '@core/accounts-api/accounts-api';
 import { AmountInput, formatAmountInput, parseAmount } from '@shared/amount-input/amount-input';
 import { ModalShell } from '@shared/modal-shell/modal-shell';
 import { ColorPicker } from '@shared/pickers/color-picker/color-picker';
@@ -40,6 +32,13 @@ import { DEFAULT_ICON_NAME } from '@shared/pickers/icon-catalog';
  * button once `06-entries.md` lands. Deliberately a modal rather than a
  * route, and deliberately carries **no delete action**: deleting only ever
  * happens from the archived-accounts view.
+ *
+ * Presentational: it validates the form and emits `submitted` with the
+ * built `AccountInput` rather than calling `AccountsStore` itself — the
+ * container decides create vs. update (it already holds the account being
+ * edited), owns the backend call and its error toast, and passes `saving`
+ * back down while the call is in flight. Mirrors the entries screen's
+ * `EntryForm`/`Account` split.
  */
 @Component({
   selector: 'app-account-settings-modal',
@@ -55,17 +54,17 @@ import { DEFAULT_ICON_NAME } from '@shared/pickers/icon-catalog';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class AccountSettingsModal implements OnInit {
-  private readonly accounts = inject(AccountsStore);
-
   /** The account being edited, or `null` to create a new one. */
   readonly account = input<Account | null>(null);
+  readonly saving = input(false);
 
   readonly cancelled = output<void>();
-  readonly saved = output<Account>();
+
+  /** A save attempt on a valid form, carrying the input the container should save. */
+  readonly submitted = output<AccountInput>();
 
   protected readonly editing = computed(() => this.account() !== null);
-  protected readonly saving = signal(false);
-  protected readonly submitted = signal(false);
+  protected readonly attempted = signal(false);
 
   protected readonly icon = signal(DEFAULT_ICON_NAME);
   protected readonly color = signal(DEFAULT_COLOR);
@@ -108,37 +107,23 @@ export class AccountSettingsModal implements OnInit {
 
   protected showError(field: 'name' | 'openingBalance' | 'createdDate'): boolean {
     const control = this.form.controls[field];
-    return control.invalid && (control.touched || this.submitted());
+    return control.invalid && (control.touched || this.attempted());
   }
 
-  protected async save(): Promise<void> {
-    this.submitted.set(true);
-    if (this.form.invalid || this.saving()) {
+  protected trySave(): void {
+    this.attempted.set(true);
+    if (this.form.invalid) {
       return;
     }
 
     const { name, openingBalance, createdDate } = this.form.getRawValue();
-    const input: AccountInput = {
+    this.submitted.emit({
       name,
       color: this.color(),
       icon: this.icon(),
       created_date: createdDate,
       opening_balance: parseAmount(openingBalance) as number,
-    };
-
-    this.saving.set(true);
-    try {
-      const account = this.account();
-      this.saved.emit(
-        account === null
-          ? await this.accounts.create(input)
-          : await this.accounts.update(account.id, input),
-      );
-    } catch (error) {
-      toast.error(parseAccountError(error));
-    } finally {
-      this.saving.set(false);
-    }
+    });
   }
 }
 

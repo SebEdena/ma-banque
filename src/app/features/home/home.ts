@@ -4,7 +4,12 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideArchive, lucidePlus, lucideRotateCcw, lucideTrash2 } from '@ng-icons/lucide';
 import { toast } from '@spartan-ng/brain/sonner';
 
-import { Account, parseAccountError, parseIsoDate } from '@core/accounts-api/accounts-api';
+import {
+  Account,
+  AccountInput,
+  parseAccountError,
+  parseIsoDate,
+} from '@core/accounts-api/accounts-api';
 import { AccountsStore } from '@core/accounts-api/accounts-store';
 import { CurrencyFormatPipe } from '@core/display-settings/currency-format.pipe';
 import { DateFormatPipe } from '@core/display-settings/date-format.pipe';
@@ -55,6 +60,24 @@ export class Home {
 
   /** Whether the create/edit modal is open. Creation is its only mode here. */
   protected readonly creating = signal(false);
+  protected readonly savingAccount = signal(false);
+
+  /**
+   * Saves what the modal found valid. `AccountSettingsModal` only validates
+   * and builds the input (presentational); this container owns the backend
+   * call and keeps the modal open on rejection.
+   */
+  protected async onAccountSubmitted(input: AccountInput): Promise<void> {
+    this.savingAccount.set(true);
+    try {
+      await this.accounts.create(input);
+      this.creating.set(false);
+    } catch (error) {
+      toast.error(parseAccountError(error));
+    } finally {
+      this.savingAccount.set(false);
+    }
+  }
 
   protected toggleArchived(): void {
     this.showingArchived.update((showing) => !showing);

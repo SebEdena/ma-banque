@@ -271,8 +271,9 @@
 
   @if (creatingCategory()) {
     <app-category-modal
+      [saving]="savingCategory()"
       (cancelled)="creatingCategory.set(false)"
-      (saved)="onCategoryCreated($event)"
+      (submitted)="onCategorySubmitted($event)"
     />
   }
 
