@@ -83,6 +83,13 @@ describe('Categories', () => {
     expect(all(fixture, 'category-card')[0].textContent).toContain('Courses, supermarché, marché');
   });
 
+  it('re-fetches the list on entering the screen, so usage counts reflect entries saved elsewhere', async () => {
+    const api = stubApi([category()]);
+    await createCategories(api);
+
+    expect(api.listCategories).toHaveBeenCalledTimes(2);
+  });
+
   it('deletes a category with no entries after a plain confirmation', async () => {
     const api = stubApi([category({ id: 4, usage_count: 0 })]);
     const fixture = await createCategories(api);
@@ -94,7 +101,8 @@ describe('Categories', () => {
     await click(fixture, one(fixture, 'confirm-accept')!);
 
     expect(api.deleteCategory).toHaveBeenCalledWith(4);
-    expect(api.listCategories).toHaveBeenCalledTimes(2);
+    // Store construction, the screen's own entry reload, then the delete's.
+    expect(api.listCategories).toHaveBeenCalledTimes(3);
   });
 
   it('blocks deletion with the usage count, offering no delete action, when entries use the category', async () => {
@@ -178,7 +186,8 @@ describe('Categories', () => {
     expect(api.createCategory).toHaveBeenCalledWith(
       expect.objectContaining({ name: 'Cadeaux', description: '' }),
     );
-    expect(api.listCategories).toHaveBeenCalledTimes(2);
+    // Store construction, the screen's own entry reload, then the create's.
+    expect(api.listCategories).toHaveBeenCalledTimes(3);
     expect(one(fixture, 'category-name')).toBeNull();
   });
 
