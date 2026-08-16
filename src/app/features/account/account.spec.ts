@@ -473,6 +473,18 @@ describe('Account', () => {
     );
   });
 
+  it('opens an existing row on its amount in fr-FR notation, comma included', async () => {
+    const entriesApi = stubEntriesApi([entry({ id: 7, amount: -25.5 })]);
+    const fixture = await createAccount(entriesApi);
+
+    rows(fixture)[0].click();
+    await settle(fixture);
+
+    // Not "-25.5": the field's own dot would read back as a different amount
+    // to the French-notation typing it otherwise accepts.
+    expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('-25,5');
+  });
+
   it('opens the form focused on the column the click landed in', async () => {
     const entriesApi = stubEntriesApi([entry({ id: 7, label: 'Courses', amount: -25.5 })]);
     const fixture = await createAccount(entriesApi);
@@ -577,10 +589,12 @@ describe('Account', () => {
     const fixture = await createAccount(stubEntriesApi([entry()]));
 
     await click(fixture, 'entries-new');
-    // The creation row opens on débit, which a number input has no way to show
-    // as a lone sign — it lands on the first digits typed instead.
-    await type(fixture, 'entry-form-amount', '30');
-    expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('-30');
+    // The creation row opens on débit, shown as the lone sign the amount
+    // field's plain-text value can hold — a `type="number"` field couldn't.
+    expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('-');
+    expect(one(fixture, 'entry-form-debit')?.dataset['selected']).toBe('true');
+
+    await type(fixture, 'entry-form-amount', '-30');
     expect(one(fixture, 'entry-form-debit')?.dataset['selected']).toBe('true');
 
     await click(fixture, 'entry-form-credit');

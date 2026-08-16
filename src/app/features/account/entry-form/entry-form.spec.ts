@@ -142,23 +142,34 @@ describe('EntryForm', () => {
     expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('30');
   });
 
-  it('carries a debit sign the number input can’t show onto the first digits typed', async () => {
+  it('renders a lone sign as-is, since the field is a plain text input now', async () => {
     const fixture = await createEntryForm(draft({ amount: '-' }));
-    const seen: EntryDraft[] = [];
-    fixture.componentInstance.draft.subscribe((value) => seen.push(value));
 
-    type(fixture, 'entry-form-amount', '30');
-
-    expect(seen.at(-1)?.amount).toBe('-30');
-    expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('-30');
+    expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('-');
     expect(one(fixture, 'entry-form-debit')?.dataset['selected']).toBe('true');
+  });
 
-    // Once the field holds a magnitude, its text is the only source of the sign
-    // again — dropping the `-` still means crédit.
-    type(fixture, 'entry-form-amount', '30');
+  it('picking Débit on an empty draft shows the sign the next digits land after', async () => {
+    const fixture = await createEntryForm(draft({ amount: '' }));
 
-    expect(seen.at(-1)?.amount).toBe('30');
-    expect(one(fixture, 'entry-form-credit')?.dataset['selected']).toBe('true');
+    (one(fixture, 'entry-form-debit') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('-');
+
+    type(fixture, 'entry-form-amount', '-30');
+    expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('-30');
+  });
+
+  it('accepts the fr-FR decimal comma the same as a dot', async () => {
+    const fixture = await createEntryForm(draft({ label: 'Courses', amount: '' }));
+    const amounts: number[] = [];
+    fixture.componentInstance.saved.subscribe((amount) => amounts.push(amount));
+
+    type(fixture, 'entry-form-amount', '-12,40');
+    await save(fixture);
+
+    expect(amounts).toEqual([-12.4]);
   });
 
   it('treats the quick-create option as a trigger, not a value', async () => {

@@ -38,6 +38,7 @@ import {
 } from '@core/entries-api/entries-api';
 import { EntriesPager, PageQuery } from '@core/entries-api/entries-pager';
 import { CategoryModal } from '@features/settings/categories/category-modal/category-modal';
+import { formatAmountInput } from '@shared/amount-input/amount-input';
 import { ConfirmDialog } from '@shared/confirm-dialog/confirm-dialog';
 import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
 import { EntryDraft, EntryForm, EntryFormField } from './entry-form/entry-form';
@@ -288,7 +289,7 @@ export class Account {
       description: entry.description,
       date: entry.date,
       categoryId: entry.category_id,
-      amount: String(entry.amount),
+      amount: formatAmountInput(entry.amount),
     });
     this.editing.set(entry.id);
   }
