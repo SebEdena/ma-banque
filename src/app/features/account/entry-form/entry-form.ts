@@ -4,11 +4,9 @@ import {
   ElementRef,
   afterNextRender,
   computed,
-  effect,
   input,
   model,
   output,
-  signal,
   viewChild,
 } from '@angular/core';
 import { FieldTree, form, requiredError, schema, submit, validate } from '@angular/forms/signals';
@@ -23,6 +21,7 @@ import { parseIsoDate, toIsoDate } from '@core/accounts-api/accounts-api';
 import { Category } from '@core/categories-api/categories-api';
 import type { DateFormat } from '@core/display-settings/display-settings.types';
 import { formatDate, parseFormattedDate } from '@core/display-settings/format';
+import { AmountInput, parseAmount } from '@shared/amount-input/amount-input';
 import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
 import { RowCategory, UNCATEGORIZED } from '../row-category';
 
@@ -42,22 +41,6 @@ export interface EntryDraft {
 
 const LABEL_REQUIRED_MESSAGE = 'Libellé obligatoire';
 const AMOUNT_INVALID_MESSAGE = 'Montant invalide';
-
-/**
- * The amount field's text as the signed major-unit number to send, or `null`
- * when it isn't a number — including when only the sign has been picked. What
- * `money::to_cents` would reject on the far side (sub-cent precision
- * especially) is left for it to reject, so both paths say the same thing.
- */
-export function parseAmount(text: string): number | null {
-  const raw = text.trim();
-  const magnitude = raw.replace(/^-/, '');
-  const value = Number(magnitude);
-  if (magnitude === '' || !Number.isFinite(value)) {
-    return null;
-  }
-  return raw.startsWith('-') ? -value : value;
-}
 
 /**
  * What makes a draft saveable, expressed once here rather than recomputed by
@@ -110,7 +93,13 @@ export type EntryFormField = 'date' | 'category' | 'label' | 'amount';
  */
 @Component({
   selector: 'app-entry-form',
-  imports: [NgIcon, ...HlmDatePickerImports, ...HlmSelectImports, ...HlmTooltipImports],
+  imports: [
+    NgIcon,
+    AmountInput,
+    ...HlmDatePickerImports,
+    ...HlmSelectImports,
+    ...HlmTooltipImports,
+  ],
   templateUrl: './entry-form.html',
   styles: `
     :host {
@@ -129,21 +118,6 @@ export type EntryFormField = 'date' | 'category' | 'label' | 'amount';
     [data-focus-ring]:focus-visible {
       border-color: var(--account-color);
       box-shadow: 0 0 0 3px color-mix(in oklab, var(--account-color) 50%, transparent);
-    }
-
-    /*
-      The amount field is a number input for the browser's own number syntax,
-      not for its spinners: the column is 90px of right-aligned monospace, and
-      a pair of arrows would sit on top of the digits.
-    */
-    input[type='number'] {
-      appearance: textfield;
-    }
-
-    input[type='number']::-webkit-inner-spin-button,
-    input[type='number']::-webkit-outer-spin-button {
-      margin: 0;
-      appearance: none;
     }
   `,
   styleUrl: '../accent.css',
@@ -193,17 +167,6 @@ export class EntryForm {
 
   protected readonly isDebit = computed(() => this.draft().amount.trim().startsWith('-'));
 
-  /** Whether the amount field currently has focus — see `amountDisplay`. */
-  protected readonly amountEditing = signal(false);
-
-  /**
-   * What gets written into the amount input's `value`, held still while the
-   * field has focus. `type="number"` blanks any DOM value write that isn't a
-   * complete number, so echoing the draft back between keystrokes would erase
-   * a leading `-` or a trailing decimal point as it was being typed.
-   */
-  protected readonly amountDisplay = signal('');
-
   /** The swatch shown next to the category select. */
   protected readonly categorySwatch = computed<RowCategory>(() => {
     const id = this.draft().categoryId;
@@ -249,13 +212,6 @@ export class EntryForm {
     // only moment the requested field exists to be focused — a later read of
     // `focusField` would fight the user's own focus.
     afterNextRender(() => this.focusRequestedField());
-
-    effect(() => {
-      const amount = this.draft().amount;
-      if (!this.amountEditing()) {
-        this.amountDisplay.set(amount);
-      }
-    });
   }
 
   /**
@@ -327,34 +283,6 @@ export class EntryForm {
       return;
     }
     this.patch({ categoryId: value ?? null });
-  }
-
-  protected onAmountInput(field: HTMLInputElement): void {
-    if (field.validity.badInput) {
-      // A value in progress the browser refuses to hand over — a lone `-`, or
-      // `12.` mid-decimal — reads back as empty. Taking it would drop the sign
-      // the user just typed and flip the debit/credit selector under them.
-      return;
-    }
-
-    const amount = this.withDebitSign(field.value);
-    if (amount !== field.value) {
-      field.value = amount;
-    }
-    this.patch({ amount });
-  }
-
-  /**
-   * Carries a debit sign the field can't display over to the first magnitude
-   * typed. `type="number"` has no way to render a lone `-`, so a row that
-   * opens on one — or one where Débit was picked while the field was empty —
-   * looks empty; without this the sign would be lost on the next keystroke.
-   * Once the field holds a magnitude its text is the only source of the sign
-   * again, so deleting the `-` still means crédit.
-   */
-  private withDebitSign(raw: string): string {
-    const hasMagnitude = this.draft().amount.trim().replace(/^-/, '') !== '';
-    return !hasMagnitude && this.isDebit() && raw !== '' && !raw.startsWith('-') ? `-${raw}` : raw;
   }
 
   /** Rewrites the amount's sign, which is all the debit/credit selector is. */
