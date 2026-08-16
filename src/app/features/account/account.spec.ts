@@ -5,12 +5,12 @@ import { provideRouter } from '@angular/router';
 import { provideBrnCalendarI18n } from '@spartan-ng/brain/calendar';
 import { provideNativeDateAdapter } from '@spartan-ng/brain/date-time';
 
-import { AccountsApi } from '@core/accounts-api/accounts-api';
-import { AccountsStore } from '@core/accounts-api/accounts-store';
-import { CategoriesApi, Category } from '@core/categories-api/categories-api';
+import { AccountsApi } from '@data/accounts/accounts-api';
+import { AccountsStore } from '@data/accounts/accounts-store';
+import { CategoriesApi, Category } from '@data/categories/categories-api';
 import { FRENCH_CALENDAR_I18N } from '@core/display-settings/calendar-i18n';
 import { DisplaySettingsService } from '@core/display-settings/display-settings';
-import { EntriesApi, Entry, ListEntriesQuery } from '@core/entries-api/entries-api';
+import { EntriesApi, Entry, ListEntriesQuery } from '@data/entries/entries-api';
 import { accountFixture } from '@core/testing/account.fixture';
 import '@core/testing/jsdom-polyfills';
 import { Account } from './account';

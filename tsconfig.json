@@ -24,7 +24,9 @@
       "@spartan-ng/helm/tooltip": ["./src/app/shared/components/ui/tooltip/src/index.ts"],
       "@spartan-ng/helm/utils": ["./src/app/shared/components/ui/utils/src/index.ts"],
       "@core/*": ["./src/app/core/*"],
+      "@data/*": ["./src/app/data/*"],
       "@features/*": ["./src/app/features/*"],
+      "@layout/*": ["./src/app/layout/*"],
       "@shared/*": ["./src/app/shared/*"]
     }
   },

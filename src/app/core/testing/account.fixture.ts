@@ -1,4 +1,4 @@
-import { Account } from '../accounts-api/accounts-api';
+import { Account } from '../../data/accounts/accounts-api';
 
 /**
  * Canonical `Account` shape shared by every spec that needs one, and by

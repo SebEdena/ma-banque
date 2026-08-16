@@ -4,7 +4,7 @@
 
 Scope, per `docs/spec/06-entries.md`:
 
-- `EntriesApi` injectable service (`src/app/core/entries-api`, mirroring `AccountsApi`/`CategoriesApi`) wraps `invoke()` for `list_entries` (create/update/delete/set_reconciled land in ticket 03's extension of this same service).
+- `EntriesApi` injectable service (`src/app/data/entries`, mirroring `AccountsApi`/`CategoriesApi`) wraps `invoke()` for `list_entries` (create/update/delete/set_reconciled land in ticket 03's extension of this same service).
 - `Account` becomes the entries screen: header reusing the color/name/icon presentation from the home screen's cards, entries list rendered via Angular CDK Virtual Scroll, pages fetched from `EntriesApi.listEntries` and appended as the user scrolls.
 - Sorted most-recent-first by default, with a control to reverse the order.
 - Date-range filter and jump-to-date, both driving what's requested from `EntriesApi`.

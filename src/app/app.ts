@@ -2,10 +2,10 @@ import { Component, inject, signal } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 import { HlmToasterImports } from '@spartan-ng/helm/sonner';
 
-import { FolderPrompt } from './core/folder-prompt/folder-prompt';
 import { SettingsApi } from './core/settings-api/settings-api';
-import { Sidebar } from './core/sidebar/sidebar';
 import { Theme } from './core/theme/theme';
+import { FolderPrompt } from './features/onboarding/folder-prompt/folder-prompt';
+import { Sidebar } from './layout/sidebar/sidebar';
 
 type DataFolderState = 'loading' | 'ready' | 'blocked';
 

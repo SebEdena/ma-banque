@@ -1,11 +1,5 @@
-import { toIsoDate } from '@core/accounts-api/accounts-api';
-import {
-  EntriesApi,
-  Entry,
-  EntryInput,
-  EntryPage,
-  ListEntriesQuery,
-} from '@core/entries-api/entries-api';
+import { toIsoDate } from '@shared/iso-date/iso-date';
+import { EntriesApi, Entry, EntryInput, EntryPage, ListEntriesQuery } from './entries-api';
 
 const LABELS: { label: string; category_id: number | null; amount: number; description: string }[] =
   [

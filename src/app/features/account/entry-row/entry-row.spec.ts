@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { Entry } from '@core/entries-api/entries-api';
+import { Entry } from '@data/entries/entries-api';
 import { RowCategory, SYSTEM_CATEGORY, UNCATEGORIZED } from '../row-category';
 import { EntryRow } from './entry-row';
 

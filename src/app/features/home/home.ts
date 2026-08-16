@@ -4,18 +4,14 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideArchive, lucidePlus, lucideRotateCcw, lucideTrash2 } from '@ng-icons/lucide';
 import { toast } from '@spartan-ng/brain/sonner';
 
-import {
-  Account,
-  AccountInput,
-  parseAccountError,
-  parseIsoDate,
-} from '@core/accounts-api/accounts-api';
-import { AccountsStore } from '@core/accounts-api/accounts-store';
+import { Account, AccountInput, parseAccountError } from '@data/accounts/accounts-api';
+import { AccountsStore } from '@data/accounts/accounts-store';
 import { CurrencyFormatPipe } from '@core/display-settings/currency-format.pipe';
 import { DateFormatPipe } from '@core/display-settings/date-format.pipe';
 import { DisplaySettingsService } from '@core/display-settings/display-settings';
-import { AccountSettingsModal } from '@shared/account-settings-modal/account-settings-modal';
+import { AccountSettingsModal } from './account-settings-modal/account-settings-modal';
 import { ConfirmDialog } from '@shared/confirm-dialog/confirm-dialog';
+import { parseIsoDate } from '@shared/iso-date/iso-date';
 import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
 
 /**

@@ -3,8 +3,8 @@ import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { toast } from '@spartan-ng/brain/sonner';
 
-import { Account, AccountsApi } from '@core/accounts-api/accounts-api';
-import { AccountsStore } from '@core/accounts-api/accounts-store';
+import { Account, AccountsApi } from '@data/accounts/accounts-api';
+import { AccountsStore } from '@data/accounts/accounts-store';
 import { accountFixture as account } from '@core/testing/account.fixture';
 import { DisplaySettingsService } from '@core/display-settings/display-settings';
 import { Home } from './home';

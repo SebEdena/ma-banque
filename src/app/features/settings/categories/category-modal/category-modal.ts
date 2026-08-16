@@ -18,7 +18,7 @@ import {
 import { NgIcon } from '@ng-icons/core';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 
-import { Category, CategoryInput } from '@core/categories-api/categories-api';
+import { Category, CategoryInput } from '@data/categories/categories-api';
 import { ModalShell } from '@shared/modal-shell/modal-shell';
 import { ColorPicker } from '@shared/pickers/color-picker/color-picker';
 import { DEFAULT_COLOR } from '@shared/pickers/color-swatches';

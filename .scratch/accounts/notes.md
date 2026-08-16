@@ -67,11 +67,12 @@ the consuming form owns the value. Test hooks: `data-testid="icon-search" | "ico
 
 ### From 03 — Home screen: account cards + archive toggle
 
-- **`core/accounts-api/accounts-api.ts`** — `AccountsApi` (the `invoke()` seam every test mocks, never `invoke()`
-  itself), the `Account` and `AccountInput` wire interfaces, `parseAccountError` (maps each error `kind` to French,
-  mirroring `parseSettingsError`), and `parseIsoDate` (backend ISO string → **local**-midnight `Date`; plain
-  `new Date('2026-01-15')` parses as UTC and renders a day early in negative-offset zones).
-- **`core/accounts-api/accounts-store.ts`** — `AccountsStore`, signal-backed: `active()`, `archived()`, `loaded`
+- **`data/accounts/accounts-api.ts`** — `AccountsApi` (the `invoke()` seam every test mocks, never `invoke()`
+  itself), the `Account` and `AccountInput` wire interfaces, and `parseAccountError` (maps each error `kind` to
+  French, mirroring `parseSettingsError`). `parseIsoDate` (backend ISO string → **local**-midnight `Date`; plain
+  `new Date('2026-01-15')` parses as UTC and renders a day early in negative-offset zones) later moved to
+  `shared/iso-date/iso-date.ts` — it's domain-agnostic, not Account-specific.
+- **`data/accounts/accounts-store.ts`** — `AccountsStore`, signal-backed: `active()`, `archived()`, `loaded`
   (a promise, like `DisplaySettingsService.loaded` — await it in tests instead of guessing microtasks),
   `reload()`, `archive(id)`. **Both the home screen and the sidebar rail read these same signals** rather than
   fetching independently; that's what satisfies the spec's "the two navigation surfaces never disagree".
@@ -81,7 +82,7 @@ the consuming form owns the value. Test hooks: `data-testid="icon-search" | "ico
   across all screens", but no prior spec built it: `app.html` rendered only a bare `<router-outlet/>`, and
   `02-setup-frontend-ci.md` never mentions one. Confirmed as an unclaimed requirement, not scope creep, before
   building it.
-  - **Location**: `src/app/core/sidebar/sidebar.ts` + `sidebar.html`, selector `app-sidebar`, no inputs or
+  - **Location**: `src/app/layout/sidebar/sidebar.ts` + `sidebar.html`, selector `app-sidebar`, no inputs or
     outputs — it reads `AccountsStore` itself and is rendered once by `App`, which now wraps the routed outlet in
     `<div class="flex h-screen"><app-sidebar /><main>…</main></div>` behind the data-folder gate.
   - **Current rail**, top to bottom: home link → one entry per **active** account (colour-tinted, chosen icon,
@@ -102,7 +103,7 @@ the consuming form owns the value. Test hooks: `data-testid="icon-search" | "ico
 
 ### From 04 — Account settings modal (create/edit)
 
-- **`shared/account-settings-modal/`** — one component for both modes, as `06-entries.md` will reuse it from the
+- **`features/home/account-settings-modal/`** — one component for both modes, as `06-entries.md` will reuse it from the
   entries screen's "Paramètres" button: `<app-account-settings-modal [account]="…" (saved)="…" (cancelled)="…" />`.
   `account` is `Account | null`; `null` means create. It carries **no delete action** by design.
 - It talks to `AccountsStore.create`/`update` itself and emits the saved `Account`; the opener only decides when

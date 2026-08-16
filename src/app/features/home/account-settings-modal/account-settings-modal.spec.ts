@@ -1,6 +1,6 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { Account, AccountInput } from '@core/accounts-api/accounts-api';
+import { Account, AccountInput } from '@data/accounts/accounts-api';
 import { accountFixture as account } from '@core/testing/account.fixture';
 import { COLOR_SWATCHES } from '@shared/pickers/color-swatches';
 import { AccountSettingsModal } from './account-settings-modal';
