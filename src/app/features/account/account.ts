@@ -15,6 +15,7 @@ import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
   lucideChevronRight,
   lucideChevronsUpDown,
+  lucideCircleCheck,
   lucidePlus,
   lucideRotateCcw,
   lucideSearch,
@@ -37,6 +38,11 @@ import {
   parseEntryError,
 } from '@data/entries/entries-api';
 import { EntriesPager, PageQuery } from '@data/entries/entries-pager';
+import {
+  ReconciliationApi,
+  ReconciliationSummary,
+  parseReconciliationError,
+} from '@data/reconciliation/reconciliation-api';
 import { CategoryModal } from '@features/settings/categories/category-modal/category-modal';
 import { formatAmountInput } from '@shared/amount-input/amount-input';
 import { ConfirmDialog } from '@shared/confirm-dialog/confirm-dialog';
@@ -44,6 +50,7 @@ import { parseIsoDate, todayIso, toIsoDate } from '@shared/iso-date/iso-date';
 import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
 import { EntryDraft, EntryForm, EntryFormField } from './entry-form/entry-form';
 import { EntryRow } from './entry-row/entry-row';
+import { ReconciliationPanel } from './reconciliation-panel/reconciliation-panel';
 import { RowCategory, SYSTEM_CATEGORY, UNCATEGORIZED } from './row-category';
 
 /** Rows left below the viewport before the next page is requested. */
@@ -112,6 +119,7 @@ function emptyDraft(): EntryDraft {
     CategoryModal,
     EntryRow,
     EntryForm,
+    ReconciliationPanel,
     ...HlmDatePickerImports,
     ...HlmTooltipImports,
   ],
@@ -123,6 +131,7 @@ function emptyDraft(): EntryDraft {
     provideIcons({
       lucideChevronRight,
       lucideChevronsUpDown,
+      lucideCircleCheck,
       lucidePlus,
       lucideRotateCcw,
       lucideSearch,
@@ -134,6 +143,7 @@ export class Account {
   private readonly accountsStore = inject(AccountsStore);
   private readonly categoriesStore = inject(CategoriesStore);
   private readonly pager = inject(EntriesPager);
+  private readonly reconciliationApi = inject(ReconciliationApi);
 
   protected readonly displaySettings = inject(DisplaySettingsService);
 
@@ -152,6 +162,28 @@ export class Account {
   protected readonly from = signal<string | null>(null);
   protected readonly to = signal<string | null>(null);
   protected readonly jumpTarget = signal('');
+
+  /**
+   * The reconciliation panel's disclosure state. Starts closed on every entry
+   * to the screen and is never persisted (`docs/spec/08-reconciliation.md`).
+   */
+  protected readonly panelOpen = signal(false);
+
+  /** The panel checkbox's own value, kept even while the panel is closed. */
+  protected readonly unreconciledOnly = signal(false);
+
+  /**
+   * The filter as the query actually sees it. Collapsing the panel disables
+   * the filter's effect whatever the checkbox says — expressed here as one
+   * expression rather than as a flag some close handler must remember to
+   * reset.
+   */
+  protected readonly filterUnreconciled = computed(
+    () => this.panelOpen() && this.unreconciledOnly(),
+  );
+
+  /** The panel's figures, fetched when it opens and after anything that moves them. */
+  protected readonly summary = signal<ReconciliationSummary | null>(null);
 
   protected readonly entries = this.pager.entries;
   protected readonly hasMore = this.pager.hasMore;
@@ -217,6 +249,42 @@ export class Account {
       this.editing.set(null);
       void this.pager.reload(this.query());
     });
+  }
+
+  /**
+   * Opens or closes the panel. Opening ticks "unreconciled only" — the common
+   * case is that the panel was opened in order to reconcile — and asks for the
+   * figures; closing leaves the checkbox alone, since `filterUnreconciled`
+   * already makes it inert.
+   */
+  protected togglePanel(): void {
+    const opening = !this.panelOpen();
+    this.panelOpen.set(opening);
+    if (opening) {
+      this.unreconciledOnly.set(true);
+      void this.refreshSummary();
+    }
+  }
+
+  protected async onBankBalanceChanged(amount: number): Promise<void> {
+    await this.storeSummary(() => this.reconciliationApi.setBankBalance(this.accountId(), amount));
+  }
+
+  protected async onStatementDateChanged(date: string): Promise<void> {
+    await this.storeSummary(() => this.reconciliationApi.setStatementDate(this.accountId(), date));
+  }
+
+  private refreshSummary(): Promise<void> {
+    return this.storeSummary(() => this.reconciliationApi.summary(this.accountId()));
+  }
+
+  /** Every reconciliation command answers with the recomputed summary. */
+  private async storeSummary(call: () => Promise<ReconciliationSummary>): Promise<void> {
+    try {
+      this.summary.set(await call());
+    } catch (error) {
+      toast.error(parseReconciliationError(error));
+    }
   }
 
   protected toggleSort(): void {
@@ -364,14 +432,24 @@ export class Account {
 
   /**
    * Toggles an existing entry's reconciled flag on its own, independent of
-   * whether the row is being edited, and patches the one row rather than
-   * refetching so the list doesn't jump under the pointer.
+   * whether the row is being edited. `EntriesPager` patches the one row
+   * rather than refetching, so the list doesn't jump under the pointer — but
+   * with the filter on, the row no longer matches the predicate the list
+   * claims to obey, so that page is reloaded instead. Either way the panel's
+   * figures just moved, so they are refetched too.
    */
   protected async toggleReconciled(entry: Entry): Promise<void> {
     try {
       await this.pager.setReconciled(entry.id, !entry.reconciled);
+      if (this.filterUnreconciled()) {
+        await this.pager.reload(this.query());
+      }
     } catch (error) {
       toast.error(parseEntryError(error));
+    }
+
+    if (this.panelOpen()) {
+      void this.refreshSummary();
     }
   }
 
@@ -412,6 +490,7 @@ export class Account {
       sort: this.sort(),
       from: this.from(),
       to: this.to(),
+      unreconciledOnly: this.filterUnreconciled(),
     };
   }
 }

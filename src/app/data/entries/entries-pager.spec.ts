@@ -18,7 +18,13 @@ function entry(overrides: Partial<Entry> = {}): Entry {
   };
 }
 
-const query: PageQuery = { accountId: 1, sort: 'DESC', from: null, to: null };
+const query: PageQuery = {
+  accountId: 1,
+  sort: 'DESC',
+  from: null,
+  to: null,
+  unreconciledOnly: false,
+};
 
 function createPager(entriesApi: Partial<EntriesApi>): EntriesPager {
   TestBed.configureTestingModule({
@@ -44,6 +50,18 @@ describe('EntriesPager', () => {
 
     expect(pager.entries().map((e) => e.id)).toEqual([1]);
     expect(pager.hasMore()).toBe(false);
+  });
+
+  it('asks the backend for the unreconciled filter rather than filtering the buffer', async () => {
+    const listEntries = vi.fn().mockResolvedValue({ entries: [entry()], has_more: false });
+    const pager = createPager({ listEntries });
+
+    await pager.reload({ ...query, unreconciledOnly: true });
+
+    expect(listEntries).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ unreconciled_only: true }),
+    );
   });
 
   it('appends the next page on loadMore, and does nothing once there is no more', async () => {
