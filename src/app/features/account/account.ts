@@ -302,6 +302,18 @@ export class Account {
   }
 
   /**
+   * A rule the user just created backfills the occurrences it has missed,
+   * but only a generation run writes them. Dropping the cached promise makes
+   * the next run actually reach the backend, so those entries land in the
+   * register the modal was covering instead of waiting for a revisit.
+   */
+  protected onRulesClosed(): void {
+    this.rulesOpen.set(false);
+    this.generation.delete(this.accountId());
+    void this.generateThenReload(this.query());
+  }
+
+  /**
    * Opens or closes the panel. Opening ticks "unreconciled only" — the common
    * case is that the panel was opened in order to reconcile — and asks for the
    * figures; closing leaves the checkbox alone, since `filterUnreconciled`

@@ -932,6 +932,29 @@ describe('Account', () => {
       expect(one(fixture, 'recurring-modal')).toBeNull();
       expect(rows(fixture)).toHaveLength(1);
     });
+
+    /**
+     * A rule created in the modal backfills its missed occurrences, but only
+     * the next generation run writes them. Without this the entries the user
+     * just caused would sit unwritten until they navigated away and back.
+     */
+    it('regenerates and reloads the register once the rules modal closes', async () => {
+      vi.mocked(toast.info).mockClear();
+      const entriesApi = stubEntriesApi([entry()]);
+      const recurringRulesApi = stubRecurringRulesApi(
+        vi.fn().mockResolvedValueOnce(0).mockResolvedValueOnce(2),
+      );
+      const fixture = await createAccount(entriesApi, stubCategoriesApi(), recurringRulesApi);
+      entriesApi.listEntries.mockClear();
+
+      await click(fixture, 'recurring-open');
+      await click(fixture, 'modal-backdrop');
+      await settle(fixture);
+
+      expect(recurringRulesApi.openAccount).toHaveBeenCalledTimes(2);
+      expect(entriesApi.listEntries).toHaveBeenCalled();
+      expect(toast.info).toHaveBeenCalledWith('2 écritures générées');
+    });
   });
 });
 
