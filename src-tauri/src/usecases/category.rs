@@ -212,6 +212,18 @@ mod tests {
             unimplemented!("category rules never read account opening dates")
         }
 
+        fn sum_reconciled_up_to(
+            &self,
+            _account_id: i64,
+            _statement_date: &IsoDate,
+        ) -> Result<i64, EntryError> {
+            unimplemented!("category rules don't sum reconciled balances")
+        }
+
+        fn count_unreconciled_by_account(&self, _account_id: i64) -> Result<i64, EntryError> {
+            unimplemented!("category rules don't count unreconciled entries")
+        }
+
         fn count_non_system_by_account(&self, _account_id: i64) -> Result<i64, EntryError> {
             unimplemented!("category rules never count entries per account")
         }

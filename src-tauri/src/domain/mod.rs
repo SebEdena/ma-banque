@@ -9,4 +9,5 @@ pub mod data_folder_location;
 pub mod date;
 pub mod entry;
 pub mod money;
+pub mod reconciliation;
 pub mod settings;

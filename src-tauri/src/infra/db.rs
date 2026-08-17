@@ -28,7 +28,7 @@ pub struct StartupDbError(pub Mutex<Option<DbOpenError>>);
 /// Number of `.sql` files embedded in [`migrations`] — kept in sync with
 /// that function so the downgrade guard can tell "older than this" apart
 /// from "newer than this" without a public accessor on `Migrations`.
-const MIGRATION_COUNT: usize = 6;
+const MIGRATION_COUNT: usize = 7;
 
 /// How many pre-migration backups to keep (oldest dropped first).
 const MAX_BACKUPS: usize = 3;
@@ -51,6 +51,9 @@ fn migrations() -> Migrations<'static> {
         M::up(include_str!("../../migrations/0005_create_categories.sql")),
         M::up(include_str!(
             "../../migrations/0006_entries_label_description.sql"
+        )),
+        M::up(include_str!(
+            "../../migrations/0007_accounts_reconciliation.sql"
         )),
     ];
     debug_assert_eq!(ms.len(), MIGRATION_COUNT);
@@ -208,6 +211,39 @@ mod tests {
             table_exists,
             "expected `settings` table to exist after migrations"
         );
+    }
+
+    #[test]
+    fn the_reconciliation_columns_land_null_on_pre_existing_accounts() {
+        let mut conn = Connection::open_in_memory().expect("open in-memory db");
+        collation::register(&conn).unwrap();
+
+        // A save from before 0007: accounts exist, the two columns don't.
+        migrations()
+            .to_version(&mut conn, 6)
+            .expect("migrations up to 0006 should apply cleanly");
+        for name in ["Compte courant", "Livret A"] {
+            conn.execute(
+                "INSERT INTO accounts (name, color, icon, created_date, opening_balance) \
+                 VALUES (?1, '#3b82f6', 'wallet', '2026-01-15', 100000)",
+                [name],
+            )
+            .unwrap();
+        }
+
+        migrations()
+            .to_latest(&mut conn)
+            .expect("0007 should apply to a database holding accounts");
+
+        let unset: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM accounts \
+                 WHERE bank_balance IS NULL AND statement_date IS NULL",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(unset, 2, "both columns should be NULL on every account");
     }
 
     #[test]
