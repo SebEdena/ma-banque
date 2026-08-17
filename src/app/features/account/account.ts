@@ -13,6 +13,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
+  lucideCalendarClock,
   lucideChevronRight,
   lucideChevronsUpDown,
   lucideCircleCheck,
@@ -56,6 +57,7 @@ import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
 import { EntryDraft, EntryForm, EntryFormField } from './entry-form/entry-form';
 import { EntryRow } from './entry-row/entry-row';
 import { ReconciliationPanel } from './reconciliation-panel/reconciliation-panel';
+import { RecurringRulesModal } from './recurring-rules-modal/recurring-rules-modal';
 import { RowCategory, SYSTEM_CATEGORY, UNCATEGORIZED } from './row-category';
 
 /** Rows left below the viewport before the next page is requested. */
@@ -125,6 +127,7 @@ function emptyDraft(): EntryDraft {
     EntryRow,
     EntryForm,
     ReconciliationPanel,
+    RecurringRulesModal,
     ...HlmDatePickerImports,
     ...HlmTooltipImports,
   ],
@@ -134,6 +137,7 @@ function emptyDraft(): EntryDraft {
     EntriesPager,
     provideCatalogIcons(),
     provideIcons({
+      lucideCalendarClock,
       lucideChevronRight,
       lucideChevronsUpDown,
       lucideCircleCheck,
@@ -232,6 +236,9 @@ export class Account {
   protected readonly editing = signal<EditTarget | null>(null);
   protected readonly saving = signal(false);
   protected readonly confirmingDelete = signal<Entry | null>(null);
+
+  /** Whether the account's recurring rules modal is open over the register. */
+  protected readonly rulesOpen = signal(false);
 
   /** Whether the quick-create category modal is open over the form. */
   protected readonly creatingCategory = signal(false);

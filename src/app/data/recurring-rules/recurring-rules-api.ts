@@ -1,6 +1,35 @@
 import { Service } from '@angular/core';
 import { invoke } from '@tauri-apps/api/core';
 
+/** The three frequencies §3.4 allows, as `Frequency` serializes them. */
+export type Frequency = 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+
+/** How far an edit to a rule's template reaches, as `EditScope` parses it. */
+export type EditScope = 'NEXT_OCCURRENCE_ONLY' | 'ALL_FUTURE';
+
+/**
+ * Mirrors `RecurringRuleView` in `src-tauri/src/commands/recurring.rs`. The
+ * payload is **flat** — the entry template and the schedule side by side —
+ * even though the Rust domain splits them, because that is the shape the
+ * rule form edits. `amount` is signed major units (negative is a debit),
+ * already divided by Rust; dates are ISO `YYYY-MM-DD`.
+ */
+export interface RecurringRule {
+  id: number;
+  account_id: number;
+  label: string;
+  category_id: number | null;
+  amount: number;
+  description: string;
+  frequency: Frequency;
+  interval: number;
+  start_date: string;
+  end_date: string | null;
+}
+
+/** Mirrors `RecurringRuleInputPayload` — the rule form as the commands take it. */
+export type RecurringRuleInput = Omit<RecurringRule, 'id' | 'account_id'>;
+
 /**
  * Wraps `invoke()` for the recurring-rule Tauri commands so components never
  * call `invoke()` directly — the seam this feature's tests mock, matching
@@ -23,6 +52,32 @@ export class RecurringRulesApi {
   /** The startup sweep, across every active account. */
   generateAllDue(): Promise<void> {
     return invoke<void>('generate_all_due_entries');
+  }
+
+  listRecurringRules(accountId: number): Promise<RecurringRule[]> {
+    return invoke<RecurringRule[]>('list_recurring_rules', { accountId });
+  }
+
+  createRecurringRule(accountId: number, input: RecurringRuleInput): Promise<RecurringRule> {
+    return invoke<RecurringRule>('create_recurring_rule', { accountId, input });
+  }
+
+  /**
+   * `scope` is advisory: the backend forces `ALL_FUTURE` when the schedule
+   * changed, whatever was sent (see `usecases::recurring::update_rule`). The
+   * UI still only asks about it for template edits, since "apply this new
+   * frequency to the next occurrence only" has no meaning.
+   */
+  updateRecurringRule(
+    id: number,
+    input: RecurringRuleInput,
+    scope: EditScope,
+  ): Promise<RecurringRule> {
+    return invoke<RecurringRule>('update_recurring_rule', { id, input, scope });
+  }
+
+  deleteRecurringRule(id: number): Promise<void> {
+    return invoke<void>('delete_recurring_rule', { id });
   }
 }
 
