@@ -37,3 +37,14 @@ a[data-accent]:hover {
   outline: 2px solid var(--account-color);
   outline-offset: 2px;
 }
+
+/*
+  The reconciliation panel's two editable fields (statement date, bank
+  balance): a plain bottom line at rest, recoloured to the account accent
+  while focused. No outline box here — these sit beside plain, borderless
+  figures (Solde pointé, Écart), and a heavy focus ring would outweigh that
+  light, line-only affordance.
+*/
+[data-accent-field]:focus-within {
+  border-color: var(--account-color);
+}
