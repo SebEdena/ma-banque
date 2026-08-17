@@ -14,7 +14,7 @@ Spawn a fresh issue agent (see [[actors]]) to implement exactly one issue.
 
 ## Process
 
-1. Spawn a fresh issue agent on the feature's worktree/branch. Seed its prompt with: the spec, the single issue file, and a pointer to `.scratch/<feature>/notes.md` (it must read this before starting, for decisions earlier issues left behind).
+1. Spawn a fresh issue agent on the feature's worktree/branch. Seed its prompt with: the spec, the single issue file, and either the full path to `.scratch/<feature>/notes.md` (small files) or, once it's grown past a page or two, the specific `## Cross-issue notes` bullets that plausibly bear on this issue — read the file yourself first and excerpt, don't paste the whole thing into every spawn prompt. Point at shared conventions (testing setup, naming rules, etc.) by reference to `docs/architecture/technical-architecture.md` rather than restating them inline — the agent can read that file itself.
 2. The agent:
    - Runs `/implement` on the issue (runs `/tdd`, `/code-review`, and commits with Conventional Commits format).
    - Formats and lints the code per the project's standards.
