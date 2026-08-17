@@ -77,7 +77,7 @@ export function parseRecurringError(error: unknown): string {
     case 'UnknownCategory':
       return "ce poste n'existe plus";
     case 'InvalidAmount':
-      return RECURRING_INVALID_AMOUNT_MESSAGE;
+      return "le montant de l'écriture périodique est invalide";
     case 'InvalidStoredValue':
       return "l'écriture périodique contient une valeur invalide";
     case 'Io':
@@ -86,13 +86,6 @@ export function parseRecurringError(error: unknown): string {
       return "une erreur inattendue s'est produite";
   }
 }
-
-/**
- * What the rule form's amount field says when its text isn't a number at all
- * — the same wording the backend's own `money::to_cents` rejection gets, so
- * the two paths read identically to the user.
- */
-export const RECURRING_INVALID_AMOUNT_MESSAGE = "le montant de l'écriture périodique est invalide";
 
 /** The toast an account open raises when generation produced entries. */
 export function generatedEntriesMessage(count: number): string {

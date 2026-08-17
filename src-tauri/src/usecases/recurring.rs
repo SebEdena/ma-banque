@@ -148,6 +148,11 @@ pub fn delete_rule(rules: &dyn RecurringRuleRepository, id: i64) -> Result<(), R
 /// insert-if-absent is the backstop. The failure being defended against is
 /// duplicated money in the user's register, so a window bug degrades into
 /// "generates nothing extra" rather than "generates the rent twice".
+///
+/// An **archived account generates nothing and is not stamped** (user story
+/// 25). Leaving its stamp stale is the point: unarchiving then backfills the
+/// period the account spent archived, which is right, because the commitment
+/// behind the rule did not pause.
 pub fn generate_due_for_account(
     rules: &dyn RecurringRuleRepository,
     accounts: &dyn AccountRepository,
@@ -155,6 +160,9 @@ pub fn generate_due_for_account(
     today: &IsoDate,
 ) -> Result<usize, RecurringError> {
     let account = accounts.find(account_id)?.ok_or(RecurringError::NotFound)?;
+    if account.archived {
+        return Ok(0);
+    }
 
     let mut generated = 0;
     for rule in rules.list_by_account(account_id)? {
@@ -162,27 +170,33 @@ pub fn generate_due_for_account(
             .last_viewed_date
             .clone()
             .unwrap_or_else(|| rule.schedule.start_date.clone());
-        let overrides = rules.list_overrides(rule.id)?;
+        let mut outstanding = rules.list_overrides(rule.id)?;
 
         for date in occurrences_between(&rule.schedule, &window_start, today) {
-            let outstanding = overrides
+            let overridden = outstanding
                 .iter()
-                .find(|candidate| candidate.occurrence_date == date);
-            let template = outstanding.map_or(&rule.template, |o| &o.template);
+                .position(|candidate| candidate.occurrence_date == date);
+            let template = match overridden {
+                Some(index) => outstanding[index].template.clone(),
+                None => rule.template.clone(),
+            };
 
-            if rules.insert_occurrence_if_absent(rule.id, account_id, &date, template)? {
-                generated += 1;
+            if !rules.insert_occurrence_if_absent(rule.id, account_id, &date, &template)? {
+                continue;
             }
-            if outstanding.is_some() {
+            generated += 1;
+            if let Some(index) = overridden {
                 rules.delete_override(rule.id, &date)?;
+                outstanding.remove(index);
             }
         }
 
-        // An override the loop above didn't reach but whose date has gone by
-        // was keyed to an occurrence this rule no longer lands on. Pruning it
-        // here is what stops it resurfacing months later, and is what makes
-        // the non-atomic schedule-change path self-healing.
-        for stale in overrides
+        // What is left is an override the loop never wrote an entry from. Once
+        // its date has gone by it never will — the occurrence it was keyed to
+        // is either already in the register or off the rule's schedule
+        // entirely — so pruning it here stops it resurfacing months later, and
+        // is what makes the non-atomic schedule-change path self-healing.
+        for stale in outstanding
             .iter()
             .filter(|candidate| &candidate.occurrence_date <= today)
         {
@@ -199,13 +213,8 @@ pub fn generate_due_for_account(
 }
 
 /// The startup sweep: brings every active account up to `today`, so the home
-/// screen's balances are correct before the user looks at them.
-///
-/// Archived accounts are skipped and their rules therefore stop generating
-/// (user story 25). Their rules and their stale stamp are both preserved, so
-/// unarchiving resumes from where the account left off and backfills the
-/// period it spent archived — which is right, because the commitment behind
-/// the rule did not pause.
+/// screen's balances are correct before the user looks at them. Archived
+/// accounts are not listed, and would generate nothing if they were.
 pub fn generate_due_for_all(
     accounts: &dyn AccountRepository,
     rules: &dyn RecurringRuleRepository,
@@ -908,6 +917,24 @@ mod tests {
             generate_due_for_account(&store, &accounts, 404, &date("2026-06-01")).unwrap_err();
 
         assert_eq!(err, RecurringError::NotFound);
+    }
+
+    /// User story 25, on the path the sweep doesn't cover: an archived
+    /// account is still reachable from the home screen's archived list, and
+    /// opening it must neither generate nor consume its stale stamp — that
+    /// stamp is what unarchiving backfills from.
+    #[test]
+    fn opening_an_archived_account_generates_nothing_and_leaves_its_stamp_alone() {
+        let store = FakeStore::default();
+        create_rule(&store, 1, input("Loyer", -750.0)).unwrap();
+        let accounts = FakeAccounts::with(1, Some("2026-03-01"), true);
+
+        let generated =
+            generate_due_for_account(&store, &accounts, 1, &date("2026-06-01")).unwrap();
+
+        assert_eq!(generated, 0);
+        assert!(store.generated.borrow().is_empty());
+        assert_eq!(accounts.last_viewed_date(1).as_deref(), Some("2026-03-01"));
     }
 
     /// User story 25: archiving an account genuinely stops it moving.
