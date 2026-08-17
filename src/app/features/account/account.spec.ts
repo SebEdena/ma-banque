@@ -4,6 +4,7 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
 import { provideBrnCalendarI18n } from '@spartan-ng/brain/calendar';
 import { provideNativeDateAdapter } from '@spartan-ng/brain/date-time';
+import { toast } from '@spartan-ng/brain/sonner';
 
 import { AccountsApi } from '@data/accounts/accounts-api';
 import { AccountsStore } from '@data/accounts/accounts-store';
@@ -12,9 +13,17 @@ import { FRENCH_CALENDAR_I18N } from '@core/display-settings/calendar-i18n';
 import { DisplaySettingsService } from '@core/display-settings/display-settings';
 import { EntriesApi, Entry, ListEntriesQuery } from '@data/entries/entries-api';
 import { ReconciliationApi, ReconciliationSummary } from '@data/reconciliation/reconciliation-api';
+import { RecurringRulesApi } from '@data/recurring-rules/recurring-rules-api';
 import { accountFixture } from '@core/testing/account.fixture';
 import '@core/testing/jsdom-polyfills';
 import { Account } from './account';
+
+// Spied rather than mocked: the rest of the module is what this screen's
+// dialogs and pickers are built on, so it has to stay real.
+beforeEach(() => {
+  vi.spyOn(toast, 'error').mockReturnValue('');
+  vi.spyOn(toast, 'info').mockReturnValue('');
+});
 
 function entry(overrides: Partial<Entry> = {}): Entry {
   return {
@@ -145,10 +154,21 @@ function stubReconciliationApi(
   };
 }
 
+interface StubRecurringRulesApi {
+  openAccount: ReturnType<typeof vi.fn>;
+  generateAllDue: ReturnType<typeof vi.fn>;
+}
+
+/** Generation is a no-op by default, so the tests about the register stay about it. */
+function stubRecurringRulesApi(openAccount = vi.fn().mockResolvedValue(0)): StubRecurringRulesApi {
+  return { openAccount, generateAllDue: vi.fn().mockResolvedValue(undefined) };
+}
+
 async function createAccount(
   entriesApi: StubEntriesApi,
   categoriesApi: StubCategoriesApi = stubCategoriesApi(),
   reconciliationApi: StubReconciliationApi = stubReconciliationApi(),
+  recurringRulesApi: StubRecurringRulesApi = stubRecurringRulesApi(),
 ): Promise<ComponentFixture<Account>> {
   await TestBed.configureTestingModule({
     imports: [Account],
@@ -168,6 +188,7 @@ async function createAccount(
       { provide: CategoriesApi, useValue: categoriesApi },
       { provide: EntriesApi, useValue: entriesApi },
       { provide: ReconciliationApi, useValue: reconciliationApi },
+      { provide: RecurringRulesApi, useValue: recurringRulesApi },
       {
         provide: DisplaySettingsService,
         useValue: { dateFormat: signal('DMY'), currencyFormat: signal('SYMBOL_AFTER') },
@@ -184,8 +205,15 @@ async function createAccount(
   return fixture;
 }
 
+/**
+ * Repeated, because a load is several chained awaits deep — the screen
+ * generates the account's due occurrences before it reads the register, and
+ * one round of stability only drains as far as the next link in the chain.
+ */
 async function settle(fixture: ComponentFixture<Account>): Promise<void> {
-  await fixture.whenStable();
+  for (let round = 0; round < 3; round += 1) {
+    await fixture.whenStable();
+  }
   fixture.detectChanges();
 }
 
@@ -317,6 +345,70 @@ function manyEntries(count: number): Entry[] {
 }
 
 describe('Account', () => {
+  it('generates the account’s due occurrences before its first read of the register', async () => {
+    const order: string[] = [];
+    const entriesApi = stubEntriesApi([entry()]);
+    entriesApi.listEntries.mockImplementation(() => {
+      order.push('listEntries');
+      return Promise.resolve({ entries: [], has_more: false });
+    });
+    const recurringRulesApi = stubRecurringRulesApi(
+      vi.fn(() => {
+        order.push('openAccount');
+        return Promise.resolve(0);
+      }),
+    );
+
+    await createAccount(entriesApi, stubCategoriesApi(), stubReconciliationApi(), recurringRulesApi);
+
+    expect(recurringRulesApi.openAccount).toHaveBeenCalledWith(1);
+    expect(order[0]).toBe('openAccount');
+  });
+
+  it('reports a non-zero generated count as an informational toast', async () => {
+    await createAccount(
+      stubEntriesApi([entry()]),
+      stubCategoriesApi(),
+      stubReconciliationApi(),
+      stubRecurringRulesApi(vi.fn().mockResolvedValue(3)),
+    );
+
+    expect(toast.info).toHaveBeenCalledWith('3 écritures générées');
+  });
+
+  it('says nothing when generation produced no entry', async () => {
+    vi.mocked(toast.info).mockClear();
+
+    await createAccount(stubEntriesApi([entry()]));
+
+    expect(toast.info).not.toHaveBeenCalled();
+  });
+
+  it('still renders the register when generation rejects, toasting the failure', async () => {
+    const fixture = await createAccount(
+      stubEntriesApi([entry({ label: 'Courses' })]),
+      stubCategoriesApi(),
+      stubRecurringRulesApi(vi.fn().mockRejectedValue({ kind: 'Io', message: 'disque plein' })),
+    );
+
+    expect(toast.error).toHaveBeenCalledWith('disque plein');
+    expect(rows(fixture).map((row) => textIn(row, 'entry-label'))).toEqual(['Courses']);
+  });
+
+  it('generates once per account, not again on every filter change', async () => {
+    const recurringRulesApi = stubRecurringRulesApi();
+    const fixture = await createAccount(
+      stubEntriesApi([entry()]),
+      stubCategoriesApi(),
+      recurringRulesApi,
+    );
+
+    await click(fixture, 'entries-sort-toggle');
+    await settle(fixture);
+
+    expect(recurringRulesApi.openAccount).toHaveBeenCalledTimes(1);
+  });
+
   it('renders a page of entries, most-recent-first by default', async () => {
     const entriesApi = stubEntriesApi([
       entry({ id: 1, label: 'Ancienne', date: '2026-02-01' }),

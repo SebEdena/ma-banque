@@ -12,9 +12,6 @@ use chrono::Local;
 
 use crate::domain::date::IsoDate;
 
-// Called by the generation commands, which the generation-engine spec adds:
-// `today` is resolved once per invocation there and passed down as a date.
-#[allow(dead_code)]
 pub fn today() -> IsoDate {
     IsoDate::parse(&Local::now().date_naive().format("%Y-%m-%d").to_string())
         .expect("chrono formats a local date as a valid YYYY-MM-DD")

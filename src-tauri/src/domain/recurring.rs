@@ -13,6 +13,7 @@
 use serde::Serialize;
 use thiserror::Error;
 
+use crate::domain::account::AccountError;
 use crate::domain::date::IsoDate;
 use crate::domain::entry::SignedCents;
 use crate::domain::money::InvalidAmount;
@@ -142,6 +143,17 @@ impl From<InvalidAmount> for RecurringError {
     }
 }
 
+/// Generation reads accounts (for the window's start and to stamp it), so
+/// their failures have to arrive as this feature's error.
+impl From<AccountError> for RecurringError {
+    fn from(error: AccountError) -> Self {
+        match error {
+            AccountError::NotFound => RecurringError::NotFound,
+            other => RecurringError::Io(other.to_string()),
+        }
+    }
+}
+
 /// The `n`-th occurrence of `schedule`, counting from zero at its start date.
 ///
 /// **Anchored, not chained**: every occurrence is `start_date` advanced by
@@ -163,10 +175,6 @@ fn occurrence(schedule: &RuleSchedule, n: u32) -> IsoDate {
 /// Every occurrence date of `schedule` falling in the inclusive window
 /// `[from, to]`, ascending, clipped by the schedule's own start and end
 /// dates. A window entirely outside the rule's range yields nothing.
-// Called by `usecases::recurring`'s generation, which the generation-engine
-// spec adds; built and tested here because it is the pure seam the whole
-// feature rests on, and it belongs with the schedule types it reads.
-#[allow(dead_code)]
 pub fn occurrences_between(schedule: &RuleSchedule, from: &IsoDate, to: &IsoDate) -> Vec<IsoDate> {
     let last = match &schedule.end_date {
         Some(end) if end < to => end,
@@ -216,11 +224,6 @@ pub fn next_occurrence_after(schedule: &RuleSchedule, after: Option<&IsoDate>) -
 /// `entries (recurring_rule_id, date)` — the storage half of the idempotency
 /// pair guarding the user's register against duplicated money — which is a
 /// recurring-rule concern and not something an ordinary entry write does.
-// `list_overrides`, `delete_override` and `insert_occurrence_if_absent` have
-// no caller until generation lands; they are implemented and tested here so
-// the storage contract is settled in one place rather than growing a second
-// time alongside the generator.
-#[allow(dead_code)]
 pub trait RecurringRuleRepository {
     fn list_by_account(&self, account_id: i64) -> Result<Vec<RecurringRule>, RecurringError>;
 

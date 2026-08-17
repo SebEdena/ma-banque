@@ -60,6 +60,8 @@ pub fn run() {
             commands::recurring::create_recurring_rule,
             commands::recurring::update_recurring_rule,
             commands::recurring::delete_recurring_rule,
+            commands::recurring::open_account,
+            commands::recurring::generate_all_due_entries,
             commands::db::get_startup_db_error,
             commands::settings::get_display_settings,
             commands::settings::update_display_settings,
