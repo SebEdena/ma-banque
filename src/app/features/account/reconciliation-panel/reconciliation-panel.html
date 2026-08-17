@@ -1,0 +1,141 @@
+<div
+  data-testid="reconciliation-panel"
+  class="mb-4 flex flex-wrap items-center gap-8 rounded-[18px] border border-t-[3px] border-border bg-card px-6 py-5"
+  [style.border-top-color]="accountColor()"
+>
+  <div>
+    <p class="mb-1.5 text-xs font-semibold tracking-[0.03em] text-muted-foreground uppercase">
+      Date du relevé
+    </p>
+    <hlm-date-picker
+      captionLayout="dropdown"
+      [date]="statementDate()"
+      [formatDate]="formatStatementDate()"
+      (dateChange)="onStatementDateChange($event)"
+      class="shrink-0"
+    >
+      <hlm-date-picker-input
+        inputId="reconciliation-statement-date"
+        data-testid="reconciliation-statement-date"
+        data-accent
+        aria-label="Date du relevé"
+        calendarAriaLabel="Ouvrir le calendrier"
+        clearAriaLabel="Effacer la date du relevé"
+        [showClear]="false"
+        [formatInputDate]="formatStatementDate()"
+        [parseDate]="parseStatementDate"
+        class="w-[136px] h-auto shrink-0 border-none bg-transparent p-0 text-[15px] shadow-none ring-0 has-[[data-slot=input-group-control]:focus-visible]:border-none has-[[data-slot=input-group-control]:focus-visible]:ring-0 [&_input]:h-auto [&_input]:py-0 [&_[data-slot=input-group-addon]]:py-0"
+      />
+    </hlm-date-picker>
+  </div>
+
+  <div class="h-[38px] w-px bg-border"></div>
+
+  @if (reconciledBalanceText(); as reconciledBalance) {
+    <div>
+      <p class="mb-1.5 text-xs font-semibold tracking-[0.03em] text-muted-foreground uppercase">
+        Solde pointé
+      </p>
+      <p
+        data-testid="reconciliation-reconciled-balance"
+        class="font-mono text-[21px] font-semibold"
+      >
+        {{ reconciledBalance }}
+      </p>
+    </div>
+
+    <div class="h-[38px] w-px bg-border"></div>
+  } @else {
+    <p
+      data-testid="reconciliation-statement-date-prompt"
+      class="max-w-[280px] text-[13px] font-semibold text-muted-foreground"
+    >
+      Renseignez la date de votre relevé pour calculer le solde pointé.
+    </p>
+  }
+
+  <div>
+    <label
+      class="mb-1.5 block text-xs font-semibold tracking-[0.03em] text-muted-foreground uppercase"
+      for="reconciliation-bank-balance"
+    >
+      Solde relevé bancaire
+    </label>
+    <input
+      appAmountInput
+      id="reconciliation-bank-balance"
+      data-testid="reconciliation-bank-balance"
+      data-accent
+      class="w-[140px] border-b-[1.5px] border-dashed border-input bg-transparent pb-0.5 font-mono text-[21px] font-semibold outline-none"
+      [value]="bankBalanceText()"
+      (input)="onBankBalanceInput($any($event.target).value)"
+      (change)="commitBankBalance()"
+    />
+    @if (bankBalanceError(); as error) {
+      <p
+        data-testid="reconciliation-bank-balance-error"
+        class="mt-1 text-[11px] font-semibold text-destructive"
+      >
+        {{ error }}
+      </p>
+    }
+  </div>
+
+  @if (deltaText(); as delta) {
+    <div class="h-[38px] w-px bg-border"></div>
+
+    <div>
+      <p class="mb-1.5 text-xs font-semibold tracking-[0.03em] text-muted-foreground uppercase">
+        Écart
+      </p>
+      <p
+        data-testid="reconciliation-delta"
+        class="font-mono text-[21px] font-semibold"
+        [class]="balanced() ? 'text-(--pointage-ok)' : 'text-(--pointage-bad)'"
+      >
+        {{ delta }}
+      </p>
+    </div>
+
+    <!-- A live region: the verdict flipping is the answer the user is waiting
+         for, and the colour alone carries it to nobody using a screen reader. -->
+    <p
+      role="status"
+      data-testid="reconciliation-verdict"
+      class="inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[13px] font-bold"
+      [class]="
+        balanced()
+          ? 'bg-(--pointage-ok-soft) text-(--pointage-ok)'
+          : 'bg-(--pointage-bad-soft) text-(--pointage-bad)'
+      "
+    >
+      <ng-icon [name]="balanced() ? 'lucideCircleCheck' : 'lucideCircleAlert'" size="14" />
+      {{ balanced() ? 'Comptes pointés' : 'Écart détecté' }}
+    </p>
+  }
+
+  <div class="flex-1"></div>
+
+  <button
+    type="button"
+    role="checkbox"
+    data-testid="reconciliation-filter"
+    data-accent-solid
+    [attr.aria-checked]="unreconciledOnly()"
+    [attr.data-checked]="unreconciledOnly()"
+    [disabled]="filterDisabled()"
+    class="flex items-center gap-2 text-[13px] font-semibold text-muted-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
+    (click)="unreconciledOnlyToggled.emit()"
+  >
+    <span
+      class="flex size-[18px] items-center justify-center rounded-[5px] border-[1.5px] text-white"
+      [style.background-color]="unreconciledOnly() ? accountColor() : 'transparent'"
+      [style.border-color]="unreconciledOnly() ? accountColor() : ''"
+    >
+      @if (unreconciledOnly()) {
+        <ng-icon name="lucideCheck" size="12" />
+      }
+    </span>
+    Non pointées uniquement
+  </button>
+</div>

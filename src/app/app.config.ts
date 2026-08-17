@@ -14,6 +14,8 @@ import { CategoriesApi } from './data/categories/categories-api';
 import { InMemoryCategoriesApi } from './data/categories/categories-api.mock';
 import { EntriesApi } from './data/entries/entries-api';
 import { InMemoryEntriesApi } from './data/entries/entries-api.mock';
+import { ReconciliationApi } from './data/reconciliation/reconciliation-api';
+import { InMemoryReconciliationApi } from './data/reconciliation/reconciliation-api.mock';
 
 /**
  * Only non-empty when built with `--configuration mock` (`npm run
@@ -26,6 +28,7 @@ const mockProviders = mockBackend
       { provide: AccountsApi, useClass: InMemoryAccountsApi },
       { provide: CategoriesApi, useClass: InMemoryCategoriesApi },
       { provide: EntriesApi, useClass: InMemoryEntriesApi },
+      { provide: ReconciliationApi, useClass: InMemoryReconciliationApi },
       { provide: SettingsApi, useClass: InMemorySettingsApi },
     ]
   : [];

@@ -90,7 +90,8 @@ export class InMemoryEntriesApi implements EntriesApi {
         (entry) =>
           entry.is_system ||
           ((query.from === null || entry.date >= query.from) &&
-            (query.to === null || entry.date <= query.to)),
+            (query.to === null || entry.date <= query.to) &&
+            (!query.unreconciled_only || !entry.reconciled)),
       )
       .sort((a, b) => {
         const order = a.date.localeCompare(b.date) || a.id - b.id;

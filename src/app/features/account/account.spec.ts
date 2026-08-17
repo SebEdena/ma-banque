@@ -11,6 +11,7 @@ import { CategoriesApi, Category } from '@data/categories/categories-api';
 import { FRENCH_CALENDAR_I18N } from '@core/display-settings/calendar-i18n';
 import { DisplaySettingsService } from '@core/display-settings/display-settings';
 import { EntriesApi, Entry, ListEntriesQuery } from '@data/entries/entries-api';
+import { ReconciliationApi, ReconciliationSummary } from '@data/reconciliation/reconciliation-api';
 import { accountFixture } from '@core/testing/account.fixture';
 import '@core/testing/jsdom-polyfills';
 import { Account } from './account';
@@ -52,20 +53,28 @@ interface StubEntriesApi {
 
 /** Pages, filters and sorts like the backend does, so the screen's requests round-trip honestly. */
 function stubEntriesApi(entries: Entry[]): StubEntriesApi {
+  /** Mutated by `setReconciled`, so a filtered reload sees the new state. */
+  const stored = entries.map((candidate) => ({ ...candidate }));
+
   return {
     createEntry: vi.fn().mockResolvedValue(entry({ id: 999 })),
     updateEntry: vi.fn().mockResolvedValue(entry()),
     deleteEntry: vi.fn().mockResolvedValue(undefined),
-    setReconciled: vi.fn((id: number, reconciled: boolean) =>
-      Promise.resolve(entry({ ...entries.find((candidate) => candidate.id === id), reconciled })),
-    ),
+    setReconciled: vi.fn((id: number, reconciled: boolean) => {
+      const target = stored.find((candidate) => candidate.id === id);
+      if (target) {
+        target.reconciled = reconciled;
+      }
+      return Promise.resolve(entry({ ...target, reconciled }));
+    }),
     listEntries: vi.fn((_accountId: number, query: ListEntriesQuery) => {
-      const matching = entries
+      const matching = stored
         .filter(
           (candidate) =>
             candidate.is_system ||
             ((query.from === null || candidate.date >= query.from) &&
-              (query.to === null || candidate.date <= query.to)),
+              (query.to === null || candidate.date <= query.to) &&
+              (!query.unreconciled_only || !candidate.reconciled)),
         )
         .sort((a, b) => {
           const order = a.date.localeCompare(b.date) || a.id - b.id;
@@ -100,9 +109,46 @@ function stubCategoriesApi(categories: Category[] = [category()]): StubCategorie
   };
 }
 
+interface StubReconciliationApi {
+  summary: ReturnType<typeof vi.fn>;
+  setBankBalance: ReturnType<typeof vi.fn>;
+  setStatementDate: ReturnType<typeof vi.fn>;
+  /** What the next call resolves with — the panel's figures after an edit. */
+  next(overrides: Partial<ReconciliationSummary>): void;
+}
+
+/**
+ * Answers every command with one stored summary, as the backend does — the
+ * three commands all return the freshly recomputed shape.
+ */
+function stubReconciliationApi(
+  initial: Partial<ReconciliationSummary> = {},
+): StubReconciliationApi {
+  let current: ReconciliationSummary = {
+    statement_date: '2026-02-28',
+    bank_balance: 1000,
+    reconciled_balance: 984.5,
+    delta: 15.5,
+    is_balanced: false,
+    unreconciled_count: 4,
+    ...initial,
+  };
+  const answer = (): Promise<ReconciliationSummary> => Promise.resolve({ ...current });
+
+  return {
+    summary: vi.fn(answer),
+    setBankBalance: vi.fn(answer),
+    setStatementDate: vi.fn(answer),
+    next(overrides: Partial<ReconciliationSummary>): void {
+      current = { ...current, ...overrides };
+    },
+  };
+}
+
 async function createAccount(
   entriesApi: StubEntriesApi,
   categoriesApi: StubCategoriesApi = stubCategoriesApi(),
+  reconciliationApi: StubReconciliationApi = stubReconciliationApi(),
 ): Promise<ComponentFixture<Account>> {
   await TestBed.configureTestingModule({
     imports: [Account],
@@ -121,6 +167,7 @@ async function createAccount(
       },
       { provide: CategoriesApi, useValue: categoriesApi },
       { provide: EntriesApi, useValue: entriesApi },
+      { provide: ReconciliationApi, useValue: reconciliationApi },
       {
         provide: DisplaySettingsService,
         useValue: { dateFormat: signal('DMY'), currencyFormat: signal('SYMBOL_AFTER') },
@@ -190,6 +237,19 @@ async function setDate(
   // field fires a second, real blur here, re-parsing this field's
   // already-reformatted display text with the ISO-only parser and clearing it.
   input.blur();
+  await settle(fixture);
+}
+
+/** Types into a plain field and commits it, as leaving the field does. */
+async function commit(
+  fixture: ComponentFixture<Account>,
+  testId: string,
+  value: string,
+): Promise<void> {
+  const input = one(fixture, testId) as HTMLInputElement;
+  input.value = value;
+  input.dispatchEvent(new Event('input'));
+  input.dispatchEvent(new Event('change'));
   await settle(fixture);
 }
 
@@ -576,6 +636,149 @@ describe('Account', () => {
 
     expect(one(fixture, 'category-name')).toBeNull();
     expect(one(fixture, 'entry-form-category')?.textContent?.trim()).toBe('Alimentation');
+  });
+
+  it('opens the account with the reconciliation panel collapsed and the filter off', async () => {
+    const entriesApi = stubEntriesApi([entry()]);
+    const reconciliationApi = stubReconciliationApi();
+    const fixture = await createAccount(entriesApi, stubCategoriesApi(), reconciliationApi);
+
+    expect(one(fixture, 'reconciliation-toggle')).not.toBeNull();
+    expect(one(fixture, 'reconciliation-panel')).toBeNull();
+    expect(reconciliationApi.summary).not.toHaveBeenCalled();
+    expect(queryOf(entriesApi, 0)).toMatchObject({ unreconciled_only: false });
+  });
+
+  it('opens the panel on the Pointage toggle and asks for the summary', async () => {
+    const reconciliationApi = stubReconciliationApi();
+    const fixture = await createAccount(stubEntriesApi([entry()]), undefined, reconciliationApi);
+
+    await click(fixture, 'reconciliation-toggle');
+
+    expect(reconciliationApi.summary).toHaveBeenCalledWith(1);
+    expect(one(fixture, 'reconciliation-panel')).not.toBeNull();
+    expect(one(fixture, 'reconciliation-delta')?.textContent).toContain('15,50');
+  });
+
+  it('ticks the unreconciled filter when the panel opens, and re-requests with it', async () => {
+    const entriesApi = stubEntriesApi([
+      entry({ id: 1, label: 'Pointée', reconciled: true }),
+      entry({ id: 2, label: 'À pointer', reconciled: false }),
+    ]);
+    const fixture = await createAccount(entriesApi);
+
+    await click(fixture, 'reconciliation-toggle');
+
+    expect(queryOf(entriesApi)).toMatchObject({ unreconciled_only: true, offset: 0 });
+    expect(one(fixture, 'reconciliation-filter')?.dataset['checked']).toBe('true');
+    expect(rows(fixture).map((row) => textIn(row, 'entry-label'))).toEqual(['À pointer']);
+  });
+
+  it('re-requests the full list when the filter is unticked with the panel still open', async () => {
+    const entriesApi = stubEntriesApi([
+      entry({ id: 1, label: 'Pointée', reconciled: true }),
+      entry({ id: 2, label: 'À pointer', reconciled: false }),
+    ]);
+    const fixture = await createAccount(entriesApi);
+
+    await click(fixture, 'reconciliation-toggle');
+    await click(fixture, 'reconciliation-filter');
+
+    expect(queryOf(entriesApi)).toMatchObject({ unreconciled_only: false });
+    expect(rows(fixture).map((row) => textIn(row, 'entry-label'))).toEqual([
+      'À pointer',
+      'Pointée',
+    ]);
+  });
+
+  it('restores the full list when the panel collapses, even with the box still ticked', async () => {
+    const entriesApi = stubEntriesApi([
+      entry({ id: 1, label: 'Pointée', reconciled: true }),
+      entry({ id: 2, label: 'À pointer', reconciled: false }),
+    ]);
+    const fixture = await createAccount(entriesApi);
+
+    await click(fixture, 'reconciliation-toggle');
+    expect(queryOf(entriesApi)).toMatchObject({ unreconciled_only: true });
+
+    await click(fixture, 'reconciliation-toggle');
+
+    // The checkbox was never unticked — collapsing alone is what disarms it.
+    expect(queryOf(entriesApi)).toMatchObject({ unreconciled_only: false });
+    expect(rows(fixture).map((row) => textIn(row, 'entry-label'))).toEqual([
+      'À pointer',
+      'Pointée',
+    ]);
+  });
+
+  it('reloads the page when a row is ticked while the filter is active', async () => {
+    const entriesApi = stubEntriesApi([entry({ id: 7, label: 'À pointer', reconciled: false })]);
+    const reconciliationApi = stubReconciliationApi();
+    const fixture = await createAccount(entriesApi, undefined, reconciliationApi);
+
+    await click(fixture, 'reconciliation-toggle');
+    const listCalls = entriesApi.listEntries.mock.calls.length;
+
+    await click(fixture, 'entry-reconciled');
+
+    expect(entriesApi.setReconciled).toHaveBeenCalledWith(7, true);
+    expect(entriesApi.listEntries.mock.calls.length).toBe(listCalls + 1);
+    // The row stopped matching the predicate the list claims to obey.
+    expect(rows(fixture)).toHaveLength(0);
+    expect(reconciliationApi.summary).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps the in-place patch when a row is ticked with the filter off', async () => {
+    const entriesApi = stubEntriesApi([entry({ id: 7, reconciled: false })]);
+    const reconciliationApi = stubReconciliationApi();
+    const fixture = await createAccount(entriesApi, undefined, reconciliationApi);
+
+    await click(fixture, 'reconciliation-toggle');
+    await click(fixture, 'reconciliation-filter');
+    const listCalls = entriesApi.listEntries.mock.calls.length;
+
+    await click(fixture, 'entry-reconciled');
+
+    expect(entriesApi.listEntries.mock.calls.length).toBe(listCalls);
+    expect(one(fixture, 'entry-reconciled')?.dataset['reconciled']).toBe('true');
+    expect(reconciliationApi.summary).toHaveBeenCalledTimes(2);
+  });
+
+  it('stores an edited bank balance and shows the figures it comes back with', async () => {
+    const reconciliationApi = stubReconciliationApi();
+    const fixture = await createAccount(stubEntriesApi([entry()]), undefined, reconciliationApi);
+
+    await click(fixture, 'reconciliation-toggle');
+    reconciliationApi.next({ bank_balance: 984.5, delta: 0, is_balanced: true });
+    await commit(fixture, 'reconciliation-bank-balance', '984,50');
+
+    expect(reconciliationApi.setBankBalance).toHaveBeenCalledWith(1, 984.5);
+    expect(one(fixture, 'reconciliation-delta')?.textContent?.trim()).toBe('0,00 €');
+    expect(one(fixture, 'reconciliation-verdict')?.textContent).toContain('Comptes pointés');
+  });
+
+  it('stores an edited statement date and shows the figures it comes back with', async () => {
+    const reconciliationApi = stubReconciliationApi({
+      statement_date: null,
+      reconciled_balance: null,
+      delta: null,
+      is_balanced: false,
+    });
+    const fixture = await createAccount(stubEntriesApi([entry()]), undefined, reconciliationApi);
+
+    await click(fixture, 'reconciliation-toggle');
+    expect(one(fixture, 'reconciliation-statement-date-prompt')).not.toBeNull();
+
+    reconciliationApi.next({
+      statement_date: '2026-03-31',
+      reconciled_balance: 984.5,
+      delta: 15.5,
+    });
+    await setDate(fixture, 'reconciliation-statement-date', '31/03/2026');
+
+    expect(reconciliationApi.setStatementDate).toHaveBeenCalledWith(1, '2026-03-31');
+    expect(one(fixture, 'reconciliation-statement-date-prompt')).toBeNull();
+    expect(one(fixture, 'reconciliation-reconciled-balance')?.textContent).toContain('984,50');
   });
 
   it('flips the type selector with the amount’s sign, in both directions', async () => {

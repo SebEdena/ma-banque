@@ -12,6 +12,12 @@ export interface PageQuery {
   sort: SortDirection;
   from: string | null;
   to: string | null;
+  /**
+   * Narrows the page to unticked entries (the system entry is exempt). The
+   * reconciliation panel's checkbox, and only ever true while that panel is
+   * open — `Account` owns the coupling.
+   */
+  unreconciledOnly: boolean;
 }
 
 /**
@@ -117,7 +123,7 @@ export class EntriesPager {
       const page = await this.entriesApi.listEntries(query.accountId, {
         from: query.from,
         to: query.to,
-        unreconciled_only: false,
+        unreconciled_only: query.unreconciledOnly,
         sort: query.sort,
         page_size: PAGE_SIZE,
         offset,

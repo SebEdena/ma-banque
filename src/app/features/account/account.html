@@ -45,7 +45,39 @@
             {{ account.balance | currencyFormat: displaySettings.currencyFormat() }}
           </span>
         </p>
+
+        <div class="flex-1"></div>
+
+        <button
+          type="button"
+          data-testid="reconciliation-toggle"
+          data-accent
+          [attr.aria-expanded]="panelOpen()"
+          aria-controls="reconciliation-panel"
+          class="flex items-center gap-1.5 rounded-[9px] border border-border bg-card px-3 py-2 text-[13px] font-semibold text-muted-foreground outline-none transition-colors"
+          [style.border-color]="panelOpen() ? account.color : ''"
+          [style.color]="panelOpen() ? account.color : ''"
+          [style.background-color]="panelOpen() ? account.color + '14' : ''"
+          (click)="togglePanel()"
+        >
+          <ng-icon name="lucideCircleCheck" size="14" />
+          Pointage
+        </button>
       </div>
+
+      @if (panelOpen() && summary(); as summary) {
+        <app-reconciliation-panel
+          id="reconciliation-panel"
+          [summary]="summary"
+          [accountColor]="account.color"
+          [currencyFormat]="displaySettings.currencyFormat()"
+          [dateFormat]="displaySettings.dateFormat()"
+          [unreconciledOnly]="unreconciledOnly()"
+          (bankBalanceChanged)="onBankBalanceChanged($event)"
+          (statementDateChanged)="onStatementDateChanged($event)"
+          (unreconciledOnlyToggled)="unreconciledOnly.set(!unreconciledOnly())"
+        />
+      }
 
       <div class="mb-4 flex flex-wrap items-center gap-3">
         <div
