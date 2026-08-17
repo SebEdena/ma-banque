@@ -28,7 +28,7 @@ pub struct StartupDbError(pub Mutex<Option<DbOpenError>>);
 /// Number of `.sql` files embedded in [`migrations`] — kept in sync with
 /// that function so the downgrade guard can tell "older than this" apart
 /// from "newer than this" without a public accessor on `Migrations`.
-const MIGRATION_COUNT: usize = 7;
+const MIGRATION_COUNT: usize = 8;
 
 /// How many pre-migration backups to keep (oldest dropped first).
 const MAX_BACKUPS: usize = 3;
@@ -54,6 +54,9 @@ fn migrations() -> Migrations<'static> {
         )),
         M::up(include_str!(
             "../../migrations/0007_accounts_reconciliation.sql"
+        )),
+        M::up(include_str!(
+            "../../migrations/0008_create_recurring_rules.sql"
         )),
     ];
     debug_assert_eq!(ms.len(), MIGRATION_COUNT);
@@ -232,7 +235,7 @@ mod tests {
         }
 
         migrations()
-            .to_latest(&mut conn)
+            .to_version(&mut conn, 7)
             .expect("0007 should apply to a database holding accounts");
 
         let unset: i64 = conn
@@ -244,6 +247,47 @@ mod tests {
             )
             .unwrap();
         assert_eq!(unset, 2, "both columns should be NULL on every account");
+    }
+
+    #[test]
+    fn the_recurring_rule_migration_applies_over_pre_existing_accounts_and_entries() {
+        let mut conn = Connection::open_in_memory().expect("open in-memory db");
+        collation::register(&conn).unwrap();
+        migrations()
+            .to_version(&mut conn, 6)
+            .expect("migrations up to 0006 should apply cleanly");
+
+        conn.execute(
+            "INSERT INTO accounts (name, color, icon, created_date, opening_balance) \
+             VALUES ('Compte', '#000000', 'wallet', '2026-01-15', 100000)",
+            [],
+        )
+        .unwrap();
+        conn.execute(
+            "INSERT INTO entries (account_id, date, type, amount, is_system) \
+             VALUES (1, '2026-01-15', 'CREDIT', 100000, 1)",
+            [],
+        )
+        .unwrap();
+
+        migrations()
+            .to_latest(&mut conn)
+            .expect("0007 and 0008 should apply over existing data");
+
+        let tables: i64 = conn
+            .query_row(
+                "SELECT COUNT(*) FROM sqlite_master WHERE type = 'table' \
+                 AND name IN ('recurring_rules', 'recurring_rule_overrides')",
+                [],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(tables, 2);
+
+        let entries: i64 = conn
+            .query_row("SELECT COUNT(*) FROM entries", [], |row| row.get(0))
+            .unwrap();
+        assert_eq!(entries, 1, "pre-existing entries should survive");
     }
 
     #[test]

@@ -46,6 +46,58 @@ impl IsoDate {
     pub fn as_str(&self) -> &str {
         &self.0
     }
+
+    /// `(year, month, day)` — infallible, since nothing can construct an
+    /// `IsoDate` without going through [`IsoDate::parse`].
+    fn parts(&self) -> (u32, u32, u32) {
+        let number = |range: std::ops::Range<usize>| self.0[range].parse::<u32>().unwrap();
+        (number(0..4), number(5..7), number(8..10))
+    }
+
+    /// Rebuilds a date from its parts, clamping `day` to the target month's
+    /// length — the one rule that makes every method below infallible.
+    fn from_parts(year: u32, month: u32, day: u32) -> Self {
+        let day = day.min(days_in_month(year, month));
+        Self(format!("{year:04}-{month:02}-{day:02}"))
+    }
+
+    /// Advances by whole weeks. Walks a month at a time rather than a day at
+    /// a time, so leap years and month lengths come from [`days_in_month`]
+    /// like everything else here.
+    pub fn add_weeks(&self, weeks: u32) -> Self {
+        let (mut year, mut month, mut day) = self.parts();
+        let mut remaining = weeks * 7;
+
+        loop {
+            let month_length = days_in_month(year, month);
+            if day + remaining <= month_length {
+                return Self::from_parts(year, month, day + remaining);
+            }
+            remaining -= month_length - day + 1;
+            day = 1;
+            (year, month) = if month == 12 {
+                (year + 1, 1)
+            } else {
+                (year, month + 1)
+            };
+        }
+    }
+
+    /// Advances by whole months, clamping the day to the target month's
+    /// length — 31 January plus one month is 28 (or 29) February, not
+    /// 3 March.
+    pub fn add_months(&self, months: u32) -> Self {
+        let (year, month, day) = self.parts();
+        let total = (month - 1) + months;
+        Self::from_parts(year + total / 12, total % 12 + 1, day)
+    }
+
+    /// Advances by whole years, clamping 29 February to the 28th in a
+    /// common year.
+    pub fn add_years(&self, years: u32) -> Self {
+        let (year, month, day) = self.parts();
+        Self::from_parts(year + years, month, day)
+    }
 }
 
 fn days_in_month(year: u32, month: u32) -> u32 {
@@ -117,6 +169,61 @@ mod tests {
         assert!(IsoDate::parse("2024-02-29").is_ok());
         assert!(IsoDate::parse("2000-02-29").is_ok());
         assert!(IsoDate::parse("1900-02-29").is_err());
+    }
+
+    fn date(value: &str) -> IsoDate {
+        IsoDate::parse(value).unwrap()
+    }
+
+    #[test]
+    fn add_weeks_crosses_a_month_boundary() {
+        assert_eq!(date("2026-01-25").add_weeks(2), date("2026-02-08"));
+    }
+
+    #[test]
+    fn add_weeks_crosses_a_year_boundary() {
+        assert_eq!(date("2025-12-25").add_weeks(2), date("2026-01-08"));
+    }
+
+    #[test]
+    fn add_weeks_crosses_a_leap_day() {
+        assert_eq!(date("2024-02-26").add_weeks(1), date("2024-03-04"));
+    }
+
+    #[test]
+    fn add_months_clamps_to_a_shorter_months_last_day() {
+        assert_eq!(date("2026-01-31").add_months(1), date("2026-02-28"));
+        assert_eq!(date("2024-01-31").add_months(1), date("2024-02-29"));
+        assert_eq!(date("2026-03-31").add_months(1), date("2026-04-30"));
+    }
+
+    #[test]
+    fn add_months_crosses_a_year_boundary() {
+        assert_eq!(date("2026-11-15").add_months(3), date("2027-02-15"));
+        assert_eq!(date("2026-01-15").add_months(24), date("2028-01-15"));
+    }
+
+    #[test]
+    fn add_years_clamps_a_leap_day_to_the_28th() {
+        assert_eq!(date("2024-02-29").add_years(1), date("2025-02-28"));
+        assert_eq!(date("2024-02-29").add_years(4), date("2028-02-29"));
+    }
+
+    #[test]
+    fn adding_nothing_is_the_identity() {
+        for value in ["2026-01-31", "2024-02-29", "2026-06-15"] {
+            assert_eq!(date(value).add_weeks(0), date(value));
+            assert_eq!(date(value).add_months(0), date(value));
+            assert_eq!(date(value).add_years(0), date(value));
+        }
+    }
+
+    #[test]
+    fn a_mid_month_day_is_preserved_unchanged() {
+        assert_eq!(date("2026-06-15").add_months(1), date("2026-07-15"));
+        assert_eq!(date("2026-06-15").add_months(8), date("2027-02-15"));
+        assert_eq!(date("2026-06-15").add_years(3), date("2029-06-15"));
+        assert_eq!(date("2026-06-15").add_weeks(4), date("2026-07-13"));
     }
 
     #[test]

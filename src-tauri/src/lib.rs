@@ -17,6 +17,7 @@ use domain::category::DynCategoryRepository;
 use domain::data_folder_location::{DataFolderLocationRepository, DynDataFolderLocationRepository};
 use domain::entry::DynEntryRepository;
 use domain::reconciliation::DynReconciliationRepository;
+use domain::recurring::DynRecurringRuleRepository;
 use domain::settings::DynSettingsRepository;
 use infra::account::SqliteAccountRepository;
 use infra::category::SqliteCategoryRepository;
@@ -24,6 +25,7 @@ use infra::data_folder_location::FsDataFolderLocationRepository;
 use infra::db::StartupDbError;
 use infra::entry::SqliteEntryRepository;
 use infra::reconciliation::SqliteReconciliationRepository;
+use infra::recurring::SqliteRecurringRuleRepository;
 use infra::settings::SqliteSettingsRepository;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
@@ -54,6 +56,10 @@ pub fn run() {
             commands::reconciliation::reconciliation_summary,
             commands::reconciliation::set_bank_balance,
             commands::reconciliation::set_statement_date,
+            commands::recurring::list_recurring_rules,
+            commands::recurring::create_recurring_rule,
+            commands::recurring::update_recurring_rule,
+            commands::recurring::delete_recurring_rule,
             commands::db::get_startup_db_error,
             commands::settings::get_display_settings,
             commands::settings::update_display_settings,
@@ -125,6 +131,8 @@ pub fn run() {
             app.manage(Box::new(entry_repo) as DynEntryRepository);
             let reconciliation_repo = SqliteReconciliationRepository::new(shared_conn.clone());
             app.manage(Box::new(reconciliation_repo) as DynReconciliationRepository);
+            let recurring_repo = SqliteRecurringRuleRepository::new(shared_conn.clone());
+            app.manage(Box::new(recurring_repo) as DynRecurringRuleRepository);
             app.manage(shared_conn);
 
             app.manage(StartupDbError(std::sync::Mutex::new(startup_error)));

@@ -9,4 +9,5 @@ pub mod category;
 pub mod data_folder_location;
 pub mod entry;
 pub mod reconciliation;
+pub mod recurring;
 pub mod settings;
