@@ -88,12 +88,14 @@ impl TryFrom<EntryInputPayload> for EntryInput {
     }
 }
 
-/// The entries screen's request: an optional inclusive date range, a sort
-/// direction, a page size/offset, and an optional date to jump to.
+/// The entries screen's request: an optional inclusive date range, the
+/// reconciliation panel's "unreconciled only" flag, a sort direction, a page
+/// size/offset, and an optional date to jump to.
 #[derive(Debug, Clone, Deserialize)]
 pub struct ListEntriesPayload {
     pub from: Option<String>,
     pub to: Option<String>,
+    pub unreconciled_only: bool,
     pub sort: String,
     pub page_size: i64,
     pub offset: i64,
@@ -111,6 +113,7 @@ impl TryFrom<ListEntriesPayload> for ListEntriesInput {
         Ok(ListEntriesInput {
             from: payload.from.as_deref().map(parse_date).transpose()?,
             to: payload.to.as_deref().map(parse_date).transpose()?,
+            unreconciled_only: payload.unreconciled_only,
             sort: match payload.sort.as_str() {
                 "ASC" => SortDirection::Asc,
                 "DESC" => SortDirection::Desc,
@@ -239,6 +242,7 @@ mod tests {
         let payload = ListEntriesPayload {
             from: None,
             to: None,
+            unreconciled_only: false,
             sort: "SIDEWAYS".to_owned(),
             page_size: 50,
             offset: 0,

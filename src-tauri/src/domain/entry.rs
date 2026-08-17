@@ -112,13 +112,14 @@ pub enum SortDirection {
 }
 
 /// The parameters behind one page of `list_by_account`: an optional
-/// inclusive date range (the system entry is always included regardless),
-/// a sort direction (ties broken by `id` for stability), and an
-/// offset/limit pair.
+/// inclusive date range and an "unreconciled only" flag (the system entry is
+/// always included regardless of both), a sort direction (ties broken by `id`
+/// for stability), and an offset/limit pair.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct EntryListQuery {
     pub from: Option<IsoDate>,
     pub to: Option<IsoDate>,
+    pub unreconciled_only: bool,
     pub sort: SortDirection,
     pub offset: i64,
     pub limit: i64,
@@ -228,7 +229,7 @@ pub trait EntryRepository {
     fn count_by_category(&self, category_id: i64) -> Result<i64, EntryError>;
 
     /// One page of an account's entries — the system entry is always
-    /// included, regardless of `query`'s date range.
+    /// included, regardless of `query`'s date range and `unreconciled_only`.
     fn list_by_account(
         &self,
         account_id: i64,
@@ -236,15 +237,17 @@ pub trait EntryRepository {
     ) -> Result<EntryPage, EntryError>;
 
     /// The offset of the page containing the first entry at or before
-    /// `target` in the given sort order, under the same date-range filter
+    /// `target` in the given sort order, under the same filters
     /// `list_by_account` would apply — what jump-to-date scrolls the
-    /// frontend's virtual list to.
+    /// frontend's virtual list to. An offset computed under a different
+    /// predicate than the list points at the wrong row.
     #[allow(clippy::too_many_arguments)]
     fn offset_for_date(
         &self,
         account_id: i64,
         from: Option<&IsoDate>,
         to: Option<&IsoDate>,
+        unreconciled_only: bool,
         sort: SortDirection,
         target: &IsoDate,
     ) -> Result<i64, EntryError>;

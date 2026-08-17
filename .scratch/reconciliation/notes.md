@@ -61,3 +61,34 @@
   `offset_for_date`, `ListEntriesInput` and `ListEntriesPayload` extended
   together. `07-recurring-entries.md` merging against this branch only sees
   two _added_ `EntryRepository` methods, no changed signatures.
+  **Superseded by the `unreconciled_only` bullets below** — issue 02 has since
+  landed on this branch and _does_ change both shapes.
+
+- **`unreconciled_only` (issue 02) is a `bool` on `EntryListQuery`,
+  `ListEntriesInput` and `ListEntriesPayload`**, and a new positional
+  parameter on `EntryRepository::offset_for_date`, sitting between `to` and
+  `sort`: `offset_for_date(account_id, from, to, unreconciled_only, sort,
+target)`. Anyone rebasing `07-recurring-entries.md` or `09-statistics.md`
+  onto this branch must add the field to every `EntryListQuery` literal and
+  the parameter to every hand-written `EntryRepository` fake.
+
+- **Wire name is `unreconciled_only`**, snake_case like the rest of
+  `ListEntriesPayload`, and it is **required, not `#[serde(default)]`** — a
+  frontend that forgets it fails loudly instead of silently returning an
+  unfiltered page. `ListEntriesQuery` in `src/app/data/entries/entries-api.ts`
+  carries it as a required `boolean`; `EntriesPager.fetchPage` currently
+  hard-codes `false`. **Issue 03 owns replacing that literal** with the
+  `panelOpen() && unreconciledOnly()` computed the spec describes — that is
+  the only frontend seam issue 02 left behind.
+
+- **The SQL predicate is `reconciled = 0` folded into the _existing_
+  system-entry exemption**, not a clause of its own: both queries build their
+  `WHERE` fragment through one shared
+  `infra::entry::visibility_predicate(from, to, unreconciled_only)`, which
+  emits `AND (is_system = 1 OR (<clauses joined by AND>))`. The system entry
+  is therefore exempt from the reconciliation filter by the same mechanism
+  that exempts it from the date range, and `list_by_account` /
+  `offset_for_date` cannot drift apart — an offset computed under a different
+  predicate than the page it indexes into points at the wrong row. Any later
+  query needing the same visibility rules should call that function rather
+  than re-spelling the clauses.

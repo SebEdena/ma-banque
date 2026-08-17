@@ -241,6 +241,7 @@ mod tests {
             _account_id: i64,
             _from: Option<&IsoDate>,
             _to: Option<&IsoDate>,
+            _unreconciled_only: bool,
             _sort: crate::domain::entry::SortDirection,
             _target: &IsoDate,
         ) -> Result<i64, EntryError> {

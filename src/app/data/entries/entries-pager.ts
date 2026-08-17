@@ -117,6 +117,7 @@ export class EntriesPager {
       const page = await this.entriesApi.listEntries(query.accountId, {
         from: query.from,
         to: query.to,
+        unreconciled_only: false,
         sort: query.sort,
         page_size: PAGE_SIZE,
         offset,
