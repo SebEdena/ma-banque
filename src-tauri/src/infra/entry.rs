@@ -19,6 +19,13 @@ use crate::infra::db::SharedConnection;
 const ENTRY_COLUMNS: &str =
     "id, account_id, label, category_id, date, type, amount, description, is_system, reconciled";
 
+/// `entries.amount` re-signed from its `type`, in cents — the SQL half of
+/// the debit/credit rule `domain::entry::SignedCents` owns in Rust. One
+/// constant so the aggregates below can't drift apart from each other, and
+/// `sum_reconciled_up_to_matches_sum_by_account_when_nothing_is_filtered_out`
+/// pins it against the Rust rule so the two halves can't drift either.
+const SIGNED_AMOUNT_CENTS: &str = "CASE type WHEN 'DEBIT' THEN -amount ELSE amount END";
+
 /// The columns every entry row carries, before the stored strings are parsed
 /// into their domain types — kept separate from [`Entry`] so a malformed row
 /// can be reported as an [`EntryError`] rather than panicking inside
@@ -184,6 +191,41 @@ impl EntryRepository for SqliteEntryRepository {
                 "SELECT EXISTS(SELECT 1 FROM entries \
                  WHERE account_id = ?1 AND is_system = 0 AND date <= ?2)",
                 rusqlite::params![account_id, date.as_str()],
+                |row| row.get(0),
+            )
+            .map_err(io_err)
+    }
+
+    /// Summed in SQL rather than by fetching the rows first: an account can
+    /// hold years of entries, and this produces one integer. `COALESCE`
+    /// makes "no matching rows" a zero rather than a `NULL`.
+    fn sum_reconciled_up_to(
+        &self,
+        account_id: i64,
+        statement_date: &IsoDate,
+    ) -> Result<i64, EntryError> {
+        self.conn
+            .lock()
+            .unwrap()
+            .query_row(
+                &format!(
+                    "SELECT COALESCE(SUM({SIGNED_AMOUNT_CENTS}), 0) FROM entries \
+                     WHERE account_id = ?1 AND (reconciled = 1 OR is_system = 1) AND date <= ?2"
+                ),
+                rusqlite::params![account_id, statement_date.as_str()],
+                |row| row.get(0),
+            )
+            .map_err(io_err)
+    }
+
+    fn count_unreconciled_by_account(&self, account_id: i64) -> Result<i64, EntryError> {
+        self.conn
+            .lock()
+            .unwrap()
+            .query_row(
+                "SELECT COUNT(*) FROM entries \
+                 WHERE account_id = ?1 AND is_system = 0 AND reconciled = 0",
+                [account_id],
                 |row| row.get(0),
             )
             .map_err(io_err)
@@ -563,6 +605,289 @@ mod tests {
         add_real_entry(&conn, account_id, "2026-02-02", "CREDIT", 100);
 
         assert_eq!(repo.count_non_system_by_account(account_id).unwrap(), 2);
+    }
+
+    fn add_reconciled_entry(
+        conn: &SharedConnection,
+        account_id: i64,
+        date: &str,
+        kind: &str,
+        amount: i64,
+    ) {
+        conn.lock()
+            .unwrap()
+            .execute(
+                "INSERT INTO entries (account_id, date, type, amount, is_system, reconciled) \
+                 VALUES (?1, ?2, ?3, ?4, 0, 1)",
+                rusqlite::params![account_id, date, kind, amount],
+            )
+            .unwrap();
+    }
+
+    fn statement_date(date: &str) -> IsoDate {
+        IsoDate::parse(date).unwrap()
+    }
+
+    #[test]
+    fn sum_reconciled_up_to_counts_only_reconciled_entries() {
+        let (conn, account_id) = fixture();
+        add_reconciled_entry(&conn, account_id, "2026-02-01", "DEBIT", 2_550);
+        add_real_entry(&conn, account_id, "2026-02-02", "DEBIT", 9_999);
+        let repo = SqliteEntryRepository::new(conn);
+
+        // 100_000 opening - 2_550 reconciled; the unticked 9_999 is ignored.
+        assert_eq!(
+            repo.sum_reconciled_up_to(account_id, &statement_date("2026-02-28"))
+                .unwrap(),
+            97_450
+        );
+    }
+
+    #[test]
+    fn sum_reconciled_up_to_excludes_reconciled_entries_after_the_statement_date() {
+        let (conn, account_id) = fixture();
+        add_reconciled_entry(&conn, account_id, "2026-02-01", "DEBIT", 2_550);
+        add_reconciled_entry(&conn, account_id, "2026-03-01", "DEBIT", 5_000);
+        let repo = SqliteEntryRepository::new(conn);
+
+        assert_eq!(
+            repo.sum_reconciled_up_to(account_id, &statement_date("2026-02-28"))
+                .unwrap(),
+            97_450
+        );
+    }
+
+    #[test]
+    fn sum_reconciled_up_to_includes_an_entry_dated_on_the_statement_date_itself() {
+        let (conn, account_id) = fixture();
+        add_reconciled_entry(&conn, account_id, "2026-02-28", "DEBIT", 2_550);
+        let repo = SqliteEntryRepository::new(conn);
+
+        assert_eq!(
+            repo.sum_reconciled_up_to(account_id, &statement_date("2026-02-28"))
+                .unwrap(),
+            97_450
+        );
+        assert_eq!(
+            repo.sum_reconciled_up_to(account_id, &statement_date("2026-02-27"))
+                .unwrap(),
+            100_000
+        );
+    }
+
+    #[test]
+    fn sum_reconciled_up_to_counts_the_untickable_system_entry() {
+        let (conn, account_id) = fixture();
+        let repo = SqliteEntryRepository::new(conn.clone());
+
+        // The system entry is never `reconciled = 1` — `set_reconciled`
+        // refuses it — yet the opening balance must be in the total.
+        let system_reconciled: i64 = conn
+            .lock()
+            .unwrap()
+            .query_row(
+                "SELECT reconciled FROM entries WHERE account_id = ?1 AND is_system = 1",
+                [account_id],
+                |row| row.get(0),
+            )
+            .unwrap();
+        assert_eq!(system_reconciled, 0);
+
+        assert_eq!(
+            repo.sum_reconciled_up_to(account_id, &statement_date("2026-02-28"))
+                .unwrap(),
+            100_000
+        );
+    }
+
+    #[test]
+    fn sum_reconciled_up_to_excludes_the_system_entry_dated_after_the_statement_date() {
+        let (conn, account_id) = fixture();
+        let repo = SqliteEntryRepository::new(conn);
+
+        // Opened 2026-01-15, reconciling against a statement that predates
+        // the account: nothing is in scope, not even the opening balance.
+        assert_eq!(
+            repo.sum_reconciled_up_to(account_id, &statement_date("2026-01-14"))
+                .unwrap(),
+            0
+        );
+    }
+
+    #[test]
+    fn sum_reconciled_up_to_signs_debits_negative_and_credits_positive() {
+        let (conn, account_id) = fixture();
+        add_reconciled_entry(&conn, account_id, "2026-02-01", "DEBIT", 2_550);
+        add_reconciled_entry(&conn, account_id, "2026-02-02", "CREDIT", 1_000);
+        let repo = SqliteEntryRepository::new(conn);
+
+        assert_eq!(
+            repo.sum_reconciled_up_to(account_id, &statement_date("2026-02-28"))
+                .unwrap(),
+            98_450
+        );
+    }
+
+    #[test]
+    fn sum_reconciled_up_to_nets_many_debits_against_many_credits() {
+        let (conn, account_id) = fixture();
+        for (date, kind, amount) in [
+            ("2026-02-01", "DEBIT", 2_550),
+            ("2026-02-02", "CREDIT", 1_000),
+            ("2026-02-03", "DEBIT", 750),
+            ("2026-02-04", "CREDIT", 33_333),
+            ("2026-02-05", "DEBIT", 1),
+        ] {
+            add_reconciled_entry(&conn, account_id, date, kind, amount);
+        }
+        let repo = SqliteEntryRepository::new(conn);
+
+        // 100_000 - 2_550 + 1_000 - 750 + 33_333 - 1: a sum over absolute
+        // values would give 137_634, and double-counting any row would miss
+        // this figure too.
+        assert_eq!(
+            repo.sum_reconciled_up_to(account_id, &statement_date("2026-02-28"))
+                .unwrap(),
+            131_032
+        );
+    }
+
+    #[test]
+    fn sum_reconciled_up_to_can_go_negative_when_debits_outweigh_the_opening_balance() {
+        let (conn, account_id) = fixture();
+        add_reconciled_entry(&conn, account_id, "2026-02-01", "DEBIT", 150_000);
+        add_reconciled_entry(&conn, account_id, "2026-02-02", "CREDIT", 10_000);
+        let repo = SqliteEntryRepository::new(conn);
+
+        assert_eq!(
+            repo.sum_reconciled_up_to(account_id, &statement_date("2026-02-28"))
+                .unwrap(),
+            -40_000
+        );
+    }
+
+    #[test]
+    fn sum_reconciled_up_to_stays_exact_across_amounts_that_would_drift_as_floats() {
+        let (conn, account_id) = fixture();
+        // 0.10 + 0.20 is the canonical float-drift pair; a thousand of them
+        // would compound it. In integer cents the total is exact.
+        for _ in 0..1_000 {
+            add_reconciled_entry(&conn, account_id, "2026-02-01", "CREDIT", 10);
+            add_reconciled_entry(&conn, account_id, "2026-02-01", "CREDIT", 20);
+        }
+        let repo = SqliteEntryRepository::new(conn);
+
+        assert_eq!(
+            repo.sum_reconciled_up_to(account_id, &statement_date("2026-02-28"))
+                .unwrap(),
+            100_000 + 30_000
+        );
+    }
+
+    #[test]
+    fn sum_reconciled_up_to_returns_just_the_opening_balance_when_nothing_is_ticked() {
+        let (conn, account_id) = fixture();
+        add_real_entry(&conn, account_id, "2026-02-01", "DEBIT", 2_550);
+        add_real_entry(&conn, account_id, "2026-02-02", "CREDIT", 1_000);
+        let repo = SqliteEntryRepository::new(conn);
+
+        assert_eq!(
+            repo.sum_reconciled_up_to(account_id, &statement_date("2026-02-28"))
+                .unwrap(),
+            100_000
+        );
+    }
+
+    #[test]
+    fn sum_reconciled_up_to_is_zero_for_an_unknown_account() {
+        let (conn, _) = fixture();
+        let repo = SqliteEntryRepository::new(conn);
+
+        assert_eq!(
+            repo.sum_reconciled_up_to(404, &statement_date("2026-02-28"))
+                .unwrap(),
+            0
+        );
+    }
+
+    #[test]
+    fn sum_reconciled_up_to_matches_sum_by_account_when_nothing_is_filtered_out() {
+        let (conn, account_id) = fixture();
+        add_reconciled_entry(&conn, account_id, "2026-02-01", "DEBIT", 2_550);
+        add_reconciled_entry(&conn, account_id, "2026-02-02", "CREDIT", 1_000);
+        add_reconciled_entry(&conn, account_id, "2026-02-03", "DEBIT", 87_654);
+        let repo = SqliteEntryRepository::new(conn);
+
+        // The SQL sign rule here and `domain::entry::SignedCents`' Rust one
+        // must agree; with every entry ticked and in scope, both sums cover
+        // the same rows and any divergence shows up as a mismatch.
+        assert_eq!(
+            repo.sum_reconciled_up_to(account_id, &statement_date("2026-12-31"))
+                .unwrap(),
+            repo.sum_by_account(account_id).unwrap()
+        );
+    }
+
+    #[test]
+    fn count_unreconciled_by_account_counts_only_unticked_real_entries() {
+        let (conn, account_id) = fixture();
+        add_real_entry(&conn, account_id, "2026-02-01", "DEBIT", 100);
+        add_real_entry(&conn, account_id, "2026-02-02", "CREDIT", 100);
+        add_reconciled_entry(&conn, account_id, "2026-02-03", "DEBIT", 100);
+        let repo = SqliteEntryRepository::new(conn);
+
+        // The system entry is permanently unticked and must not be counted.
+        assert_eq!(repo.count_unreconciled_by_account(account_id).unwrap(), 2);
+    }
+
+    #[test]
+    fn count_unreconciled_by_account_is_zero_once_every_real_entry_is_ticked() {
+        let (conn, account_id) = fixture();
+        add_reconciled_entry(&conn, account_id, "2026-02-01", "DEBIT", 100);
+        add_reconciled_entry(&conn, account_id, "2026-02-02", "CREDIT", 100);
+        let repo = SqliteEntryRepository::new(conn);
+
+        assert_eq!(repo.count_unreconciled_by_account(account_id).unwrap(), 0);
+    }
+
+    #[test]
+    fn count_unreconciled_by_account_ignores_other_accounts() {
+        let (conn, account_id) = fixture();
+        let other = SqliteAccountRepository::new(conn.clone())
+            .create(&AccountDetails {
+                name: "Livret A".to_owned(),
+                ..details("2026-01-15", 0)
+            })
+            .unwrap();
+        add_real_entry(&conn, other.id, "2026-02-01", "DEBIT", 100);
+        let repo = SqliteEntryRepository::new(conn);
+
+        assert_eq!(repo.count_unreconciled_by_account(account_id).unwrap(), 0);
+        assert_eq!(repo.count_unreconciled_by_account(other.id).unwrap(), 1);
+    }
+
+    #[test]
+    fn sum_reconciled_up_to_ignores_other_accounts() {
+        let (conn, account_id) = fixture();
+        let other = SqliteAccountRepository::new(conn.clone())
+            .create(&AccountDetails {
+                name: "Livret A".to_owned(),
+                ..details("2026-01-15", 500_000)
+            })
+            .unwrap();
+        add_reconciled_entry(&conn, other.id, "2026-02-01", "CREDIT", 12_345);
+        let repo = SqliteEntryRepository::new(conn);
+
+        assert_eq!(
+            repo.sum_reconciled_up_to(account_id, &statement_date("2026-02-28"))
+                .unwrap(),
+            100_000
+        );
+        assert_eq!(
+            repo.sum_reconciled_up_to(other.id, &statement_date("2026-02-28"))
+                .unwrap(),
+            512_345
+        );
     }
 
     #[test]

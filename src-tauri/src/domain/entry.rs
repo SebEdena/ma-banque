@@ -200,6 +200,25 @@ pub trait EntryRepository {
         date: &IsoDate,
     ) -> Result<bool, EntryError>;
 
+    /// Signed sum, in cents, of the account's reconciled entries dated on or
+    /// before `statement_date` — its reconciled balance.
+    ///
+    /// The system entry counts as reconciled even though `set_reconciled`
+    /// permanently refuses it: a bank's balance includes the money that was
+    /// there at the start, so excluding the opening balance would leave the
+    /// delta off by it forever and make the balanced state unreachable for
+    /// any account that didn't open at zero. It is still subject to the same
+    /// `date <= statement_date` cut-off as everything else.
+    fn sum_reconciled_up_to(
+        &self,
+        account_id: i64,
+        statement_date: &IsoDate,
+    ) -> Result<i64, EntryError>;
+
+    /// How many non-system entries are still unticked. Drives the
+    /// "unreconciled only" checkbox's disabled state.
+    fn count_unreconciled_by_account(&self, account_id: i64) -> Result<i64, EntryError>;
+
     /// How much real activity the account has beyond its opening balance.
     fn count_non_system_by_account(&self, account_id: i64) -> Result<i64, EntryError>;
 

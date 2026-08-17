@@ -306,6 +306,18 @@ mod tests {
                 .any(|e| e.account_id == account_id && !e.is_system && &e.date <= date))
         }
 
+        fn sum_reconciled_up_to(
+            &self,
+            _account_id: i64,
+            _statement_date: &IsoDate,
+        ) -> Result<i64, EntryError> {
+            unimplemented!("account rules don't sum reconciled balances")
+        }
+
+        fn count_unreconciled_by_account(&self, _account_id: i64) -> Result<i64, EntryError> {
+            unimplemented!("account rules don't count unreconciled entries")
+        }
+
         fn count_non_system_by_account(&self, account_id: i64) -> Result<i64, EntryError> {
             Ok(self
                 .entries
