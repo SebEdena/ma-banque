@@ -92,3 +92,16 @@ target)`. Anyone rebasing `07-recurring-entries.md` or `09-statistics.md`
   predicate than the page it indexes into points at the wrong row. Any later
   query needing the same visibility rules should call that function rather
   than re-spelling the clauses.
+
+- **Issue 03's `data-testid` hooks**, for issue 04's E2E scenario:
+  `reconciliation-toggle` (the "Pointage" open/close button, `aria-expanded`
+  reflects `panelOpen()`), `reconciliation-panel` (the panel container, absent
+  from the DOM when collapsed), `reconciliation-filter` (the "unreconciled
+  only" checkbox), `reconciliation-reconciled-balance`,
+  `reconciliation-bank-balance` (the editable input),
+  `reconciliation-bank-balance-error` (inline validation message, present only
+  on a rejected/non-numeric edit), `reconciliation-statement-date` (the
+  editable input), `reconciliation-statement-date-prompt` (shown instead of
+  the figures block when no statement date is set yet), `reconciliation-delta`
+  and `reconciliation-verdict` (signed amount and the red/green verdict node,
+  respectively — separate nodes, not one).
