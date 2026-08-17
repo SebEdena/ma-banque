@@ -31,7 +31,7 @@ The loop's memory of "what's already been seen" must survive the manager's own s
 7. Apply [[respecting-agent-time]] before treating any currently-running feature agent as stalled.
 8. Forward each authorized trigger to `03-spawn-review-round.md`. When a PR is merged or closed, hand off to `04-handle-merge.md` instead.
 9. After processing, write the updated `last_seen_comment_at`/`last_seen_comment_id` (newest comment observed this sweep, trigger or not) and `auto_resume_count` back to `.scratch/<feature>/pr-poll-state.json` per [[poll-state]], **before** rescheduling — a crash after the write is safe (worst case, one comment gets re-surfaced to the user next sweep); a crash before it would replay already-handled comments.
-10. Reschedule the next wakeup as long as any PR remains open across any feature, on a cadence appropriate to how active review is (a minute or two while awaiting first review, longer once things go quiet). Once none are open, stop scheduling — a new PR opening (`01-open-pr.md` finishing) is what starts the loop again.
+10. Reschedule the next wakeup as long as any PR remains open across any feature, following the numeric cadence in [[respecting-agent-time]]. Once none are open, stop scheduling — a new PR opening (`01-open-pr.md` finishing) is what starts the loop again.
 
 ## Test
 
