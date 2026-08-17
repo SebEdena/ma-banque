@@ -105,3 +105,28 @@ target)`. Anyone rebasing `07-recurring-entries.md` or `09-statistics.md`
   the figures block when no statement date is set yet), `reconciliation-delta`
   and `reconciliation-verdict` (signed amount and the red/green verdict node,
   respectively — separate nodes, not one).
+
+- **For the PR reviewer — two pre-existing `entries.e2e.ts` failures, not from
+  this branch.** Running the full E2E suite locally on Linux (WSL2 + WSLg,
+  webkit2gtk) against a wiped `.dev-data/`, `entries` › "creates a category
+  from the entry row and leaves it selected" fails: after the inline
+  category-create modal saves, `entry-form-category`'s trigger reads empty
+  instead of the new category's name. "deletes the entry behind a
+  confirmation naming it" then fails as a pure cascade — the previous test
+  left the row in edit mode, so its `entry-label` span doesn't exist. Neither
+  is reconciliation-related: `git diff 55d442c..HEAD` touches no file under
+  `entry-form/`, `entry-row/`, or the category picker, and the assertion fires
+  inside the entry form before any list refetch. E2E only runs on
+  `windows-latest` in CI, so this may well be a Linux/WebKit-only difference
+  in how the spartan select's trigger projects its label. Flagged, not fixed —
+  outside this feature's scope.
+
+- **Running the E2E suite locally** (not documented anywhere else, and `cargo
+build` alone is not enough — a plain debug binary loads `devUrl` and the
+  window comes up "Connection refused"): build the way `.github/workflows/
+e2e.yml` does, `npx tauri build --debug --no-bundle --config
+'{"build":{"beforeBuildCommand":"npm run build -- --configuration
+development"}}'`, start `tauri-driver` (the config's `driverProvider` is
+  `external`, so WDIO does not spawn it), then `npm run e2e`. Delete
+  `.dev-data/` first — the suite is stateful and a second run against a
+  populated folder fails from the smoke test onwards.
