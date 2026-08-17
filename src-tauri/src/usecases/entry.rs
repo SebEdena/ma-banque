@@ -51,6 +51,7 @@ impl EntryInput {
 pub struct ListEntriesInput {
     pub from: Option<IsoDate>,
     pub to: Option<IsoDate>,
+    pub unreconciled_only: bool,
     pub sort: SortDirection,
     pub page_size: i64,
     pub offset: i64,
@@ -103,6 +104,7 @@ pub fn list_entries(
             account_id,
             input.from.as_ref(),
             input.to.as_ref(),
+            input.unreconciled_only,
             input.sort,
             target,
         )?,
@@ -114,6 +116,7 @@ pub fn list_entries(
         &EntryListQuery {
             from: input.from,
             to: input.to,
+            unreconciled_only: input.unreconciled_only,
             sort: input.sort,
             offset,
             limit: input.page_size,
@@ -216,7 +219,8 @@ mod tests {
                     e.account_id == account_id
                         && (e.is_system
                             || (query.from.as_ref().is_none_or(|from| &e.date >= from)
-                                && query.to.as_ref().is_none_or(|to| &e.date <= to)))
+                                && query.to.as_ref().is_none_or(|to| &e.date <= to)
+                                && (!query.unreconciled_only || !e.reconciled)))
                 })
                 .cloned()
                 .collect();
@@ -246,6 +250,7 @@ mod tests {
             account_id: i64,
             from: Option<&IsoDate>,
             to: Option<&IsoDate>,
+            unreconciled_only: bool,
             sort: SortDirection,
             target: &IsoDate,
         ) -> Result<i64, EntryError> {
@@ -257,7 +262,8 @@ mod tests {
                     e.account_id == account_id
                         && (e.is_system
                             || (from.is_none_or(|from| &e.date >= from)
-                                && to.is_none_or(|to| &e.date <= to)))
+                                && to.is_none_or(|to| &e.date <= to)
+                                && (!unreconciled_only || !e.reconciled)))
                         && match sort {
                             SortDirection::Desc => e.date > *target,
                             SortDirection::Asc => e.date < *target,
@@ -509,6 +515,7 @@ mod tests {
         ListEntriesInput {
             from: None,
             to: None,
+            unreconciled_only: false,
             sort,
             page_size: 50,
             offset: 0,
@@ -663,5 +670,61 @@ mod tests {
         .unwrap();
 
         assert_eq!(page.entries[0].date.as_str(), "2026-02-03");
+    }
+
+    /// 02-01 and 02-03 ticked, 02-02 and 02-04 not.
+    fn alternating_store() -> FakeStore {
+        let store = FakeStore::default();
+        for day in 1..=4 {
+            let created = create_entry(
+                &store,
+                1,
+                input("Entry", &format!("2026-02-{day:02}"), -10.0),
+            )
+            .unwrap();
+            if day % 2 == 1 {
+                set_reconciled(&store, created.id, true).unwrap();
+            }
+        }
+        store
+    }
+
+    #[test]
+    fn listing_with_unreconciled_only_drops_the_ticked_entries() {
+        let store = alternating_store();
+
+        let page = list_entries(
+            &store,
+            1,
+            ListEntriesInput {
+                unreconciled_only: true,
+                ..list_input(SortDirection::Asc)
+            },
+        )
+        .unwrap();
+
+        let dates: Vec<&str> = page.entries.iter().map(|e| e.date.as_str()).collect();
+        assert_eq!(dates, vec!["2026-02-02", "2026-02-04"]);
+    }
+
+    #[test]
+    fn jump_to_date_resolves_its_offset_under_the_unreconciled_only_filter() {
+        let store = alternating_store();
+
+        // Ascending, only 02-02 matches ahead of the target, so the resolved
+        // offset must be 1 rather than the unfiltered 3.
+        let page = list_entries(
+            &store,
+            1,
+            ListEntriesInput {
+                unreconciled_only: true,
+                page_size: 1,
+                jump_to_date: Some(IsoDate::parse("2026-02-04").unwrap()),
+                ..list_input(SortDirection::Asc)
+            },
+        )
+        .unwrap();
+
+        assert_eq!(page.entries[0].date.as_str(), "2026-02-04");
     }
 }

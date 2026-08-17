@@ -29,6 +29,8 @@ export interface ListEntriesQuery {
   from: string | null;
   /** Inclusive upper bound, or `null` for no upper bound. */
   to: string | null;
+  /** Narrows the page to unticked entries; the system entry is exempt. */
+  unreconciled_only: boolean;
   sort: SortDirection;
   page_size: number;
   offset: number;

@@ -144,6 +144,42 @@ fn io_err<E: std::fmt::Display>(e: E) -> EntryError {
     EntryError::Io(e.to_string())
 }
 
+/// The `WHERE` fragment deciding which of an account's rows a filtered view
+/// can see, plus its bound parameters — empty when nothing is filtered.
+///
+/// Shared by `list_by_account` and `offset_for_date` rather than spelled out
+/// in each: an offset computed under a different predicate than the page it
+/// indexes into points at the wrong row. The system entry is exempt from
+/// every filter (`06-entries.md`), which is why the clauses are wrapped
+/// rather than `AND`ed on directly.
+fn visibility_predicate(
+    from: Option<&IsoDate>,
+    to: Option<&IsoDate>,
+    unreconciled_only: bool,
+) -> (String, Vec<Box<dyn ToSql>>) {
+    let mut clauses: Vec<&str> = vec![];
+    let mut params: Vec<Box<dyn ToSql>> = vec![];
+    if let Some(from) = from {
+        clauses.push("date >= ?");
+        params.push(Box::new(from.as_str().to_owned()));
+    }
+    if let Some(to) = to {
+        clauses.push("date <= ?");
+        params.push(Box::new(to.as_str().to_owned()));
+    }
+    if unreconciled_only {
+        clauses.push("reconciled = 0");
+    }
+
+    if clauses.is_empty() {
+        return (String::new(), params);
+    }
+    (
+        format!(" AND (is_system = 1 OR ({}))", clauses.join(" AND ")),
+        params,
+    )
+}
+
 impl SqliteEntryRepository {
     /// Every entry belonging to `account_id`, through the shared row mapper
     /// — the base both `sum_by_account` and `last_entry_date` reduce.
@@ -265,26 +301,16 @@ impl EntryRepository for SqliteEntryRepository {
             SortDirection::Desc => "DESC",
         };
 
-        let mut filter_clauses: Vec<&str> = vec![];
-        let mut filter_params: Vec<Box<dyn ToSql>> = vec![];
-        if let Some(from) = &query.from {
-            filter_clauses.push("date >= ?");
-            filter_params.push(Box::new(from.as_str().to_owned()));
-        }
-        if let Some(to) = &query.to {
-            filter_clauses.push("date <= ?");
-            filter_params.push(Box::new(to.as_str().to_owned()));
-        }
+        let (predicate, filter_params) = visibility_predicate(
+            query.from.as_ref(),
+            query.to.as_ref(),
+            query.unreconciled_only,
+        );
 
         let mut sql = format!("SELECT {ENTRY_COLUMNS} FROM entries WHERE account_id = ?");
         let mut params: Vec<Box<dyn ToSql>> = vec![Box::new(account_id)];
-        if !filter_clauses.is_empty() {
-            sql.push_str(&format!(
-                " AND (is_system = 1 OR ({}))",
-                filter_clauses.join(" AND ")
-            ));
-            params.extend(filter_params);
-        }
+        sql.push_str(&predicate);
+        params.extend(filter_params);
         sql.push_str(&format!(
             " ORDER BY date {order}, id {order} LIMIT ? OFFSET ?"
         ));
@@ -317,29 +343,16 @@ impl EntryRepository for SqliteEntryRepository {
         account_id: i64,
         from: Option<&IsoDate>,
         to: Option<&IsoDate>,
+        unreconciled_only: bool,
         sort: SortDirection,
         target: &IsoDate,
     ) -> Result<i64, EntryError> {
-        let mut visibility_clauses: Vec<&str> = vec![];
-        let mut params: Vec<Box<dyn ToSql>> = vec![Box::new(account_id)];
-        let mut visibility_params: Vec<Box<dyn ToSql>> = vec![];
-        if let Some(from) = from {
-            visibility_clauses.push("date >= ?");
-            visibility_params.push(Box::new(from.as_str().to_owned()));
-        }
-        if let Some(to) = to {
-            visibility_clauses.push("date <= ?");
-            visibility_params.push(Box::new(to.as_str().to_owned()));
-        }
+        let (predicate, visibility_params) = visibility_predicate(from, to, unreconciled_only);
 
         let mut sql = String::from("SELECT COUNT(*) FROM entries WHERE account_id = ?");
-        if !visibility_clauses.is_empty() {
-            sql.push_str(&format!(
-                " AND (is_system = 1 OR ({}))",
-                visibility_clauses.join(" AND ")
-            ));
-            params.extend(visibility_params);
-        }
+        let mut params: Vec<Box<dyn ToSql>> = vec![Box::new(account_id)];
+        sql.push_str(&predicate);
+        params.extend(visibility_params);
 
         // Entries positioned strictly before the target in the current sort
         // order: later dates come first when sorting desc, earlier ones
@@ -1052,6 +1065,7 @@ mod tests {
                 &EntryListQuery {
                     from: None,
                     to: None,
+                    unreconciled_only: false,
                     sort: SortDirection::Asc,
                     offset: 0,
                     limit: 10,
@@ -1093,6 +1107,7 @@ mod tests {
                 &EntryListQuery {
                     from: None,
                     to: None,
+                    unreconciled_only: false,
                     sort: SortDirection::Asc,
                     offset: 0,
                     limit: 10,
@@ -1133,6 +1148,7 @@ mod tests {
                 &EntryListQuery {
                     from: None,
                     to: None,
+                    unreconciled_only: false,
                     sort: SortDirection::Asc,
                     offset: 0,
                     limit: 10,
@@ -1167,6 +1183,7 @@ mod tests {
                 &EntryListQuery {
                     from: None,
                     to: None,
+                    unreconciled_only: false,
                     sort: SortDirection::Desc,
                     offset: 0,
                     limit: 2,
@@ -1187,6 +1204,7 @@ mod tests {
                 &EntryListQuery {
                     from: None,
                     to: None,
+                    unreconciled_only: false,
                     sort: SortDirection::Desc,
                     offset: 2,
                     limit: 2,
@@ -1211,6 +1229,7 @@ mod tests {
                 &EntryListQuery {
                     from: Some(IsoDate::parse("2026-02-01").unwrap()),
                     to: Some(IsoDate::parse("2026-02-28").unwrap()),
+                    unreconciled_only: false,
                     sort: SortDirection::Asc,
                     offset: 0,
                     limit: 10,
@@ -1244,6 +1263,7 @@ mod tests {
                 account_id,
                 None,
                 None,
+                false,
                 SortDirection::Desc,
                 &IsoDate::parse("2026-02-03").unwrap(),
             )
@@ -1257,6 +1277,7 @@ mod tests {
                 &EntryListQuery {
                     from: None,
                     to: None,
+                    unreconciled_only: false,
                     sort: SortDirection::Desc,
                     offset,
                     limit: 1,
@@ -1264,5 +1285,341 @@ mod tests {
             )
             .unwrap();
         assert_eq!(page.entries[0].date.as_str(), "2026-02-03");
+    }
+
+    /// The whole account in one page, unfiltered — the base the
+    /// `unreconciled_only` tests vary a single field of.
+    fn base_query(sort: SortDirection) -> EntryListQuery {
+        EntryListQuery {
+            from: None,
+            to: None,
+            unreconciled_only: false,
+            sort,
+            offset: 0,
+            limit: 100,
+        }
+    }
+
+    fn signed_total(page: &EntryPage) -> i64 {
+        entry::balance(page.entries.iter().map(|e| e.amount))
+    }
+
+    /// 50 reconciled entries sitting ahead of 10 unreconciled ones, so a
+    /// first page of 50 under the filter can only come back full if the
+    /// database applied the predicate before the offset/limit.
+    fn reconciled_backlog_fixture() -> (SharedConnection, i64) {
+        let (conn, account_id) = fixture();
+        for _ in 0..50 {
+            add_reconciled_entry(&conn, account_id, "2026-02-01", "DEBIT", 100);
+        }
+        for day in 1..=10 {
+            add_real_entry(
+                &conn,
+                account_id,
+                &format!("2026-03-{day:02}"),
+                "DEBIT",
+                day * 100,
+            );
+        }
+        (conn, account_id)
+    }
+
+    #[test]
+    fn list_by_account_excludes_reconciled_entries_when_unreconciled_only_is_set() {
+        let (conn, account_id) = fixture();
+        add_reconciled_entry(&conn, account_id, "2026-02-01", "DEBIT", 2_550);
+        add_real_entry(&conn, account_id, "2026-02-02", "DEBIT", 1_000);
+        let repo = SqliteEntryRepository::new(conn);
+
+        let page = repo
+            .list_by_account(
+                account_id,
+                &EntryListQuery {
+                    unreconciled_only: true,
+                    ..base_query(SortDirection::Asc)
+                },
+            )
+            .unwrap();
+
+        let dates: Vec<&str> = page.entries.iter().map(|e| e.date.as_str()).collect();
+        assert_eq!(dates, vec!["2026-01-15", "2026-02-02"]);
+        // 100_000 opening - 1_000 unreconciled; the ticked 2_550 is gone.
+        assert_eq!(signed_total(&page), 99_000);
+    }
+
+    #[test]
+    fn list_by_account_includes_the_system_entry_when_unreconciled_only_is_set() {
+        let (conn, account_id) = fixture();
+        add_reconciled_entry(&conn, account_id, "2026-02-01", "DEBIT", 2_550);
+        let repo = SqliteEntryRepository::new(conn);
+
+        let page = repo
+            .list_by_account(
+                account_id,
+                &EntryListQuery {
+                    unreconciled_only: true,
+                    ..base_query(SortDirection::Asc)
+                },
+            )
+            .unwrap();
+
+        assert_eq!(page.entries.len(), 1);
+        assert!(
+            page.entries[0].is_system,
+            "the opening-balance row is exempt from the filter, as it is from the date range"
+        );
+        assert_eq!(signed_total(&page), 100_000);
+    }
+
+    #[test]
+    fn unreconciled_only_composes_with_an_active_date_range() {
+        let (conn, account_id) = fixture();
+        add_real_entry(&conn, account_id, "2026-02-01", "DEBIT", 100);
+        add_reconciled_entry(&conn, account_id, "2026-03-04", "DEBIT", 400);
+        add_real_entry(&conn, account_id, "2026-03-05", "DEBIT", 500);
+        add_real_entry(&conn, account_id, "2026-04-01", "DEBIT", 900);
+        let repo = SqliteEntryRepository::new(conn);
+
+        let page = repo
+            .list_by_account(
+                account_id,
+                &EntryListQuery {
+                    from: Some(IsoDate::parse("2026-03-01").unwrap()),
+                    to: Some(IsoDate::parse("2026-03-31").unwrap()),
+                    unreconciled_only: true,
+                    ..base_query(SortDirection::Asc)
+                },
+            )
+            .unwrap();
+
+        // Both predicates hold at once: out-of-range rows and the ticked
+        // in-range row are gone, the system entry is exempt from both.
+        let dates: Vec<&str> = page.entries.iter().map(|e| e.date.as_str()).collect();
+        assert_eq!(dates, vec!["2026-01-15", "2026-03-05"]);
+        assert_eq!(signed_total(&page), 99_500);
+    }
+
+    #[test]
+    fn unreconciled_only_selects_the_same_rows_in_both_sort_directions() {
+        let (conn, account_id) = reconciled_backlog_fixture();
+        let repo = SqliteEntryRepository::new(conn);
+
+        let ascending = repo
+            .list_by_account(
+                account_id,
+                &EntryListQuery {
+                    unreconciled_only: true,
+                    ..base_query(SortDirection::Asc)
+                },
+            )
+            .unwrap();
+        let descending = repo
+            .list_by_account(
+                account_id,
+                &EntryListQuery {
+                    unreconciled_only: true,
+                    ..base_query(SortDirection::Desc)
+                },
+            )
+            .unwrap();
+
+        let ascending_dates: Vec<&str> =
+            ascending.entries.iter().map(|e| e.date.as_str()).collect();
+        let mut descending_dates: Vec<&str> =
+            descending.entries.iter().map(|e| e.date.as_str()).collect();
+        descending_dates.reverse();
+        assert_eq!(ascending_dates, descending_dates);
+        // 100_000 opening - (100 + 200 + ... + 1_000).
+        assert_eq!(signed_total(&ascending), 94_500);
+        assert_eq!(signed_total(&descending), signed_total(&ascending));
+    }
+
+    #[test]
+    fn a_full_page_of_unreconciled_rows_survives_a_backlog_of_reconciled_ones() {
+        let (conn, account_id) = fixture();
+        for _ in 0..50 {
+            add_reconciled_entry(&conn, account_id, "2026-02-01", "DEBIT", 100);
+        }
+        for _ in 0..60 {
+            add_real_entry(&conn, account_id, "2026-03-01", "DEBIT", 100);
+        }
+        let repo = SqliteEntryRepository::new(conn);
+
+        let page = repo
+            .list_by_account(
+                account_id,
+                &EntryListQuery {
+                    unreconciled_only: true,
+                    limit: 50,
+                    ..base_query(SortDirection::Asc)
+                },
+            )
+            .unwrap();
+
+        // A page is a page of *matching* rows: the 50 ticked February rows
+        // sit ahead of every unticked one, so a filter applied after the
+        // page had been fetched would have rendered an empty list here.
+        assert_eq!(page.entries.len(), 50);
+        assert!(page.has_more, "11 matching rows remain behind this page");
+        assert!(page.entries.iter().all(|e| e.is_system || !e.reconciled));
+        // The system entry plus the first 49 unreconciled debits.
+        assert_eq!(signed_total(&page), 95_100);
+    }
+
+    #[test]
+    fn unreconciled_only_offsets_count_matching_rows_only() {
+        let (conn, account_id) = reconciled_backlog_fixture();
+        let repo = SqliteEntryRepository::new(conn);
+
+        let page = repo
+            .list_by_account(
+                account_id,
+                &EntryListQuery {
+                    unreconciled_only: true,
+                    offset: 5,
+                    limit: 4,
+                    ..base_query(SortDirection::Asc)
+                },
+            )
+            .unwrap();
+
+        // Matching rows ascending are the system entry then 03-01..03-10, so
+        // offset 5 is 03-05. Offsetting into the unfiltered 61 rows would
+        // still be inside the reconciled February block.
+        let dates: Vec<&str> = page.entries.iter().map(|e| e.date.as_str()).collect();
+        assert_eq!(
+            dates,
+            vec!["2026-03-05", "2026-03-06", "2026-03-07", "2026-03-08"]
+        );
+        assert_eq!(signed_total(&page), -2_600);
+        // 11 matching rows in total, so a 5+4 window leaves two behind.
+        assert!(page.has_more);
+
+        // Descending, the same window walks the matching rows the other way:
+        // 03-10 first, so offset 5 is 03-05 again.
+        let descending = repo
+            .list_by_account(
+                account_id,
+                &EntryListQuery {
+                    unreconciled_only: true,
+                    offset: 5,
+                    limit: 4,
+                    ..base_query(SortDirection::Desc)
+                },
+            )
+            .unwrap();
+        let descending_dates: Vec<&str> =
+            descending.entries.iter().map(|e| e.date.as_str()).collect();
+        assert_eq!(
+            descending_dates,
+            vec!["2026-03-05", "2026-03-04", "2026-03-03", "2026-03-02"]
+        );
+        assert_eq!(signed_total(&descending), -1_400);
+        assert!(descending.has_more);
+
+        let past_the_end = repo
+            .list_by_account(
+                account_id,
+                &EntryListQuery {
+                    unreconciled_only: true,
+                    offset: 11,
+                    limit: 4,
+                    ..base_query(SortDirection::Asc)
+                },
+            )
+            .unwrap();
+        assert!(past_the_end.entries.is_empty());
+        assert!(!past_the_end.has_more);
+    }
+
+    #[test]
+    fn clearing_unreconciled_only_returns_the_unfiltered_page_again() {
+        let (conn, account_id) = reconciled_backlog_fixture();
+        let repo = SqliteEntryRepository::new(conn);
+
+        let before = repo
+            .list_by_account(account_id, &base_query(SortDirection::Asc))
+            .unwrap();
+        repo.list_by_account(
+            account_id,
+            &EntryListQuery {
+                unreconciled_only: true,
+                ..base_query(SortDirection::Asc)
+            },
+        )
+        .unwrap();
+        let after = repo
+            .list_by_account(account_id, &base_query(SortDirection::Asc))
+            .unwrap();
+
+        assert_eq!(before, after);
+        assert_eq!(after.entries.len(), 61);
+        // 100_000 opening - 50 * 100 reconciled - 5_500 unreconciled.
+        assert_eq!(signed_total(&after), 89_500);
+    }
+
+    /// System (01-15), reconciled 02-01, unreconciled 02-02, reconciled
+    /// 02-03, unreconciled 02-04 — so every offset differs under the filter.
+    fn alternating_fixture() -> (SharedConnection, i64) {
+        let (conn, account_id) = fixture();
+        add_reconciled_entry(&conn, account_id, "2026-02-01", "DEBIT", 100);
+        add_real_entry(&conn, account_id, "2026-02-02", "DEBIT", 200);
+        add_reconciled_entry(&conn, account_id, "2026-02-03", "DEBIT", 300);
+        add_real_entry(&conn, account_id, "2026-02-04", "DEBIT", 400);
+        (conn, account_id)
+    }
+
+    #[test]
+    fn offset_for_date_applies_the_unreconciled_only_predicate_ascending() {
+        let (conn, account_id) = alternating_fixture();
+        let repo = SqliteEntryRepository::new(conn);
+        let target = IsoDate::parse("2026-02-04").unwrap();
+
+        let offset = repo
+            .offset_for_date(account_id, None, None, true, SortDirection::Asc, &target)
+            .unwrap();
+
+        // Only the system entry and 02-02 match ahead of the target; the
+        // unfiltered count would have been 4.
+        assert_eq!(offset, 2);
+        let page = repo
+            .list_by_account(
+                account_id,
+                &EntryListQuery {
+                    unreconciled_only: true,
+                    offset,
+                    limit: 1,
+                    ..base_query(SortDirection::Asc)
+                },
+            )
+            .unwrap();
+        assert_eq!(page.entries[0].date.as_str(), "2026-02-04");
+    }
+
+    #[test]
+    fn offset_for_date_applies_the_unreconciled_only_predicate_descending() {
+        let (conn, account_id) = alternating_fixture();
+        let repo = SqliteEntryRepository::new(conn);
+        let target = IsoDate::parse("2026-02-02").unwrap();
+
+        let offset = repo
+            .offset_for_date(account_id, None, None, true, SortDirection::Desc, &target)
+            .unwrap();
+
+        // Descending, only 02-04 matches ahead of the target; the unfiltered
+        // count would have been 2.
+        assert_eq!(offset, 1);
+        let page = repo
+            .list_by_account(
+                account_id,
+                &EntryListQuery {
+                    unreconciled_only: true,
+                    offset,
+                    limit: 1,
+                    ..base_query(SortDirection::Desc)
+                },
+            )
+            .unwrap();
+        assert_eq!(page.entries[0].date.as_str(), "2026-02-02");
     }
 }
