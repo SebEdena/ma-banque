@@ -65,19 +65,29 @@
         </button>
       </div>
 
-      @if (panelOpen() && summary(); as summary) {
-        <app-reconciliation-panel
-          id="reconciliation-panel"
-          [summary]="summary"
-          [accountColor]="account.color"
-          [currencyFormat]="displaySettings.currencyFormat()"
-          [dateFormat]="displaySettings.dateFormat()"
-          [unreconciledOnly]="unreconciledOnly()"
-          (bankBalanceChanged)="onBankBalanceChanged($event)"
-          (statementDateChanged)="onStatementDateChanged($event)"
-          (unreconciledOnlyToggled)="unreconciledOnly.set(!unreconciledOnly())"
-        />
-      }
+      <div
+        id="reconciliation-panel"
+        class="grid overflow-hidden"
+        [style.transition]="'grid-template-rows 0.28s ease, opacity 0.28s ease, transform 0.32s ease'"
+        [style.grid-template-rows]="panelOpen() ? '1fr' : '0fr'"
+        [style.opacity]="panelOpen() ? '1' : '0'"
+        [style.transform]="panelOpen() ? 'translateY(0)' : 'translateY(-10px)'"
+        [style.margin-bottom]="panelOpen() ? '22px' : '0px'"
+      >
+        @if (summary(); as summary) {
+          <app-reconciliation-panel
+            class="min-h-0 overflow-hidden"
+            [summary]="summary"
+            [accountColor]="account.color"
+            [currencyFormat]="displaySettings.currencyFormat()"
+            [dateFormat]="displaySettings.dateFormat()"
+            [unreconciledOnly]="unreconciledOnly()"
+            (bankBalanceChanged)="onBankBalanceChanged($event)"
+            (statementDateChanged)="onStatementDateChanged($event)"
+            (unreconciledOnlyToggled)="unreconciledOnly.set(!unreconciledOnly())"
+          />
+        }
+      </div>
 
       <div class="mb-4 flex flex-wrap items-center gap-3">
         <div

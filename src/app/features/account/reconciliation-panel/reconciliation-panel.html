@@ -1,6 +1,6 @@
 <div
   data-testid="reconciliation-panel"
-  class="mb-4 flex flex-wrap items-center gap-8 rounded-[18px] border border-t-[3px] border-border bg-card px-6 py-5"
+  class="flex flex-wrap items-center gap-8 rounded-[18px] border border-t-[3px] border-border bg-card px-6 py-5"
   [style.border-top-color]="accountColor()"
 >
   <div>
@@ -17,14 +17,14 @@
       <hlm-date-picker-input
         inputId="reconciliation-statement-date"
         data-testid="reconciliation-statement-date"
-        data-accent
+        data-accent-field
         aria-label="Date du relevé"
         calendarAriaLabel="Ouvrir le calendrier"
         clearAriaLabel="Effacer la date du relevé"
         [showClear]="false"
         [formatInputDate]="formatStatementDate()"
         [parseDate]="parseStatementDate"
-        class="w-[136px] h-auto shrink-0 border-none bg-transparent p-0 text-[15px] shadow-none ring-0 has-[[data-slot=input-group-control]:focus-visible]:border-none has-[[data-slot=input-group-control]:focus-visible]:ring-0 [&_input]:h-auto [&_input]:py-0 [&_[data-slot=input-group-addon]]:py-0"
+        class="w-[136px] h-auto shrink-0 rounded-none border-0 border-b border-input bg-transparent px-0 pb-0.5 text-[15px] font-semibold shadow-none ring-0 outline-none transition-colors has-[[data-slot=input-group-control]:focus-visible]:ring-0 [&_input]:h-auto [&_input]:py-0 [&_[data-slot=input-group-addon]]:py-0"
       />
     </hlm-date-picker>
   </div>
@@ -65,8 +65,8 @@
       appAmountInput
       id="reconciliation-bank-balance"
       data-testid="reconciliation-bank-balance"
-      data-accent
-      class="w-[140px] border-b-[1.5px] border-dashed border-input bg-transparent pb-0.5 font-mono text-[21px] font-semibold outline-none"
+      data-accent-field
+      class="w-[140px] border-b border-input bg-transparent pb-0.5 font-mono text-[21px] font-semibold outline-none transition-colors"
       [value]="bankBalanceText()"
       (input)="onBankBalanceInput($any($event.target).value)"
       (change)="commitBankBalance()"
