@@ -397,6 +397,16 @@ describe('RecurringRulesModal', () => {
       expect(api.createRecurringRule).not.toHaveBeenCalled();
     });
 
+    it.each(['', 'deux', '1,5'])(
+      'rejects the unreadable interval %o inline, without calling the Api',
+      async (interval) => {
+        const [fixture, api] = await openFormWith({ 'recurring-form-interval': interval });
+
+        expect(has(fixture, 'recurring-form-interval-error')).toBe(true);
+        expect(api.createRecurringRule).not.toHaveBeenCalled();
+      },
+    );
+
     it('rejects an end date before the start date inline, without calling the Api', async () => {
       const [fixture, api] = await openFormWith({ 'recurring-form-end-date': '2026-02-01' });
 
@@ -421,6 +431,32 @@ describe('RecurringRulesModal', () => {
 
       expect(has(fixture, 'recurring-form-label-error')).toBe(false);
       expect(has(fixture, 'recurring-form-amount-error')).toBe(false);
+    });
+
+    it('does not carry a refused save’s errors into the next form opened', async () => {
+      const fixture = await createModal(stubApi([rule()]));
+
+      await click(fixture, 'recurring-new');
+      await click(fixture, 'recurring-save');
+      expect(has(fixture, 'recurring-form-label-error')).toBe(true);
+
+      await click(fixture, 'recurring-cancel');
+      await click(fixture, 'recurring-new');
+
+      expect(has(fixture, 'recurring-form-label-error')).toBe(false);
+      expect(has(fixture, 'recurring-form-amount-error')).toBe(false);
+    });
+
+    it('does not carry a refused save’s errors into an edited rule', async () => {
+      const fixture = await createModal(stubApi([rule()]));
+
+      await click(fixture, 'recurring-new');
+      await click(fixture, 'recurring-save');
+
+      await click(fixture, 'recurring-cancel');
+      await click(fixture, 'recurring-edit');
+
+      expect(has(fixture, 'recurring-form-label-error')).toBe(false);
     });
 
     it('clears the end date back to open-ended', async () => {

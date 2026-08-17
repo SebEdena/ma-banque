@@ -23,6 +23,7 @@ import { formatDate, parseFormattedDate } from '@core/display-settings/format';
 import { AmountInput, parseAmount } from '@shared/amount-input/amount-input';
 import { parseIsoDate, toIsoDate } from '@shared/iso-date/iso-date';
 import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
+import { AMOUNT_INVALID_MESSAGE, LABEL_REQUIRED_MESSAGE } from '../entry-field-messages';
 import { RowCategory, UNCATEGORIZED } from '../row-category';
 
 /**
@@ -38,9 +39,6 @@ export interface EntryDraft {
   categoryId: number | null;
   amount: string;
 }
-
-const LABEL_REQUIRED_MESSAGE = 'Libellé obligatoire';
-const AMOUNT_INVALID_MESSAGE = 'Montant invalide';
 
 /**
  * What makes a draft saveable, expressed once here rather than recomputed by

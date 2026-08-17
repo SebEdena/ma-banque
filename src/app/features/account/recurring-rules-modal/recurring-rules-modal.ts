@@ -37,6 +37,7 @@ import { ConfirmDialog } from '@shared/confirm-dialog/confirm-dialog';
 import { parseIsoDate, todayIso } from '@shared/iso-date/iso-date';
 import { ModalShell } from '@shared/modal-shell/modal-shell';
 import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
+import { AMOUNT_INVALID_MESSAGE, LABEL_REQUIRED_MESSAGE } from '../entry-field-messages';
 import { RowCategory, UNCATEGORIZED } from '../row-category';
 
 /**
@@ -58,9 +59,7 @@ interface RuleDraft {
   endDate: string;
 }
 
-const LABEL_REQUIRED_MESSAGE = 'Libellé obligatoire';
-const AMOUNT_INVALID_MESSAGE = 'Montant invalide';
-const INTERVAL_INVALID_MESSAGE = 'L’intervalle doit être d’au moins 1';
+const INTERVAL_INVALID_MESSAGE = 'Intervalle invalide : 1 au minimum';
 const END_BEFORE_START_MESSAGE = 'La date de fin précède la date de début';
 
 /**
@@ -252,13 +251,23 @@ export class RecurringRulesModal {
   }
 
   protected startCreate(): void {
-    this.draft.set(emptyDraft());
-    this.editing.set('new');
+    this.openForm(emptyDraft(), 'new');
   }
 
   protected startEdit(rule: RecurringRule): void {
-    this.draft.set(draftOf(rule));
-    this.editing.set(rule);
+    this.openForm(draftOf(rule), rule);
+  }
+
+  /**
+   * The field tree outlives any one form — it is built once over `draft` —
+   * so opening a form has to clear the touched state a previous refused save
+   * left behind, or the fresh form renders that form's errors. `reset()`
+   * clears touched and dirty only; the value is the draft we just set.
+   */
+  private openForm(draft: RuleDraft, target: RecurringRule | 'new'): void {
+    this.draft.set(draft);
+    this.fields().reset();
+    this.editing.set(target);
   }
 
   protected backToList(): void {
