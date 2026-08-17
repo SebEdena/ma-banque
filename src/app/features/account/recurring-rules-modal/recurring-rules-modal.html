@@ -1,0 +1,413 @@
+<app-modal-shell
+  labelledBy="recurring-rules-title"
+  panelClass="max-w-[640px]"
+  (dismissed)="closed.emit()"
+>
+  <div data-testid="recurring-modal" [style.--account-color]="accountColor()">
+    <div class="mb-4 flex items-center gap-2.5">
+      <span
+        class="flex size-8 shrink-0 items-center justify-center rounded-[10px] text-white"
+        [style.background-color]="accountColor()"
+      >
+        <ng-icon name="lucideCalendarClock" size="16" />
+      </span>
+      <h2 id="recurring-rules-title" class="flex-1 text-[15px] font-bold">Écritures périodiques</h2>
+      @if (editing() === null) {
+        <button
+          type="button"
+          data-testid="recurring-new"
+          data-accent-solid
+          class="flex items-center gap-1.5 rounded-[9px] px-3 py-2 text-[13px] font-semibold text-white outline-none"
+          [style.background-color]="accountColor()"
+          (click)="startCreate()"
+        >
+          <ng-icon name="lucidePlus" size="15" />
+          Nouvelle règle
+        </button>
+      }
+    </div>
+
+    @if (editing() === null) {
+      @if (rules().length === 0) {
+        <p
+          data-testid="recurring-empty"
+          class="px-5 py-12 text-center text-sm text-muted-foreground"
+        >
+          Aucune écriture périodique sur ce compte.
+        </p>
+      } @else {
+        <ul
+          class="flex flex-col divide-y divide-border overflow-hidden rounded-xl border border-border"
+        >
+          @for (rule of rules(); track rule.id) {
+            <li
+              data-testid="recurring-row"
+              [attr.data-rule-id]="rule.id"
+              class="flex items-center gap-3 px-3.5 py-3"
+            >
+              <span
+                data-testid="recurring-row-category"
+                class="flex size-[30px] shrink-0 items-center justify-center rounded-[9px] text-white"
+                [style.background-color]="swatchOf(rule.category_id).color"
+              >
+                <ng-icon [name]="swatchOf(rule.category_id).icon" size="15" />
+              </span>
+
+              <span class="min-w-0 flex-1">
+                <span
+                  data-testid="recurring-row-label"
+                  class="block truncate text-[14px] font-bold"
+                >
+                  {{ rule.label }}
+                </span>
+                <span
+                  data-testid="recurring-row-schedule"
+                  class="block truncate text-[12.5px] text-muted-foreground"
+                >
+                  {{ scheduleSummary(rule.frequency, rule.interval) }} · {{ dateRange(rule) }}
+                </span>
+              </span>
+
+              <span
+                data-testid="recurring-row-amount"
+                class="shrink-0 text-right font-mono text-[14.5px] font-semibold"
+                [class]="
+                  rule.amount < 0 ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'
+                "
+              >
+                {{ rule.amount | currencyFormat: currencyFormat() }}
+              </span>
+
+              <span class="flex shrink-0 gap-1">
+                <button
+                  type="button"
+                  data-testid="recurring-edit"
+                  data-accent
+                  [attr.aria-label]="'Modifier ' + rule.label"
+                  class="flex size-7 items-center justify-center rounded-lg bg-muted outline-none transition-colors"
+                  (click)="startEdit(rule)"
+                >
+                  <ng-icon name="lucidePencil" size="14" />
+                </button>
+                <button
+                  type="button"
+                  data-testid="recurring-delete"
+                  data-accent-solid
+                  [attr.aria-label]="'Supprimer ' + rule.label"
+                  class="flex size-7 items-center justify-center rounded-lg bg-destructive/10 text-destructive outline-none transition-colors hover:bg-destructive hover:text-white"
+                  (click)="confirmingDelete.set(rule)"
+                >
+                  <ng-icon name="lucideTrash2" size="14" />
+                </button>
+              </span>
+            </li>
+          }
+        </ul>
+      }
+    } @else {
+      <div data-testid="recurring-form" class="flex flex-col gap-4">
+        <div class="flex flex-col gap-1.5">
+          <label for="recurring-form-label" class="text-sm font-semibold">Libellé</label>
+          <input
+            id="recurring-form-label"
+            type="text"
+            data-testid="recurring-form-label"
+            data-accent
+            placeholder="Loyer"
+            class="rounded-[10px] bg-muted px-3 py-2 text-sm font-semibold outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50"
+            [value]="draft().label"
+            (input)="patch({ label: $any($event.target).value })"
+          />
+          @if (labelError(); as message) {
+            <p data-testid="recurring-form-label-error" class="text-xs text-destructive">
+              {{ message }}
+            </p>
+          }
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label for="recurring-form-category" class="text-sm font-semibold">Poste</label>
+          <div class="flex items-center gap-3">
+            <span
+              data-testid="recurring-form-swatch"
+              class="flex size-[38px] shrink-0 items-center justify-center rounded-[11px] text-white"
+              [style.background-color]="draftSwatch().color"
+            >
+              <ng-icon [name]="draftSwatch().icon" size="18" />
+            </span>
+            <select
+              id="recurring-form-category"
+              data-testid="recurring-form-category"
+              data-accent
+              class="min-w-0 flex-1 rounded-[10px] bg-muted px-3 py-2.5 text-sm font-semibold outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50"
+              (change)="
+                patch({
+                  categoryId: $any($event.target).value === '' ? null : +$any($event.target).value,
+                })
+              "
+            >
+              <!--
+                Selected on the options rather than `[value]` on the select:
+                a `<select>`'s value property only takes when its options
+                already exist, and `@for` fills them after the binding runs,
+                which silently reverts the field to its first option.
+              -->
+              <option value="" [selected]="draft().categoryId === null">Aucun poste</option>
+              @for (category of categories(); track category.id) {
+                <option [value]="category.id" [selected]="draft().categoryId === category.id">
+                  {{ category.name }}
+                </option>
+              }
+            </select>
+          </div>
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <span class="text-sm font-semibold">Montant</span>
+          <div class="flex items-center gap-2">
+            <button
+              type="button"
+              data-testid="recurring-form-debit"
+              data-accent-solid
+              [attr.aria-pressed]="isDebit()"
+              class="rounded-[9px] border px-3 py-2 text-[12.5px] font-semibold outline-none transition-colors"
+              [class]="
+                isDebit()
+                  ? 'border-destructive bg-destructive text-white'
+                  : 'border-border hover:border-destructive hover:text-destructive'
+              "
+              (click)="setDebit(true)"
+            >
+              Débit
+            </button>
+            <button
+              type="button"
+              data-testid="recurring-form-credit"
+              data-accent-solid
+              [attr.aria-pressed]="!isDebit()"
+              class="rounded-[9px] border px-3 py-2 text-[12.5px] font-semibold outline-none transition-colors"
+              [class]="
+                isDebit()
+                  ? 'border-border hover:border-emerald-600 hover:text-emerald-600 dark:hover:border-emerald-400 dark:hover:text-emerald-400'
+                  : 'border-emerald-600 bg-emerald-600 text-white dark:border-emerald-500 dark:bg-emerald-500'
+              "
+              (click)="setDebit(false)"
+            >
+              Crédit
+            </button>
+            <input
+              id="recurring-form-amount"
+              appAmountInput
+              data-testid="recurring-form-amount"
+              data-accent
+              placeholder="0,00"
+              aria-label="Montant de l’écriture périodique"
+              class="min-w-0 flex-1 rounded-[10px] bg-muted px-3 py-2 text-right font-mono text-sm font-semibold outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50"
+              [value]="draft().amount"
+              (input)="patch({ amount: $any($event.target).value })"
+            />
+          </div>
+          @if (amountError(); as message) {
+            <p data-testid="recurring-form-amount-error" class="text-xs text-destructive">
+              {{ message }}
+            </p>
+          }
+        </div>
+
+        <div class="flex flex-col gap-1.5">
+          <label for="recurring-form-description" class="text-sm font-semibold">
+            Description (optionnel)
+          </label>
+          <input
+            id="recurring-form-description"
+            type="text"
+            data-testid="recurring-form-description"
+            data-accent
+            placeholder="Précisions sur cette écriture"
+            class="rounded-[10px] bg-muted px-3 py-2 text-sm outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50"
+            [value]="draft().description"
+            (input)="patch({ description: $any($event.target).value })"
+          />
+        </div>
+
+        <hr class="border-border" />
+
+        <div class="flex gap-3">
+          <div class="flex flex-1 flex-col gap-1.5">
+            <label for="recurring-form-frequency" class="text-sm font-semibold">Fréquence</label>
+            <select
+              id="recurring-form-frequency"
+              data-testid="recurring-form-frequency"
+              data-accent
+              class="rounded-[10px] bg-muted px-3 py-2.5 text-sm font-semibold outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50"
+              (change)="patch({ frequency: $any($event.target).value })"
+            >
+              @for (frequency of frequencies; track frequency.value) {
+                <option
+                  [value]="frequency.value"
+                  [selected]="draft().frequency === frequency.value"
+                >
+                  {{ frequency.label }}
+                </option>
+              }
+            </select>
+          </div>
+
+          <div class="flex w-[130px] flex-col gap-1.5">
+            <label for="recurring-form-interval" class="text-sm font-semibold">Tous les</label>
+            <input
+              id="recurring-form-interval"
+              type="number"
+              min="1"
+              step="1"
+              data-testid="recurring-form-interval"
+              data-accent
+              class="rounded-[10px] bg-muted px-3 py-2 text-sm outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50"
+              [value]="draft().interval"
+              (input)="patch({ interval: $any($event.target).value })"
+            />
+          </div>
+        </div>
+        @if (intervalError(); as message) {
+          <p data-testid="recurring-form-interval-error" class="-mt-2 text-xs text-destructive">
+            {{ message }}
+          </p>
+        }
+
+        <div class="flex gap-3">
+          <div class="flex flex-1 flex-col gap-1.5">
+            <label for="recurring-form-start-date" class="text-sm font-semibold"
+              >Date de début</label
+            >
+            <input
+              id="recurring-form-start-date"
+              type="date"
+              data-testid="recurring-form-start-date"
+              data-accent
+              class="rounded-[10px] bg-muted px-3 py-2 text-sm outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50"
+              [value]="draft().startDate"
+              (input)="patch({ startDate: $any($event.target).value })"
+            />
+          </div>
+
+          <div class="flex flex-1 flex-col gap-1.5">
+            <label for="recurring-form-end-date" class="text-sm font-semibold">
+              Date de fin (optionnel)
+            </label>
+            <div class="flex items-center gap-1.5">
+              <input
+                id="recurring-form-end-date"
+                type="date"
+                data-testid="recurring-form-end-date"
+                data-accent
+                class="min-w-0 flex-1 rounded-[10px] bg-muted px-3 py-2 text-sm outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50"
+                [value]="draft().endDate"
+                (input)="patch({ endDate: $any($event.target).value })"
+              />
+              <button
+                type="button"
+                data-testid="recurring-form-end-date-clear"
+                data-accent
+                aria-label="Retirer la date de fin"
+                class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted outline-none transition-colors"
+                (click)="patch({ endDate: '' })"
+              >
+                <ng-icon name="lucideX" size="14" />
+              </button>
+            </div>
+          </div>
+        </div>
+        @if (endDateError(); as message) {
+          <p data-testid="recurring-form-end-date-error" class="-mt-2 text-xs text-destructive">
+            {{ message }}
+          </p>
+        }
+
+        <div class="mt-1 flex justify-end gap-2">
+          <button
+            hlmBtn
+            type="button"
+            variant="outline"
+            data-testid="recurring-cancel"
+            (click)="backToList()"
+          >
+            Annuler
+          </button>
+          <button
+            hlmBtn
+            type="button"
+            data-testid="recurring-save"
+            [disabled]="saving()"
+            (click)="attemptSave()"
+          >
+            Enregistrer
+          </button>
+        </div>
+      </div>
+    }
+  </div>
+</app-modal-shell>
+
+@if (confirmingDelete(); as rule) {
+  <app-confirm-dialog
+    title="Supprimer l’écriture périodique"
+    [message]="
+      '« ' +
+      rule.label +
+      ' » ne générera plus rien. Les écritures déjà générées restent dans le compte.'
+    "
+    confirmLabel="Supprimer"
+    (confirmed)="confirmDelete()"
+    (cancelled)="confirmingDelete.set(null)"
+  />
+}
+
+@if (awaitingScope() !== null) {
+  <app-modal-shell
+    labelledBy="recurring-scope-title"
+    panelClass="max-w-sm"
+    (dismissed)="awaitingScope.set(null)"
+  >
+    <div data-testid="recurring-scope-dialog" [style.--account-color]="accountColor()">
+      <h2 id="recurring-scope-title" class="mb-2 text-[15px] font-bold">
+        Appliquer la modification
+      </h2>
+      <p class="mb-4 text-sm text-muted-foreground">
+        Cette modification porte sur l’écriture générée. À quelles occurrences doit-elle s’appliquer
+        ?
+      </p>
+
+      <div class="flex flex-col gap-2">
+        <button
+          type="button"
+          data-testid="recurring-scope-next"
+          data-accent
+          class="rounded-[10px] border border-border px-3 py-2.5 text-left text-sm font-semibold outline-none transition-colors"
+          (click)="applyScope('NEXT_OCCURRENCE_ONLY')"
+        >
+          Uniquement la prochaine occurrence
+        </button>
+        <button
+          type="button"
+          data-testid="recurring-scope-all"
+          data-accent-solid
+          class="rounded-[10px] px-3 py-2.5 text-left text-sm font-semibold text-white outline-none"
+          [style.background-color]="accountColor()"
+          (click)="applyScope('ALL_FUTURE')"
+        >
+          La prochaine et toutes les suivantes
+        </button>
+        <button
+          hlmBtn
+          type="button"
+          variant="outline"
+          class="mt-1"
+          data-testid="recurring-scope-cancel"
+          (click)="awaitingScope.set(null)"
+        >
+          Annuler
+        </button>
+      </div>
+    </div>
+  </app-modal-shell>
+}

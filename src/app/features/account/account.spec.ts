@@ -157,11 +157,26 @@ function stubReconciliationApi(
 interface StubRecurringRulesApi {
   openAccount: ReturnType<typeof vi.fn>;
   generateAllDue: ReturnType<typeof vi.fn>;
+  listRecurringRules: ReturnType<typeof vi.fn>;
+  createRecurringRule: ReturnType<typeof vi.fn>;
+  updateRecurringRule: ReturnType<typeof vi.fn>;
+  deleteRecurringRule: ReturnType<typeof vi.fn>;
 }
 
-/** Generation is a no-op by default, so the tests about the register stay about it. */
+/**
+ * Generation is a no-op by default and the account owns no rules, so the
+ * tests about the register stay about it — `RecurringRulesModal`'s own spec
+ * covers what the rules surface does.
+ */
 function stubRecurringRulesApi(openAccount = vi.fn().mockResolvedValue(0)): StubRecurringRulesApi {
-  return { openAccount, generateAllDue: vi.fn().mockResolvedValue(undefined) };
+  return {
+    openAccount,
+    generateAllDue: vi.fn().mockResolvedValue(undefined),
+    listRecurringRules: vi.fn().mockResolvedValue([]),
+    createRecurringRule: vi.fn(),
+    updateRecurringRule: vi.fn(),
+    deleteRecurringRule: vi.fn().mockResolvedValue(undefined),
+  };
 }
 
 async function createAccount(
@@ -891,6 +906,32 @@ describe('Account', () => {
 
     await type(fixture, 'entry-form-amount', '-30');
     expect(one(fixture, 'entry-form-debit')?.dataset['selected']).toBe('true');
+  });
+
+  describe('recurring rules', () => {
+    it('opens the rules modal from the toolbar, on this account', async () => {
+      const recurringRulesApi = stubRecurringRulesApi();
+      const fixture = await createAccount(
+        stubEntriesApi([entry()]),
+        stubCategoriesApi(),
+        recurringRulesApi,
+      );
+
+      await click(fixture, 'recurring-open');
+
+      expect(one(fixture, 'recurring-modal')).not.toBeNull();
+      expect(recurringRulesApi.listRecurringRules).toHaveBeenCalledWith(1);
+    });
+
+    it('closes the rules modal without leaving the register', async () => {
+      const fixture = await createAccount(stubEntriesApi([entry()]));
+
+      await click(fixture, 'recurring-open');
+      await click(fixture, 'modal-backdrop');
+
+      expect(one(fixture, 'recurring-modal')).toBeNull();
+      expect(rows(fixture)).toHaveLength(1);
+    });
   });
 });
 
