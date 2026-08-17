@@ -186,6 +186,23 @@ impl AccountRepository for SqliteAccountRepository {
 
         rows.into_iter().collect()
     }
+
+    fn set_last_viewed_date(&self, id: i64, date: &IsoDate) -> Result<(), AccountError> {
+        let changed = self
+            .conn
+            .lock()
+            .unwrap()
+            .execute(
+                "UPDATE accounts SET last_viewed_date = ?1 WHERE id = ?2",
+                rusqlite::params![date.as_str(), id],
+            )
+            .map_err(io_err)?;
+
+        if changed == 0 {
+            return Err(AccountError::NotFound);
+        }
+        Ok(())
+    }
 }
 
 #[cfg(test)]
@@ -245,6 +262,40 @@ mod tests {
         assert_eq!(found.opening_balance, 123_456);
         assert!(!found.archived);
         assert_eq!(found.last_viewed_date, None);
+    }
+
+    #[test]
+    fn the_last_viewed_date_round_trips_and_is_overwritten_by_a_later_stamp() {
+        let conn = db::migrated_in_memory_connection();
+        let repo = SqliteAccountRepository::new(conn);
+        let created = repo
+            .create(&details("Livret A", "2026-01-15", 100_000))
+            .unwrap();
+
+        for stamp in ["2026-03-01", "2026-03-02"] {
+            repo.set_last_viewed_date(created.id, &IsoDate::parse(stamp).unwrap())
+                .unwrap();
+            assert_eq!(
+                repo.find(created.id)
+                    .unwrap()
+                    .unwrap()
+                    .last_viewed_date
+                    .map(|d| d.to_string()),
+                Some(stamp.to_owned())
+            );
+        }
+    }
+
+    #[test]
+    fn stamping_an_unknown_account_reports_it_as_missing() {
+        let conn = db::migrated_in_memory_connection();
+        let repo = SqliteAccountRepository::new(conn);
+
+        let err = repo
+            .set_last_viewed_date(404, &IsoDate::parse("2026-03-01").unwrap())
+            .unwrap_err();
+
+        assert_eq!(err, AccountError::NotFound);
     }
 
     #[test]

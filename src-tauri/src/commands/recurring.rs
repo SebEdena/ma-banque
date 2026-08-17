@@ -10,11 +10,13 @@
 use serde::{Deserialize, Serialize};
 use tauri::State;
 
+use crate::domain::account::DynAccountRepository;
 use crate::domain::date::IsoDate;
 use crate::domain::money;
 use crate::domain::recurring::{
     DynRecurringRuleRepository, EditScope, Frequency, RecurringError, RecurringRule,
 };
+use crate::infra::clock;
 use crate::usecases::recurring::{self as usecases, RuleInput};
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
@@ -120,6 +122,32 @@ pub fn delete_recurring_rule(
     id: i64,
 ) -> Result<(), RecurringError> {
     usecases::delete_rule(&**rules, id)
+}
+
+/// Brings one account's register up to today and reports how many entries
+/// that took, so the screen can explain the ones that just appeared (user
+/// story 13).
+///
+/// The name says what the frontend is reporting, not what the backend does
+/// with it: stamping `last_viewed_date` is today's whole payload, and a later
+/// spec may well want more to happen when an account is opened.
+#[tauri::command]
+pub fn open_account(
+    rules: State<DynRecurringRuleRepository>,
+    accounts: State<DynAccountRepository>,
+    account_id: i64,
+) -> Result<usize, RecurringError> {
+    usecases::generate_due_for_account(&**rules, &**accounts, account_id, &clock::today())
+}
+
+/// The startup sweep. Returns nothing — the home screen simply reads correct
+/// balances once it resolves.
+#[tauri::command]
+pub fn generate_all_due_entries(
+    rules: State<DynRecurringRuleRepository>,
+    accounts: State<DynAccountRepository>,
+) -> Result<(), RecurringError> {
+    usecases::generate_due_for_all(&**accounts, &**rules, &clock::today()).map(|_| ())
 }
 
 #[cfg(test)]

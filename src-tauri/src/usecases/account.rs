@@ -271,6 +271,16 @@ mod tests {
                 .cloned()
                 .collect())
         }
+
+        fn set_last_viewed_date(&self, id: i64, date: &IsoDate) -> Result<(), AccountError> {
+            let mut accounts = self.accounts.borrow_mut();
+            let account = accounts
+                .iter_mut()
+                .find(|a| a.id == id)
+                .ok_or(AccountError::NotFound)?;
+            account.last_viewed_date = Some(date.clone());
+            Ok(())
+        }
     }
 
     impl EntryRepository for FakeStore {

@@ -1,10 +1,18 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter } from '@angular/router';
+import { toast } from '@spartan-ng/brain/sonner';
 
 import { App } from './app';
 import { AccountsApi } from './data/accounts/accounts-api';
+import { RecurringRulesApi } from './data/recurring-rules/recurring-rules-api';
 import { FolderPrompt } from './features/onboarding/folder-prompt/folder-prompt';
 import { SettingsApi } from './core/settings-api/settings-api';
+
+// Spied rather than mocked: this shell renders the toaster itself, so the
+// module has to stay real.
+beforeEach(() => {
+  vi.spyOn(toast, 'error').mockReturnValue('');
+});
 
 /**
  * The routed shell renders the sidebar, whose account rail reads the account
@@ -20,6 +28,17 @@ function stubAccountsApi() {
   };
 }
 
+interface StubRecurringRulesApi {
+  generateAllDue: ReturnType<typeof vi.fn>;
+  openAccount: ReturnType<typeof vi.fn>;
+}
+
+function stubRecurringRulesApi(
+  generateAllDue = vi.fn().mockResolvedValue(undefined),
+): StubRecurringRulesApi {
+  return { generateAllDue, openAccount: vi.fn().mockResolvedValue(0) };
+}
+
 function stubMatchMedia(): void {
   vi.stubGlobal(
     'matchMedia',
@@ -32,12 +51,16 @@ function stubMatchMedia(): void {
   );
 }
 
-async function createApp(settingsApi: Partial<SettingsApi>): Promise<ComponentFixture<App>> {
+async function createApp(
+  settingsApi: Partial<SettingsApi>,
+  recurringRulesApi: StubRecurringRulesApi = stubRecurringRulesApi(),
+): Promise<ComponentFixture<App>> {
   await TestBed.configureTestingModule({
     imports: [App],
     providers: [
       provideRouter([]),
       { provide: SettingsApi, useValue: settingsApi },
+      { provide: RecurringRulesApi, useValue: recurringRulesApi },
       stubAccountsApi(),
     ],
   }).compileComponents();
@@ -74,6 +97,7 @@ describe('App', () => {
       providers: [
         provideRouter([]),
         { provide: SettingsApi, useValue: { getCurrentDataFolder: () => pending } },
+        { provide: RecurringRulesApi, useValue: stubRecurringRulesApi() },
         stubAccountsApi(),
       ],
     }).compileComponents();
@@ -84,6 +108,8 @@ describe('App', () => {
     expect(fixture.nativeElement.querySelector('router-outlet')).toBe(null);
 
     resolveFolder('/home/user/saves');
+    // Twice: the shell waits on the recurring sweep after the folder check.
+    await fixture.whenStable();
     await fixture.whenStable();
     fixture.detectChanges();
     expect(fixture.nativeElement.querySelector('router-outlet')).not.toBe(null);
@@ -121,9 +147,64 @@ describe('App', () => {
 
     const promptDebugElement = queryFolderPrompt(fixture);
     (promptDebugElement!.componentInstance as FolderPrompt).resolved.emit();
+    await fixture.whenStable();
     fixture.detectChanges();
 
     expect(queryFolderPrompt(fixture)).toBe(null);
+    expect(fixture.nativeElement.querySelector('router-outlet')).not.toBe(null);
+  });
+
+  /**
+   * The sweep has to finish first: `AccountsStore` loads in its own
+   * constructor, so a shell rendered before it would show pre-generation
+   * balances on the home screen's cards.
+   */
+  it('sweeps every account for due occurrences before the routed shell renders', async () => {
+    let resolveSweep!: () => void;
+    const sweep = new Promise<void>((resolve) => (resolveSweep = resolve));
+    const recurringRulesApi = stubRecurringRulesApi(vi.fn().mockReturnValue(sweep));
+
+    await TestBed.configureTestingModule({
+      imports: [App],
+      providers: [
+        provideRouter([]),
+        {
+          provide: SettingsApi,
+          useValue: { getCurrentDataFolder: vi.fn().mockResolvedValue('/home/user/saves') },
+        },
+        { provide: RecurringRulesApi, useValue: recurringRulesApi },
+        stubAccountsApi(),
+      ],
+    }).compileComponents();
+    const fixture = TestBed.createComponent(App);
+    fixture.detectChanges();
+    await Promise.resolve();
+    fixture.detectChanges();
+
+    expect(recurringRulesApi.generateAllDue).toHaveBeenCalled();
+    expect(fixture.nativeElement.querySelector('router-outlet')).toBe(null);
+
+    resolveSweep();
+    await fixture.whenStable();
+    fixture.detectChanges();
+    expect(fixture.nativeElement.querySelector('router-outlet')).not.toBe(null);
+  });
+
+  it('does not sweep while the data folder is still unresolved', async () => {
+    const recurringRulesApi = stubRecurringRulesApi();
+
+    await createApp({ getCurrentDataFolder: vi.fn().mockResolvedValue(null) }, recurringRulesApi);
+
+    expect(recurringRulesApi.generateAllDue).not.toHaveBeenCalled();
+  });
+
+  it('renders the routed shell anyway when the sweep rejects', async () => {
+    const fixture = await createApp(
+      { getCurrentDataFolder: vi.fn().mockResolvedValue('/home/user/saves') },
+      stubRecurringRulesApi(vi.fn().mockRejectedValue({ kind: 'Io', message: 'disque plein' })),
+    );
+
+    expect(toast.error).toHaveBeenCalledWith('disque plein');
     expect(fixture.nativeElement.querySelector('router-outlet')).not.toBe(null);
   });
 });

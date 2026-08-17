@@ -43,6 +43,11 @@ import {
   ReconciliationSummary,
   parseReconciliationError,
 } from '@data/reconciliation/reconciliation-api';
+import {
+  RecurringRulesApi,
+  generatedEntriesMessage,
+  parseRecurringError,
+} from '@data/recurring-rules/recurring-rules-api';
 import { CategoryModal } from '@features/settings/categories/category-modal/category-modal';
 import { formatAmountInput } from '@shared/amount-input/amount-input';
 import { ConfirmDialog } from '@shared/confirm-dialog/confirm-dialog';
@@ -144,6 +149,7 @@ export class Account {
   private readonly categoriesStore = inject(CategoriesStore);
   private readonly pager = inject(EntriesPager);
   private readonly reconciliationApi = inject(ReconciliationApi);
+  private readonly recurringRulesApi = inject(RecurringRulesApi);
 
   protected readonly displaySettings = inject(DisplaySettingsService);
 
@@ -244,11 +250,48 @@ export class Account {
    */
   protected readonly draftReconciled = signal(false);
 
+  /**
+   * The in-flight (or settled) `openAccount` call per account, so the filter
+   * and sort controls — which re-run the effect below — don't ask the backend
+   * to generate again for an account it has already brought up to today.
+   */
+  private readonly generation = new Map<number, Promise<void>>();
+
   constructor() {
     effect(() => {
+      const query = this.query();
       this.editing.set(null);
-      void this.pager.reload(this.query());
+      void this.generateThenReload(query);
     });
+  }
+
+  /**
+   * Generation runs before the register's first read, so the entries it
+   * writes are in the page the screen renders rather than appearing on the
+   * next reload. A failure is toasted and the register still loads: not
+   * knowing today's rent must not make the account unreadable.
+   */
+  private async generateThenReload(query: PageQuery): Promise<void> {
+    await this.generateDue(query.accountId);
+    await this.pager.reload(query);
+  }
+
+  private generateDue(accountId: number): Promise<void> {
+    const pending =
+      this.generation.get(accountId) ??
+      this.recurringRulesApi.openAccount(accountId).then(
+        (count) => {
+          if (count > 0) {
+            toast.info(generatedEntriesMessage(count));
+          }
+        },
+        (error: unknown) => {
+          toast.error(parseRecurringError(error));
+        },
+      );
+
+    this.generation.set(accountId, pending);
+    return pending;
   }
 
   /**

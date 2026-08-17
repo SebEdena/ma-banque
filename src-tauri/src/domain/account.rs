@@ -120,6 +120,11 @@ pub trait AccountRepository {
     fn find(&self, id: i64) -> Result<Option<Account>, AccountError>;
 
     fn list(&self, archived: bool) -> Result<Vec<Account>, AccountError>;
+
+    /// Stamps the date through which this account's recurring occurrences
+    /// have been generated. That is all `last_viewed_date` means — it is not
+    /// a general "last opened" timestamp, and nothing else should write it.
+    fn set_last_viewed_date(&self, id: i64, date: &IsoDate) -> Result<(), AccountError>;
 }
 
 pub type DynAccountRepository = Box<dyn AccountRepository + Send + Sync>;

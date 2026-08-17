@@ -16,6 +16,8 @@ import { EntriesApi } from './data/entries/entries-api';
 import { InMemoryEntriesApi } from './data/entries/entries-api.mock';
 import { ReconciliationApi } from './data/reconciliation/reconciliation-api';
 import { InMemoryReconciliationApi } from './data/reconciliation/reconciliation-api.mock';
+import { RecurringRulesApi } from './data/recurring-rules/recurring-rules-api';
+import { InMemoryRecurringRulesApi } from './data/recurring-rules/recurring-rules-api.mock';
 
 /**
  * Only non-empty when built with `--configuration mock` (`npm run
@@ -29,6 +31,7 @@ const mockProviders = mockBackend
       { provide: CategoriesApi, useClass: InMemoryCategoriesApi },
       { provide: EntriesApi, useClass: InMemoryEntriesApi },
       { provide: ReconciliationApi, useClass: InMemoryReconciliationApi },
+      { provide: RecurringRulesApi, useClass: InMemoryRecurringRulesApi },
       { provide: SettingsApi, useClass: InMemorySettingsApi },
     ]
   : [];
