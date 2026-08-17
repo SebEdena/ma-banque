@@ -7,11 +7,13 @@
 
 pub mod account;
 pub mod category;
+pub mod clock;
 pub mod collation;
 pub mod data_folder_location;
 pub mod db;
 pub mod entry;
 pub mod reconciliation;
+pub mod recurring;
 pub mod settings;
 
 /// Filename of the SQLite database inside a data folder.

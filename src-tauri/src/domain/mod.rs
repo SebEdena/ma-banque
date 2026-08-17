@@ -10,4 +10,5 @@ pub mod date;
 pub mod entry;
 pub mod money;
 pub mod reconciliation;
+pub mod recurring;
 pub mod settings;

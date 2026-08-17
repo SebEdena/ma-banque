@@ -1778,6 +1778,7 @@ name = "ma-banque"
 version = "0.5.0"
 dependencies = [
  "anyhow",
+ "chrono",
  "log",
  "rusqlite",
  "rusqlite_migration",
