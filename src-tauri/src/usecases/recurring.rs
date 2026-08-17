@@ -130,13 +130,13 @@ pub fn delete_rule(rules: &dyn RecurringRuleRepository, id: i64) -> Result<(), R
 /// Writes every occurrence of `account_id`'s rules due up to and including
 /// `today`, and returns how many entries that produced.
 ///
-/// The window is `[last_viewed_date, today]`, inclusive at both ends. When
-/// the account has never been stamped — one created before this feature
-/// existed, or never opened since — the window opens at each rule's own
-/// start date instead, which is what makes adding a rule with a start date
-/// in the past backfill the whole run (user story 6). `occurrences_between`
-/// clips each rule to its own `[start_date, end_date]`, so a rule outside
-/// the window simply yields nothing.
+/// The window is `[last_viewed_date, today]`, inclusive at both ends, for
+/// any rule that has already generated at least one occurrence. A rule that
+/// has generated nothing opens its window at its own start date instead —
+/// as does every rule when the account has never been stamped — which is
+/// what makes adding a rule with a start date in the past backfill the whole
+/// run (user story 6). `occurrences_between` clips each rule to its own
+/// `[start_date, end_date]`, so a rule outside the window yields nothing.
 ///
 /// `today` is a parameter rather than a clock read: the command layer
 /// resolves it once per invocation, and every case below is deterministic
@@ -166,10 +166,19 @@ pub fn generate_due_for_account(
 
     let mut generated = 0;
     for rule in rules.list_by_account(account_id)? {
-        let window_start = account
-            .last_viewed_date
-            .clone()
-            .unwrap_or_else(|| rule.schedule.start_date.clone());
+        // A rule that has generated nothing yet is anchored at its own start
+        // date rather than the account's stamp, whatever that stamp says.
+        // Opening the account screen is what stamps it, and the rules modal
+        // hangs off that same screen, so every rule is created against an
+        // already-stamped account — anchoring on the stamp would make "start
+        // date in the past" backfill nothing at all (user story 6).
+        let window_start = match rules.last_generated_date(rule.id)? {
+            Some(_) => account
+                .last_viewed_date
+                .clone()
+                .unwrap_or_else(|| rule.schedule.start_date.clone()),
+            None => rule.schedule.start_date.clone(),
+        };
         let mut outstanding = rules.list_overrides(rule.id)?;
 
         for date in occurrences_between(&rule.schedule, &window_start, today) {
@@ -797,7 +806,10 @@ mod tests {
 
     #[test]
     fn generation_covers_the_window_from_the_last_viewed_date_to_today() {
-        let store = FakeStore::default();
+        // Seeded as already having generated once, which is what puts the
+        // rule on the cheap `last_viewed_date` window rather than the
+        // start-date backfill the test above covers.
+        let store = FakeStore::default().generated_occurrence(1, "2026-04-01");
         create_rule(&store, 1, input("Loyer", -750.0)).unwrap();
         let accounts = FakeAccounts::with(1, Some("2026-04-15"), false);
 
@@ -805,7 +817,32 @@ mod tests {
             generate_due_for_account(&store, &accounts, 1, &date("2026-06-01")).unwrap();
 
         assert_eq!(generated, 2);
-        assert_eq!(store.generated_dates(), ["2026-05-01", "2026-06-01"]);
+        assert_eq!(
+            store.generated_dates(),
+            ["2026-04-01", "2026-05-01", "2026-06-01"]
+        );
+    }
+
+    /// User story 6 on the only path the UI can actually produce. The rules
+    /// modal is reachable solely from the account screen, and merely opening
+    /// that screen stamps `last_viewed_date`, so a rule is *always* added to
+    /// an already-stamped account. Anchoring a rule that has generated
+    /// nothing at its own start date is what keeps "start date in the past"
+    /// backfilling instead of silently generating nothing.
+    #[test]
+    fn a_never_generated_rule_backfills_from_its_start_date_on_a_stamped_account() {
+        let store = FakeStore::default();
+        create_rule(&store, 1, input("Loyer", -750.0)).unwrap();
+        let accounts = FakeAccounts::with(1, Some("2026-05-20"), false);
+
+        let generated =
+            generate_due_for_account(&store, &accounts, 1, &date("2026-06-01")).unwrap();
+
+        assert_eq!(generated, 4);
+        assert_eq!(
+            store.generated_dates(),
+            ["2026-03-01", "2026-04-01", "2026-05-01", "2026-06-01"]
+        );
     }
 
     /// User story 6: an account that has never been stamped opens its window
