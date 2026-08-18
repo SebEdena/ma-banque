@@ -2,6 +2,33 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.6.0] - 2026-08-18
+
+### Bug Fixes
+
+- Replace gh workflow run with workflow_call in trigger-release job
+- Give the Pointage panel a proper open/close animation and matching field styling
+- Unmount the Pointage panel when it collapses
+
+### Documentation
+
+- Spec and break down the 3 remaining layer-3 features
+
+### Features
+
+- Compute and store the reconciliation summary
+- Filter the entries list to unreconciled entries
+- Build the Pointage panel on the account screen
+
+### Miscellaneous Tasks
+
+- Mark issue 03 done, hand off testid hooks to issue 04
+- Add model-tier policy, numeric poll cadence, notes excerpting
+
+### Testing
+
+- Drive the Pointage panel end to end
+
 ## [0.5.0] - 2026-08-16
 
 ### Bug Fixes
