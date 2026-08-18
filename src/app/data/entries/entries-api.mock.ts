@@ -4,7 +4,9 @@ import { EntriesApi, Entry, EntryInput, EntryPage, ListEntriesQuery } from './en
 const LABELS: { label: string; category_id: number | null; amount: number; description: string }[] =
   [
     { label: 'Courses Carrefour', category_id: 1, amount: -64.32, description: 'Hebdomadaire' },
-    { label: 'Loyer', category_id: 2, amount: -780, description: '' },
+    // Amount and category match the "Loyer" rule `InMemoryRecurringRulesApi`
+    // seeds, so the register reads as what that rule would have generated.
+    { label: 'Loyer', category_id: 2, amount: -750, description: '' },
     { label: 'Salaire', category_id: 9, amount: 2450.9, description: 'Virement employeur' },
     { label: 'Essence', category_id: 3, amount: -58.4, description: '' },
     { label: 'Restaurant Le Cèdre', category_id: 4, amount: -42.5, description: 'Déjeuner' },
