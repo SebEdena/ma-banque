@@ -50,6 +50,17 @@
 
         <button
           type="button"
+          data-testid="statistics-button"
+          data-accent
+          [routerLink]="['/stats', account.id]"
+          class="flex items-center gap-1.5 rounded-[9px] border border-border bg-card px-3 py-2 text-[13px] font-semibold text-muted-foreground outline-none transition-colors"
+        >
+          <ng-icon name="lucideBarChart3" size="14" />
+          Statistiques
+        </button>
+
+        <button
+          type="button"
           data-testid="reconciliation-toggle"
           data-accent
           [attr.aria-expanded]="panelOpen()"

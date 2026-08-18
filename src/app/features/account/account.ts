@@ -13,6 +13,7 @@ import {
 import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import {
+  lucideBarChart3,
   lucideCalendarClock,
   lucideChevronRight,
   lucideChevronsUpDown,
@@ -137,6 +138,7 @@ function emptyDraft(): EntryDraft {
     EntriesPager,
     provideCatalogIcons(),
     provideIcons({
+      lucideBarChart3,
       lucideCalendarClock,
       lucideChevronRight,
       lucideChevronsUpDown,

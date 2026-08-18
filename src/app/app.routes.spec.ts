@@ -41,6 +41,10 @@ describe('app routes', () => {
             return Promise.resolve([]);
           case 'list_entries':
             return Promise.resolve({ entries: [], has_more: false });
+          case 'category_breakdown':
+            return Promise.resolve({ buckets: [], total_expenses: 0 });
+          case 'month_bucketed':
+            return Promise.resolve({ months: [] });
           default:
             return Promise.resolve(null);
         }
@@ -72,9 +76,20 @@ describe('app routes', () => {
     expect(harness.routeNativeElement?.textContent).toContain('Compte Courant');
   });
 
-  it('renders the stats placeholder for a given account id', async () => {
+  it('renders the statistics screen for a given account id', async () => {
     const harness = await RouterTestingHarness.create('/stats/123');
+    await TestBed.inject(AccountsStore).loaded;
+    harness.detectChanges();
+    // A second tick for the account-scoped `@if` to pick up the store's
+    // resolved signals, and again for the statistics aggregates it then
+    // requests (`Stats`'s own `effect()`), same as `stats.spec.ts`.
+    await Promise.resolve();
+    harness.detectChanges();
+    await Promise.resolve();
+    harness.detectChanges();
+
     expect(harness.routeNativeElement?.textContent).toContain('Statistiques');
+    expect(harness.routeNativeElement?.textContent).toContain('Compte Courant');
   });
 
   it('redirects settings to its Postes (categories) child route', async () => {

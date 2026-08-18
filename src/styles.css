@@ -60,6 +60,16 @@
   --pointage-ok-soft: #dcfce7;
   --pointage-bad: #e53e3e;
   --pointage-bad-soft: #fee4e2;
+
+  /*
+    Income/expense semantics for the statistics charts
+    (docs/spec/09-statistics.md) — the same colours the entries screen
+    already uses for a positive/negative amount (`text-emerald-600` /
+    `text-destructive`), exposed as plain CSS custom properties so Unovis's
+    `colorAccessor` (a string, not a Tailwind class) can read them.
+  */
+  --positive: #059669;
+  --negative: var(--destructive);
 }
 
 :root.dark {
@@ -95,6 +105,8 @@
   --pointage-ok-soft: #132a1e;
   --pointage-bad: #f87171;
   --pointage-bad-soft: #3a1616;
+  --positive: #34d399;
+  --negative: var(--destructive);
 }
 
 @layer base {

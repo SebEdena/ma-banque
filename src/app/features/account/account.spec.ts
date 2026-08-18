@@ -478,6 +478,15 @@ describe('Account', () => {
     expect(one(fixture, 'account-balance')?.textContent).toContain('234,56');
   });
 
+  it('routes to the statistics screen with the current account preselected', async () => {
+    const fixture = await createAccount(stubEntriesApi([entry()]));
+
+    const statsButton = one(fixture, 'statistics-button');
+
+    expect(statsButton).not.toBeNull();
+    expect(statsButton?.textContent).toContain('Statistiques');
+  });
+
   it('re-requests oldest-first when the reverse-order control is used', async () => {
     const entriesApi = stubEntriesApi([
       entry({ id: 1, label: 'Ancienne', date: '2026-02-01' }),
