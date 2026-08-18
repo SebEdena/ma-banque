@@ -74,7 +74,7 @@
         [style.transform]="panelOpen() ? 'translateY(0)' : 'translateY(-10px)'"
         [style.margin-bottom]="panelOpen() ? '22px' : '0px'"
       >
-        @if (summary(); as summary) {
+        @if (panelOpen() && summary(); as summary) {
           <app-reconciliation-panel
             class="min-h-0 overflow-hidden"
             [summary]="summary"
