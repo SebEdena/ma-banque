@@ -41,9 +41,9 @@ Both aggregate methods on `EntryRepository` are implemented as single SQL `GROUP
 
 `usecases::statistics` handles:
 
-- **Period preset → date range derivation**: `PeriodPreset` enum (1/3/6/12 months) derives an inclusive `IsoDate` range ending today
+- **Period preset → date range derivation**: `PeriodPreset` enum (1/3/6/12 months) derives an inclusive `IsoDate` range ending `today`
 - **Month gap-filling**: `month_bucketed()` calls the repository and fills missing months with zero-valued entries, so the series always covers every month of the period in order
-- **No DateTime dependency**: Date arithmetic uses only standard library (`SystemTime` + manual leap-year logic), avoiding external dependencies
+- **`today` is a parameter, not read from the clock** (updated in the PR #12 review pass — see above): `category_breakdown`/`month_bucketed` take `today: &IsoDate`, and `commands::statistics` supplies it via `infra::clock::today()`. Date arithmetic goes through `IsoDate::add_months`/`subtract_months` rather than hand-rolled epoch/leap-year math — no `chrono` dependency added here, since `infra::clock` already owns the crate's one `chrono` call
 
 Date calculations are tested to verify presets derive the expected ranges and gap-filling covers every month of the period.
 
@@ -100,7 +100,7 @@ All tests use a hand-written in-memory `FakeRepo` (no `mockall`) and test behavi
 - Error handling: `parseStatisticsError()` follows existing pattern (parseAccountError, parseCategoryError)
 - Injectable singleton service; component tests mock this boundary, never `invoke()` directly
 
-**Test Coverage:** 3 new tests added (unovis-smoke.spec.ts verifies module bootstrap; statistics-api.spec.ts tests error handling)
+**Test Coverage:** `unovis-smoke.spec.ts` (module-bootstrap "test") was deleted in the PR #12 review pass — it was a placebo, see above; `statistics-api.spec.ts` (error handling) remains.
 
 **Correction (Issue 03):** the two commands (`commands/statistics.rs`) originally returned `CategoryBreakdownResponse`/`MonthBucketedResponse` straight from the use case — i.e. amounts in **cents**, contradicting this section's claim above ("major units, already converted from cents") and `technical-architecture.md` §1.3's cents-boundary rule (`AccountView`/`EntryView` already convert at the command layer; statistics didn't). Fixed in Issue 03: `commands/statistics.rs` now has its own `CategoryBreakdownResponseView`/`MonthBucketedResponseView` (`From<...>` impls calling `money::to_major`), so the frontend types in `statistics-api.ts` were already correct and needed no change — only the backend crossed cents by mistake before this fix.
 
