@@ -46,7 +46,31 @@ export class InMemoryStatisticsApi implements StatisticsApi {
           percentage: 11.2,
         },
       ],
-      total_expenses: 709.38,
+      total: 709.38,
+    });
+  }
+
+  creditBreakdown(): Promise<CategoryBreakdownResponse> {
+    return Promise.resolve({
+      buckets: [
+        {
+          category_id: 4,
+          name: 'Salaire',
+          color: '#3b82f6',
+          icon: 'lucideBanknote',
+          amount: 2400,
+          percentage: 91.8,
+        },
+        {
+          category_id: null,
+          name: 'Sans poste',
+          color: '#9ca3af',
+          icon: '',
+          amount: 214.15,
+          percentage: 8.2,
+        },
+      ],
+      total: 2614.15,
     });
   }
 

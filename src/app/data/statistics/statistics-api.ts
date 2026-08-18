@@ -24,12 +24,13 @@ export interface CategoryBreakdownBucket {
 }
 
 /**
- * Category-breakdown aggregate response: the period's expense buckets and
- * the total expense for the period. Mirrors `CategoryBreakdownResponse`.
+ * Category-breakdown aggregate response: the period's buckets and their
+ * total, for one sign (expense or credit) — the same shape serves both the
+ * expense and credit donuts. Mirrors `CategoryBreakdownResponse`.
  */
 export interface CategoryBreakdownResponse {
   buckets: CategoryBreakdownBucket[];
-  total_expenses: number; // in major units
+  total: number; // in major units
 }
 
 /**
@@ -112,6 +113,13 @@ export function parseStatisticsError(error: unknown): string {
 export class StatisticsApi {
   categoryBreakdown(accountId: number, preset: PeriodPreset): Promise<CategoryBreakdownResponse> {
     return invoke<CategoryBreakdownResponse>('category_breakdown', {
+      accountId,
+      preset,
+    });
+  }
+
+  creditBreakdown(accountId: number, preset: PeriodPreset): Promise<CategoryBreakdownResponse> {
+    return invoke<CategoryBreakdownResponse>('credit_breakdown', {
       accountId,
       preset,
     });

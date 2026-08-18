@@ -20,14 +20,17 @@ function bucket(overrides: Partial<CategoryBreakdownBucket> = {}): CategoryBreak
 
 async function createChart(
   buckets: CategoryBreakdownBucket[],
-  totalExpenses: number,
+  total: number,
   loaded = true,
 ): Promise<ComponentFixture<BreakdownChart>> {
   const fixture = TestBed.createComponent(BreakdownChart);
   fixture.componentRef.setInput('buckets', buckets);
-  fixture.componentRef.setInput('totalExpenses', totalExpenses);
+  fixture.componentRef.setInput('total', total);
   fixture.componentRef.setInput('loaded', loaded);
   fixture.componentRef.setInput('currencyFormat', 'SYMBOL_AFTER');
+  fixture.componentRef.setInput('title', 'Répartition des dépenses par poste');
+  fixture.componentRef.setInput('emptyMessage', 'Aucune dépense sur cette période.');
+  fixture.componentRef.setInput('centralSubLabel', 'Total dépenses');
   fixture.detectChanges();
   await fixture.whenStable();
   fixture.detectChanges();
@@ -129,5 +132,44 @@ describe('BreakdownChart', () => {
 
     expect(one(fixture, 'breakdown-empty')).toBeNull();
     expect(one(fixture, 'donut-chart')).toBeNull();
+  });
+
+  it('prefixes every data-testid with testIdPrefix so two instances can render without collision', async () => {
+    const fixture = TestBed.createComponent(BreakdownChart);
+    fixture.componentRef.setInput('buckets', [bucket()]);
+    fixture.componentRef.setInput('total', 150);
+    fixture.componentRef.setInput('loaded', true);
+    fixture.componentRef.setInput('currencyFormat', 'SYMBOL_AFTER');
+    fixture.componentRef.setInput('title', 'Répartition des recettes par poste');
+    fixture.componentRef.setInput('emptyMessage', 'Aucune recette sur cette période.');
+    fixture.componentRef.setInput('centralSubLabel', 'Total recettes');
+    fixture.componentRef.setInput('testIdPrefix', 'credit-');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(one(fixture, 'breakdown-card')).toBeNull();
+    expect(one(fixture, 'credit-breakdown-card')).not.toBeNull();
+    expect(one(fixture, 'credit-donut-chart')).not.toBeNull();
+    expect(one(fixture, 'credit-breakdown-legend')).not.toBeNull();
+  });
+
+  it('renders the title and central sub-label from inputs, for a differently-worded credit donut', async () => {
+    const fixture = TestBed.createComponent(BreakdownChart);
+    fixture.componentRef.setInput('buckets', []);
+    fixture.componentRef.setInput('total', 0);
+    fixture.componentRef.setInput('loaded', true);
+    fixture.componentRef.setInput('currencyFormat', 'SYMBOL_AFTER');
+    fixture.componentRef.setInput('title', 'Répartition des recettes par poste');
+    fixture.componentRef.setInput('emptyMessage', 'Aucune recette sur cette période.');
+    fixture.componentRef.setInput('centralSubLabel', 'Total recettes');
+    fixture.detectChanges();
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(fixture.nativeElement.textContent).toContain('Répartition des recettes par poste');
+    expect(one(fixture, 'breakdown-empty')?.textContent).toContain(
+      'Aucune recette sur cette période.',
+    );
   });
 });

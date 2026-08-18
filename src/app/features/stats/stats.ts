@@ -87,7 +87,9 @@ export class Stats {
   protected readonly selectedPeriod = signal<PeriodPreset>('THREE_MONTHS');
 
   protected readonly buckets = signal<CategoryBreakdownBucket[]>([]);
-  protected readonly totalExpenses = signal(0);
+  protected readonly total = signal(0);
+  protected readonly creditBuckets = signal<CategoryBreakdownBucket[]>([]);
+  protected readonly totalCredits = signal(0);
   protected readonly months = signal<MonthBucket[]>([]);
   protected readonly loading = signal(false);
   protected readonly loaded = signal(false);
@@ -115,12 +117,15 @@ export class Stats {
   private async load(accountId: number, preset: PeriodPreset): Promise<void> {
     this.loading.set(true);
     try {
-      const [breakdown, monthly] = await Promise.all([
+      const [breakdown, creditBreakdown, monthly] = await Promise.all([
         this.statisticsApi.categoryBreakdown(accountId, preset),
+        this.statisticsApi.creditBreakdown(accountId, preset),
         this.statisticsApi.monthBucketed(accountId, preset),
       ]);
       this.buckets.set(breakdown.buckets);
-      this.totalExpenses.set(breakdown.total_expenses);
+      this.total.set(breakdown.total);
+      this.creditBuckets.set(creditBreakdown.buckets);
+      this.totalCredits.set(creditBreakdown.total);
       this.months.set(monthly.months);
       this.loaded.set(true);
     } catch (error) {

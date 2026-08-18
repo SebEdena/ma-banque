@@ -40,15 +40,18 @@ function month(overrides: Partial<MonthBucket> = {}): MonthBucket {
 
 interface StubStatisticsApi {
   categoryBreakdown: ReturnType<typeof vi.fn>;
+  creditBreakdown: ReturnType<typeof vi.fn>;
   monthBucketed: ReturnType<typeof vi.fn>;
 }
 
 function stubStatisticsApi(
-  breakdown: CategoryBreakdownResponse = { buckets: [bucket()], total_expenses: 250 },
+  breakdown: CategoryBreakdownResponse = { buckets: [bucket()], total: 250 },
   monthly: MonthBucketedResponse = { months: [month()] },
+  creditBreakdown: CategoryBreakdownResponse = { buckets: [], total: 0 },
 ): StubStatisticsApi {
   return {
     categoryBreakdown: vi.fn().mockResolvedValue(breakdown),
+    creditBreakdown: vi.fn().mockResolvedValue(creditBreakdown),
     monthBucketed: vi.fn().mockResolvedValue(monthly),
   };
 }
@@ -105,25 +108,27 @@ async function click(fixture: ComponentFixture<Stats>, element: HTMLElement): Pr
 }
 
 describe('Stats', () => {
-  it('requests both aggregates for the preselected account on load', async () => {
+  it('requests all three aggregates for the preselected account on load', async () => {
     const statisticsApi = stubStatisticsApi();
     await createStats(statisticsApi);
 
     expect(statisticsApi.categoryBreakdown).toHaveBeenCalledWith(1, 'THREE_MONTHS');
+    expect(statisticsApi.creditBreakdown).toHaveBeenCalledWith(1, 'THREE_MONTHS');
     expect(statisticsApi.monthBucketed).toHaveBeenCalledWith(1, 'THREE_MONTHS');
   });
 
-  it('re-requests both aggregates with the new period when a preset is chosen', async () => {
+  it('re-requests all three aggregates with the new period when a preset is chosen', async () => {
     const statisticsApi = stubStatisticsApi();
     const fixture = await createStats(statisticsApi);
 
     await click(fixture, one(fixture, 'period-SIX_MONTHS')!);
 
     expect(statisticsApi.categoryBreakdown).toHaveBeenLastCalledWith(1, 'SIX_MONTHS');
+    expect(statisticsApi.creditBreakdown).toHaveBeenLastCalledWith(1, 'SIX_MONTHS');
     expect(statisticsApi.monthBucketed).toHaveBeenLastCalledWith(1, 'SIX_MONTHS');
   });
 
-  it('re-requests both aggregates for the newly selected account, keeping the chosen period', async () => {
+  it('re-requests all three aggregates for the newly selected account, keeping the chosen period', async () => {
     const statisticsApi = stubStatisticsApi();
     const accounts = [
       account({ id: 1, name: 'Compte Courant', color: '#3b82f6' }),
@@ -145,23 +150,56 @@ describe('Stats', () => {
     await settle(fixture);
 
     expect(statisticsApi.categoryBreakdown).toHaveBeenLastCalledWith(2, 'ONE_MONTH');
+    expect(statisticsApi.creditBreakdown).toHaveBeenLastCalledWith(2, 'ONE_MONTH');
     expect(statisticsApi.monthBucketed).toHaveBeenLastCalledWith(2, 'ONE_MONTH');
   });
 
-  it('passes the fetched breakdown and month data down to the two chart components', async () => {
+  it('passes the fetched breakdown and month data down to the chart components', async () => {
     const buckets = [bucket({ name: 'Alimentation', amount: 150 })];
     const months = [month({ month: '2026-01' })];
-    const statisticsApi = stubStatisticsApi({ buckets, total_expenses: 150 }, { months });
+    const statisticsApi = stubStatisticsApi({ buckets, total: 150 }, { months });
     const fixture = await createStats(statisticsApi);
 
     expect(one(fixture, 'breakdown-legend')?.textContent).toContain('Alimentation');
     expect(one(fixture, 'monthly-chart')).not.toBeNull();
   });
 
+  it('passes the fetched credit breakdown down to the credit donut, independently of the expense donut', async () => {
+    const buckets = [bucket({ name: 'Alimentation', amount: 150 })];
+    const creditBuckets = [
+      bucket({ category_id: 4, name: 'Salaire', amount: 2000, percentage: 100 }),
+    ];
+    const statisticsApi = stubStatisticsApi(
+      { buckets, total: 150 },
+      { months: [month()] },
+      { buckets: creditBuckets, total: 2000 },
+    );
+    const fixture = await createStats(statisticsApi);
+
+    expect(one(fixture, 'breakdown-legend')?.textContent).toContain('Alimentation');
+    expect(one(fixture, 'credit-breakdown-legend')?.textContent).toContain('Salaire');
+  });
+
+  it('renders the credit donut empty while the expense donut renders, when an account has expenses but no credits', async () => {
+    const buckets = [bucket({ name: 'Alimentation', amount: 150 })];
+    const statisticsApi = stubStatisticsApi(
+      { buckets, total: 150 },
+      { months: [month()] },
+      { buckets: [], total: 0 },
+    );
+    const fixture = await createStats(statisticsApi);
+
+    expect(one(fixture, 'breakdown-legend')?.textContent).toContain('Alimentation');
+    expect(one(fixture, 'credit-breakdown-empty')?.textContent).toContain(
+      'Aucune recette sur cette période.',
+    );
+  });
+
   it('surfaces a failing aggregate request as a toast', async () => {
     const error = vi.spyOn(toast, 'error').mockImplementation(() => '');
     const statisticsApi: StubStatisticsApi = {
       categoryBreakdown: vi.fn().mockRejectedValue({ kind: 'NotFound' }),
+      creditBreakdown: vi.fn().mockResolvedValue({ buckets: [], total: 0 }),
       monthBucketed: vi.fn().mockResolvedValue({ months: [] }),
     };
 
