@@ -4,10 +4,10 @@
 
 **Blocked by:** 03.
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] `e2e/statistics.e2e.ts` exists, sharing the WDIO session per `technical-architecture.md` §2.3, asserting on `data-testid` hooks:
-  - [ ] From an account with entries created by the test setup, open the statistics screen via the account header button and assert both charts render with data.
-  - [ ] Switch the period preset and assert the charts update.
-  - [ ] Switch to another account via the pills and assert the charts update to that account's data.
-  - [ ] Return to the register via "Voir le compte".
+- [x] `e2e/statistics.e2e.ts` exists, sharing the WDIO session per `technical-architecture.md` §2.3, asserting on `data-testid` hooks:
+  - [x] From an account with entries created by the test setup, open the statistics screen via the account header button and assert both charts render with data.
+  - [x] Switch the period preset and assert the charts update.
+  - [x] Switch to another account via the pills and assert the charts update to that account's data.
+  - [x] Return to the register via "Voir le compte".
