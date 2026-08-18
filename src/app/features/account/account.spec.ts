@@ -374,7 +374,12 @@ describe('Account', () => {
       }),
     );
 
-    await createAccount(entriesApi, stubCategoriesApi(), stubReconciliationApi(), recurringRulesApi);
+    await createAccount(
+      entriesApi,
+      stubCategoriesApi(),
+      stubReconciliationApi(),
+      recurringRulesApi,
+    );
 
     expect(recurringRulesApi.openAccount).toHaveBeenCalledWith(1);
     expect(order[0]).toBe('openAccount');
@@ -403,6 +408,7 @@ describe('Account', () => {
     const fixture = await createAccount(
       stubEntriesApi([entry({ label: 'Courses' })]),
       stubCategoriesApi(),
+      stubReconciliationApi(),
       stubRecurringRulesApi(vi.fn().mockRejectedValue({ kind: 'Io', message: 'disque plein' })),
     );
 
@@ -415,6 +421,7 @@ describe('Account', () => {
     const fixture = await createAccount(
       stubEntriesApi([entry()]),
       stubCategoriesApi(),
+      stubReconciliationApi(),
       recurringRulesApi,
     );
 
@@ -914,6 +921,7 @@ describe('Account', () => {
       const fixture = await createAccount(
         stubEntriesApi([entry()]),
         stubCategoriesApi(),
+        stubReconciliationApi(),
         recurringRulesApi,
       );
 
@@ -944,7 +952,12 @@ describe('Account', () => {
       const recurringRulesApi = stubRecurringRulesApi(
         vi.fn().mockResolvedValueOnce(0).mockResolvedValueOnce(2),
       );
-      const fixture = await createAccount(entriesApi, stubCategoriesApi(), recurringRulesApi);
+      const fixture = await createAccount(
+        entriesApi,
+        stubCategoriesApi(),
+        stubReconciliationApi(),
+        recurringRulesApi,
+      );
       entriesApi.listEntries.mockClear();
 
       await click(fixture, 'recurring-open');
