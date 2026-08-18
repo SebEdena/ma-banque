@@ -1,7 +1,7 @@
 import { $ } from '@wdio/globals';
 
 import { accountCard } from './support/accounts';
-import { entryRows } from './support/entries';
+import { entryRow, entryRows } from './support/entries';
 import {
   dismissRulesModal,
   firstOfMonthsAgo,
@@ -61,6 +61,7 @@ describe('recurring entries', () => {
     await expect($('[data-testid="recurring-modal"]')).not.toExist();
 
     await expect(entryRows(RULE_LABEL)).toBeElementsArrayOfSize(BACKFILLED_OCCURRENCES);
+    await expect(entryRow(RULE_LABEL).$('[data-testid="entry-recurring"]')).toExist();
 
     // User story 13: entries appearing on their own are explained rather than
     // mysterious. Waiting the toast out again also keeps it from covering the

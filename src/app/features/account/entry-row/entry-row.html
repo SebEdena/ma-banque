@@ -46,12 +46,23 @@
 </span>
 
 <span class="min-w-0 flex-1">
-  <span
-    data-testid="entry-label"
-    class="block truncate text-[14.5px] font-bold"
-    [class.text-muted-foreground]="entry().is_system"
-  >
-    {{ entry().is_system ? 'Solde de départ' : entry().label }}
+  <span class="flex min-w-0 items-center gap-1.5">
+    <span
+      data-testid="entry-label"
+      class="truncate text-[14.5px] font-bold"
+      [class.text-muted-foreground]="entry().is_system"
+    >
+      {{ entry().is_system ? 'Solde de départ' : entry().label }}
+    </span>
+    @if (entry().is_recurring) {
+      <span
+        data-testid="entry-recurring"
+        hlmTooltip="Générée par une écriture périodique"
+        class="flex shrink-0 items-center text-muted-foreground"
+      >
+        <ng-icon name="lucideCalendarClock" size="12" />
+      </span>
+    }
   </span>
   @if (entry().description) {
     <span class="block truncate text-[12.5px] text-muted-foreground">

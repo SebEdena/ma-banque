@@ -1,6 +1,12 @@
 import { ChangeDetectionStrategy, Component, input, output } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideCheck, lucideFlag, lucideLock, lucideTrash2 } from '@ng-icons/lucide';
+import {
+  lucideCalendarClock,
+  lucideCheck,
+  lucideFlag,
+  lucideLock,
+  lucideTrash2,
+} from '@ng-icons/lucide';
 import { HlmTooltipImports } from '@spartan-ng/helm/tooltip';
 
 import { CurrencyFormatPipe } from '@core/display-settings/currency-format.pipe';
@@ -30,7 +36,7 @@ import { RowCategory } from '../row-category';
   styleUrl: '../accent.css',
   providers: [
     provideCatalogIcons(),
-    provideIcons({ lucideCheck, lucideFlag, lucideLock, lucideTrash2 }),
+    provideIcons({ lucideCalendarClock, lucideCheck, lucideFlag, lucideLock, lucideTrash2 }),
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })

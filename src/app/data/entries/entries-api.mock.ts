@@ -1,21 +1,27 @@
 import { toIsoDate } from '@shared/iso-date/iso-date';
 import { EntriesApi, Entry, EntryInput, EntryPage, ListEntriesQuery } from './entries-api';
 
-const LABELS: { label: string; category_id: number | null; amount: number; description: string }[] =
-  [
-    { label: 'Courses Carrefour', category_id: 1, amount: -64.32, description: 'Hebdomadaire' },
-    // Amount and category match the "Loyer" rule `InMemoryRecurringRulesApi`
-    // seeds, so the register reads as what that rule would have generated.
-    { label: 'Loyer', category_id: 2, amount: -750, description: '' },
-    { label: 'Salaire', category_id: 9, amount: 2450.9, description: 'Virement employeur' },
-    { label: 'Essence', category_id: 3, amount: -58.4, description: '' },
-    { label: 'Restaurant Le Cèdre', category_id: 4, amount: -42.5, description: 'Déjeuner' },
-    { label: 'Abonnement musique', category_id: 8, amount: -10.99, description: '' },
-    { label: 'Pharmacie', category_id: 6, amount: -18.6, description: '' },
-    { label: 'Virement épargne', category_id: 10, amount: -200, description: '' },
-    { label: 'Remboursement mutuelle', category_id: 6, amount: 34.2, description: '' },
-    { label: 'Achat en ligne', category_id: null, amount: -27.99, description: 'À classer' },
-  ];
+const LABELS: {
+  label: string;
+  category_id: number | null;
+  amount: number;
+  description: string;
+  /** Whether this occurrence stands in for one the "Loyer" rule generated. */
+  is_recurring?: boolean;
+}[] = [
+  { label: 'Courses Carrefour', category_id: 1, amount: -64.32, description: 'Hebdomadaire' },
+  // Amount and category match the "Loyer" rule `InMemoryRecurringRulesApi`
+  // seeds, so the register reads as what that rule would have generated.
+  { label: 'Loyer', category_id: 2, amount: -750, description: '', is_recurring: true },
+  { label: 'Salaire', category_id: 9, amount: 2450.9, description: 'Virement employeur' },
+  { label: 'Essence', category_id: 3, amount: -58.4, description: '' },
+  { label: 'Restaurant Le Cèdre', category_id: 4, amount: -42.5, description: 'Déjeuner' },
+  { label: 'Abonnement musique', category_id: 8, amount: -10.99, description: '' },
+  { label: 'Pharmacie', category_id: 6, amount: -18.6, description: '' },
+  { label: 'Virement épargne', category_id: 10, amount: -200, description: '' },
+  { label: 'Remboursement mutuelle', category_id: 6, amount: 34.2, description: '' },
+  { label: 'Achat en ligne', category_id: null, amount: -27.99, description: 'À classer' },
+];
 
 /**
  * Enough entries per account to exercise pagination and virtual scrolling —
@@ -33,6 +39,7 @@ function seed(accountId: number): Entry[] {
       description: '',
       is_system: true,
       reconciled: false,
+      is_recurring: false,
     },
   ];
 
@@ -42,6 +49,7 @@ function seed(accountId: number): Entry[] {
       id: accountId * 10_000 + index + 1,
       account_id: accountId,
       ...template,
+      is_recurring: template.is_recurring ?? false,
       date: toIsoDate(new Date(2026, 6, 31 - index * 2)),
       is_system: false,
       reconciled: index % 3 === 0,
@@ -121,6 +129,7 @@ export class InMemoryEntriesApi implements EntriesApi {
       ...fields(input),
       is_system: false,
       reconciled: false,
+      is_recurring: false,
     };
     entries.push(created);
     return Promise.resolve({ ...created });

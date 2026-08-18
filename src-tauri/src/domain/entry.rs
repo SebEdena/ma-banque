@@ -91,6 +91,12 @@ pub struct Entry {
     pub description: String,
     pub is_system: bool,
     pub reconciled: bool,
+    /// Whether a recurring rule generated this entry (`entries
+    /// .recurring_rule_id is not null`) — provenance only, shown as an icon
+    /// in the register; editing or deleting the entry doesn't touch the rule
+    /// that produced it, and the rule can outlive or be deleted independently
+    /// (`usecases::recurring`).
+    pub is_recurring: bool,
 }
 
 /// The fields a user supplies when creating or editing a real entry — the
