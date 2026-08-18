@@ -18,6 +18,8 @@ export interface Entry {
   description: string;
   is_system: boolean;
   reconciled: boolean;
+  /** Whether a recurring rule generated this entry — provenance only. */
+  is_recurring: boolean;
 }
 
 /** `ORDER BY date` direction, as `ListEntriesPayload::sort` spells it. */

@@ -14,6 +14,7 @@ function entry(overrides: Partial<Entry> = {}): Entry {
     description: '',
     is_system: false,
     reconciled: false,
+    is_recurring: false,
     ...overrides,
   };
 }

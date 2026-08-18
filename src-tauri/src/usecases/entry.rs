@@ -158,6 +158,7 @@ mod tests {
                 description: String::new(),
                 is_system: true,
                 reconciled: false,
+                is_recurring: false,
             });
             drop(next);
             self
@@ -296,6 +297,7 @@ mod tests {
                 description: details.description.clone(),
                 is_system: false,
                 reconciled: false,
+                is_recurring: false,
             };
             drop(next);
             self.entries.borrow_mut().push(entry.clone());

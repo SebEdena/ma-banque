@@ -26,6 +26,7 @@ pub struct EntryView {
     pub description: String,
     pub is_system: bool,
     pub reconciled: bool,
+    pub is_recurring: bool,
 }
 
 impl From<Entry> for EntryView {
@@ -40,6 +41,7 @@ impl From<Entry> for EntryView {
             description: entry.description,
             is_system: entry.is_system,
             reconciled: entry.reconciled,
+            is_recurring: entry.is_recurring,
         }
     }
 }
@@ -191,6 +193,7 @@ mod tests {
             description: "au marché".to_owned(),
             is_system: false,
             reconciled: true,
+            is_recurring: false,
         }
     }
 

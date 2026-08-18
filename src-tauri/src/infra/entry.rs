@@ -16,8 +16,8 @@ use crate::domain::entry::{
 };
 use crate::infra::db::SharedConnection;
 
-const ENTRY_COLUMNS: &str =
-    "id, account_id, label, category_id, date, type, amount, description, is_system, reconciled";
+const ENTRY_COLUMNS: &str = "id, account_id, label, category_id, date, type, amount, description, \
+     is_system, reconciled, recurring_rule_id";
 
 /// `entries.amount` re-signed from its `type`, in cents — the SQL half of
 /// the debit/credit rule `domain::entry::SignedCents` owns in Rust. One
@@ -42,6 +42,7 @@ struct RawEntry {
     description: String,
     is_system: bool,
     reconciled: bool,
+    recurring_rule_id: Option<i64>,
 }
 
 fn map_entry_row(row: &rusqlite::Row) -> rusqlite::Result<RawEntry> {
@@ -56,6 +57,7 @@ fn map_entry_row(row: &rusqlite::Row) -> rusqlite::Result<RawEntry> {
         description: row.get(7)?,
         is_system: row.get::<_, i64>(8)? != 0,
         reconciled: row.get::<_, i64>(9)? != 0,
+        recurring_rule_id: row.get(10)?,
     })
 }
 
@@ -75,6 +77,7 @@ impl RawEntry {
             description: self.description,
             is_system: self.is_system,
             reconciled: self.reconciled,
+            is_recurring: self.recurring_rule_id.is_some(),
         })
     }
 }
@@ -972,6 +975,58 @@ mod tests {
         assert_eq!(created.amount.amount, 2_550);
         assert!(!created.is_system);
         assert!(!created.reconciled);
+        assert!(
+            !created.is_recurring,
+            "a user-created entry isn't recurring"
+        );
+    }
+
+    /// `is_recurring` is provenance read straight off `recurring_rule_id` —
+    /// this only exercises that the mapping works, not the generator itself
+    /// (`usecases::recurring`'s own tests cover when a rule writes one).
+    #[test]
+    fn an_entry_generated_by_a_rule_reports_itself_as_recurring() {
+        let (conn, account_id) = fixture();
+        conn.lock()
+            .unwrap()
+            .execute(
+                "INSERT INTO recurring_rules \
+                 (id, account_id, label, type, amount, frequency, \"interval\", start_date) \
+                 VALUES (1, ?1, 'Loyer', 'DEBIT', 75000, 'MONTHLY', 1, '2026-01-05')",
+                [account_id],
+            )
+            .unwrap();
+        conn.lock()
+            .unwrap()
+            .execute(
+                "INSERT INTO entries \
+                 (account_id, label, date, type, amount, is_system, recurring_rule_id) \
+                 VALUES (?1, 'Loyer', '2026-02-05', 'DEBIT', 75000, 0, 1)",
+                [account_id],
+            )
+            .unwrap();
+        let repo = SqliteEntryRepository::new(conn);
+
+        let page = repo
+            .list_by_account(
+                account_id,
+                &EntryListQuery {
+                    from: None,
+                    to: None,
+                    unreconciled_only: false,
+                    sort: SortDirection::Asc,
+                    offset: 0,
+                    limit: 10,
+                },
+            )
+            .unwrap();
+        let generated = page
+            .entries
+            .iter()
+            .find(|entry| entry.label == "Loyer")
+            .unwrap();
+
+        assert!(generated.is_recurring);
     }
 
     #[test]

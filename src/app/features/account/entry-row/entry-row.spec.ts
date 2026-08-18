@@ -15,6 +15,7 @@ function entry(overrides: Partial<Entry> = {}): Entry {
     description: '',
     is_system: false,
     reconciled: false,
+    is_recurring: false,
     ...overrides,
   };
 }
@@ -70,6 +71,16 @@ describe('EntryRow', () => {
     expect(one(fixture, 'entry-reconciled')).toBeNull();
     expect(one(fixture, 'entry-delete')).toBeNull();
     expect(textIn(fixture, 'entry-label')).toBe('Solde de départ');
+  });
+
+  it('shows the recurring icon on an entry a rule generated', async () => {
+    const fixture = await createEntryRow(entry({ is_recurring: true }));
+    expect(one(fixture, 'entry-recurring')).not.toBeNull();
+  });
+
+  it('shows no recurring icon on a manually entered entry', async () => {
+    const fixture = await createEntryRow(entry({ is_recurring: false }));
+    expect(one(fixture, 'entry-recurring')).toBeNull();
   });
 
   it('renders whatever category swatch it is given, uncategorized included', async () => {
