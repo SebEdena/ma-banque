@@ -25,6 +25,16 @@
           Nouvelle règle
         </button>
       }
+      <button
+        type="button"
+        data-testid="recurring-close"
+        data-accent
+        aria-label="Fermer"
+        class="flex size-8 shrink-0 items-center justify-center rounded-lg bg-muted outline-none transition-colors"
+        (click)="closed.emit()"
+      >
+        <ng-icon name="lucideX" size="15" />
+      </button>
     </div>
 
     @if (editing() === null) {

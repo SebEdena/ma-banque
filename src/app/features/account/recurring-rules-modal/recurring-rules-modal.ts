@@ -8,7 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideCalendarClock, lucidePlus } from '@ng-icons/lucide';
+import { lucideCalendarClock, lucidePlus, lucideX } from '@ng-icons/lucide';
 import { toast } from '@spartan-ng/brain/sonner';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 
@@ -57,7 +57,7 @@ import { RecurringRuleList } from '../recurring-rule-list/recurring-rule-list';
   ],
   templateUrl: './recurring-rules-modal.html',
   styleUrl: '../accent.css',
-  providers: [provideIcons({ lucideCalendarClock, lucidePlus })],
+  providers: [provideIcons({ lucideCalendarClock, lucidePlus, lucideX })],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RecurringRulesModal {

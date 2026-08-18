@@ -164,6 +164,16 @@ describe('RecurringRulesModal', () => {
       expect(has(fixture, 'recurring-row')).toBe(false);
       expect(has(fixture, 'recurring-new')).toBe(true);
     });
+
+    it('emits closed from the header’s close button', async () => {
+      const fixture = await createModal();
+      let closed = 0;
+      fixture.componentInstance.closed.subscribe(() => (closed += 1));
+
+      await click(fixture, 'recurring-close');
+
+      expect(closed).toBe(1);
+    });
   });
 
   describe('creating', () => {
