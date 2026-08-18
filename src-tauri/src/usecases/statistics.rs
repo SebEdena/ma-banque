@@ -179,110 +179,6 @@ fn advance_month(current: &mut (i32, u32)) {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::cell::RefCell;
-
-    use crate::domain::entry::{
-        Entry, EntryDetails, EntryError, EntryListQuery, EntryPage, EntryRepository, SortDirection,
-    };
-    use crate::domain::statistics::CategoryBreakdownResponse;
-
-    struct FakeRepo;
-
-    impl EntryRepository for FakeRepo {
-        fn sum_by_account(&self, _account_id: i64) -> Result<i64, EntryError> {
-            unimplemented!()
-        }
-
-        fn last_entry_date(&self, _account_id: i64) -> Result<Option<IsoDate>, EntryError> {
-            unimplemented!()
-        }
-
-        fn exists_non_system_on_or_before(
-            &self,
-            _account_id: i64,
-            _date: &IsoDate,
-        ) -> Result<bool, EntryError> {
-            unimplemented!()
-        }
-
-        fn sum_reconciled_up_to(
-            &self,
-            _account_id: i64,
-            _statement_date: &IsoDate,
-        ) -> Result<i64, EntryError> {
-            unimplemented!()
-        }
-
-        fn count_unreconciled_by_account(&self, _account_id: i64) -> Result<i64, EntryError> {
-            unimplemented!()
-        }
-
-        fn count_non_system_by_account(&self, _account_id: i64) -> Result<i64, EntryError> {
-            unimplemented!()
-        }
-
-        fn count_by_category(&self, _category_id: i64) -> Result<i64, EntryError> {
-            unimplemented!()
-        }
-
-        fn list_by_account(
-            &self,
-            _account_id: i64,
-            _query: &EntryListQuery,
-        ) -> Result<EntryPage, EntryError> {
-            unimplemented!()
-        }
-
-        fn offset_for_date(
-            &self,
-            _account_id: i64,
-            _from: Option<&IsoDate>,
-            _to: Option<&IsoDate>,
-            _unreconciled_only: bool,
-            _sort: SortDirection,
-            _target: &IsoDate,
-        ) -> Result<i64, EntryError> {
-            unimplemented!()
-        }
-
-        fn find(&self, _id: i64) -> Result<Option<Entry>, EntryError> {
-            unimplemented!()
-        }
-
-        fn create(&self, _account_id: i64, _details: &EntryDetails) -> Result<Entry, EntryError> {
-            unimplemented!()
-        }
-
-        fn update(&self, _id: i64, _details: &EntryDetails) -> Result<Entry, EntryError> {
-            unimplemented!()
-        }
-
-        fn delete(&self, _id: i64) -> Result<(), EntryError> {
-            unimplemented!()
-        }
-
-        fn set_reconciled(&self, _id: i64, _reconciled: bool) -> Result<Entry, EntryError> {
-            unimplemented!()
-        }
-
-        fn category_breakdown_aggregate(
-            &self,
-            _account_id: i64,
-            _from: &IsoDate,
-            _to: &IsoDate,
-        ) -> Result<CategoryBreakdownResponse, EntryError> {
-            unimplemented!()
-        }
-
-        fn month_bucketed_aggregate(
-            &self,
-            _account_id: i64,
-            _from: &IsoDate,
-            _to: &IsoDate,
-        ) -> Result<MonthBucketedResponse, EntryError> {
-            unimplemented!()
-        }
-    }
 
     #[test]
     fn date_range_for_one_month_preset_ends_today() {
@@ -302,7 +198,7 @@ mod tests {
 
         assert_eq!(
             from.as_str(),
-            &format!("{:04}-{:02}-01", expected_year, expected_month)
+            &format!("{expected_year:04}-{expected_month:02}-01")
         );
     }
 
