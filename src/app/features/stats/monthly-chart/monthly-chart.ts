@@ -71,6 +71,10 @@ export class MonthlyChart {
   protected readonly monthAxisTickFormat = (tick: number | Date): string =>
     this.monthLabels()[Number(tick)] ?? '';
 
+  /** Y-axis ticks are amounts (income/expense share one scale), formatted per the selected currency preset. */
+  protected readonly monthYAxisTickFormat = (tick: number | Date): string =>
+    formatAmount(Number(tick), this.currencyFormat());
+
   protected readonly monthTooltipTriggers = {
     [GroupedBar.selectors.bar]: (bucket: MonthBucket, seriesIndex: number): string => {
       const series = MONTH_SERIES[seriesIndex];

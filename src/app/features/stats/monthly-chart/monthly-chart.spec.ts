@@ -1,7 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
-import { VisGroupedBarComponent, VisXYContainerComponent } from '@unovis/angular';
+import { VisAxisComponent, VisGroupedBarComponent, VisXYContainerComponent } from '@unovis/angular';
 
+import { formatAmount } from '@core/display-settings/format';
 import { MonthBucket } from '@data/statistics/statistics-api';
 import '@core/testing/jsdom-polyfills';
 import { MonthlyChart } from './monthly-chart';
@@ -61,5 +62,17 @@ describe('MonthlyChart', () => {
 
     expect(one(fixture, 'monthly-legend')?.textContent).toContain('Recettes');
     expect(one(fixture, 'monthly-legend')?.textContent).toContain('Dépenses');
+  });
+
+  it('formats the y-axis ticks as currency amounts per the selected currency format', async () => {
+    const fixture = await createChart([month()]);
+
+    const yAxis = fixture.debugElement
+      .queryAll(By.directive(VisAxisComponent))
+      .map((debugElement) => debugElement.componentInstance as VisAxisComponent<MonthBucket>)
+      .find((axis) => axis.type === 'y');
+
+    expect(yAxis).toBeTruthy();
+    expect(yAxis?.tickFormat?.(1500, 0, [1500])).toBe(formatAmount(1500, 'SYMBOL_AFTER'));
   });
 });
