@@ -16,6 +16,12 @@
 
   <vis-xy-container data-testid="monthly-chart" [data]="months()" [height]="220">
     <vis-grouped-bar [x]="monthX" [y]="monthY" [color]="monthColor" />
+    <vis-axis
+      type="y"
+      data-testid="monthly-y-axis"
+      [numTicks]="4"
+      [tickFormat]="monthYAxisTickFormat"
+    />
     <vis-axis type="x" [tickValues]="monthTickValues()" [tickFormat]="monthAxisTickFormat" />
     <vis-tooltip [triggers]="monthTooltipTriggers" />
   </vis-xy-container>
