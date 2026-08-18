@@ -104,9 +104,12 @@ export const ENTRY_INVALID_AMOUNT_MESSAGE = "le montant de l'écriture est inval
 /**
  * The `kind` discriminants `EntryError` serializes to (see
  * `src-tauri/src/domain/entry.rs`'s `#[serde(tag = "kind", content =
- * "message")]`).
+ * "message")]`). Exported so `StatisticsApi` — whose two commands also
+ * return `Result<_, EntryError>` — can check against the real, complete set
+ * of variants instead of a hand-forked subset
+ * (`src/app/data/statistics/statistics-api.ts`).
  */
-type EntryErrorKind =
+export type EntryErrorKind =
   | 'NotFound'
   | 'SystemEntryReadOnly'
   | 'EmptyLabel'
