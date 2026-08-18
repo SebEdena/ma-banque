@@ -80,3 +80,23 @@ All tests use a hand-written in-memory `FakeRepo` (no `mockall`) and test behavi
 - Injectable singleton service; component tests mock this boundary, never `invoke()` directly
 
 **Test Coverage:** 3 new tests added (unovis-smoke.spec.ts verifies module bootstrap; statistics-api.spec.ts tests error handling)
+
+**Correction (Issue 03):** the two commands (`commands/statistics.rs`) originally returned `CategoryBreakdownResponse`/`MonthBucketedResponse` straight from the use case — i.e. amounts in **cents**, contradicting this section's claim above ("major units, already converted from cents") and `technical-architecture.md` §1.3's cents-boundary rule (`AccountView`/`EntryView` already convert at the command layer; statistics didn't). Fixed in Issue 03: `commands/statistics.rs` now has its own `CategoryBreakdownResponseView`/`MonthBucketedResponseView` (`From<...>` impls calling `money::to_major`), so the frontend types in `statistics-api.ts` were already correct and needed no change — only the backend crossed cents by mistake before this fix.
+
+## Statistics Screen UI (Issue 03)
+
+Built at `src/app/features/stats/` (component class `Stats`, selector `app-stats` — the directory is named `stats`, not `statistics`; a leftover empty `src/app/features/statistics/` directory is untracked and unused, ignore it).
+
+**Route:** `/stats/:accountId` (registered in `src/app/app.routes.ts`; the route param was renamed from the scaffold's `:id` to `:accountId` to match the component's `accountId` input — `withComponentInputBinding()` binds by name, so a mismatch silently leaves the input `undefined`/`NaN` and the whole `@if (account(); ...)` block never renders — worth knowing if Issue 04's e2e navigates by URL directly instead of clicking through).
+
+**Navigation entry point:** the entries screen's account header (`src/app/features/account/account.html`) has a new button, `data-testid="statistics-button"`, routerLink `['/stats', account.id]`, placed before the existing "Pointage" button (after the balance pill, in the header's flex row). Clicking it preselects the current account.
+
+**On the statistics screen itself**, key `data-testid` hooks for e2e:
+
+- `view-account-button` — "Voir le compte", routes back to `/account/:id`
+- `period-control` — wraps the four period buttons, each `data-testid="period-ONE_MONTH"` / `period-THREE_MONTHS"` / `period-SIX_MONTHS"` / `period-TWELVE_MONTHS"` (matches the `PeriodPreset` wire values exactly)
+- `account-pills` — wraps the pill row; each pill is `data-testid="account-pill-{id}"` (e.g. `account-pill-1`)
+- `breakdown-card` / `donut-chart` (the `vis-single-container`) / `breakdown-legend` (with `legend-row`/`legend-swatch`/`legend-name`/`legend-percentage`/`legend-amount` inside) / `breakdown-empty` (the "Aucune dépense sur cette période." message, shown instead of the chart+legend when the breakdown is empty)
+- `monthly-card` / `monthly-chart` (the `vis-xy-container`) / `monthly-legend`
+
+**Testing note for Issue 04's e2e:** the two Unovis charts render into SVG via a `requestAnimationFrame`-deferred internal draw — real browsers handle this fine, but if a component-test-style assertion is ever needed against Unovis's bound data (not needed at e2e level, which should assert on visible DOM/data-testid content instead), see `stats.spec.ts` for the `By.directive(VisDonutComponent)`/`By.directive(VisGroupedBarComponent)` pattern and `vitest-base.config.ts` for a `@unovis/angular@1.6.7` packaging workaround (its ESM build has an extensionless barrel import that Node's/Vite's strict ESM resolver rejects — routed through Vite's own resolver instead via `server.deps.inline`).
