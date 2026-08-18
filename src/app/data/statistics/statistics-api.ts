@@ -1,6 +1,8 @@
 import { Service } from '@angular/core';
 import { invoke } from '@tauri-apps/api/core';
 
+import { EntryErrorKind } from '@data/entries/entries-api';
+
 /**
  * Period preset: one of four fixed time windows for statistics queries.
  * Mirrors `PeriodPreset` in `src-tauri/src/domain/statistics.rs`.
@@ -49,13 +51,24 @@ export interface MonthBucketedResponse {
 }
 
 /**
- * The `kind` discriminants `EntryError` serializes to when statistics commands fail.
- * Mirrors error handling from `src-tauri/src/domain/entry.rs`.
+ * Both `category_breakdown` and `month_bucketed` return
+ * `Result<_, EntryError>` (`src-tauri/src/commands/statistics.rs`) — the
+ * exact same wire error `EntriesApi` decodes — so the `kind` check here
+ * reuses `EntryErrorKind` rather than a hand-forked, easily-out-of-sync
+ * subset of it. In practice an aggregate-only, read-only query can only
+ * ever produce `NotFound` (an unknown account), `InvalidStoredValue` or
+ * `Io`; the mutation-only variants
+ * (`SystemEntryReadOnly`/`EmptyLabel`/`UnknownCategory`/`InvalidAmount`)
+ * have no path to this screen and fall through to the generic message
+ * below. The message wording itself stays local to this file rather than
+ * reusing `parseEntryError`'s, the same way `parseAccountError` and
+ * `parseCategoryError` each own their wording independently — `EntryError`
+ * describes an entry, but here it is the *account* that failed to resolve,
+ * so `parseEntryError`'s "cette écriture n'existe plus" would be the wrong
+ * sentence for this screen.
  */
-type StatisticsErrorKind = 'NotFound' | 'InvalidStoredValue' | 'Io';
-
 interface StatisticsErrorWire {
-  kind: StatisticsErrorKind;
+  kind: EntryErrorKind;
   message?: string;
 }
 
