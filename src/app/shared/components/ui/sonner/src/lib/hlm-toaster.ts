@@ -120,5 +120,12 @@ export class HlmToaster {
   );
   /* eslint-enable @angular-eslint/no-input-rename */
 
-  protected readonly _computedClass = computed(() => hlm('toaster group', this.userClass()));
+  // No toast in this app carries a close button or other interactive
+  // control (`closeButton` stays false everywhere it's used), so the
+  // toaster can safely ignore pointer events entirely — otherwise a toast
+  // sitting over a button blocks clicks on it, and a lingering mouse
+  // position over the toast pauses its own auto-dismiss timer indefinitely.
+  protected readonly _computedClass = computed(() =>
+    hlm('toaster group pointer-events-none', this.userClass()),
+  );
 }
