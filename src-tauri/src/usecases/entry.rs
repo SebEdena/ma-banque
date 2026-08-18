@@ -338,6 +338,7 @@ mod tests {
             _account_id: i64,
             _from: &crate::domain::date::IsoDate,
             _to: &crate::domain::date::IsoDate,
+            _kind: crate::domain::entry::EntryKind,
         ) -> Result<crate::domain::statistics::CategoryBreakdownResponse, EntryError> {
             unimplemented!("entry tests don't compute statistics")
         }

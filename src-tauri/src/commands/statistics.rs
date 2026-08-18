@@ -7,7 +7,7 @@
 
 use serde::Serialize;
 
-use crate::domain::entry::{DynEntryRepository, EntryError};
+use crate::domain::entry::{DynEntryRepository, EntryError, EntryKind};
 use crate::domain::money;
 use crate::domain::statistics::{
     CategoryBreakdownBucket, CategoryBreakdownResponse, MonthBucket, MonthBucketedResponse,
@@ -43,14 +43,14 @@ impl From<CategoryBreakdownBucket> for CategoryBreakdownBucketView {
 pub struct CategoryBreakdownResponseView {
     pub buckets: Vec<CategoryBreakdownBucketView>,
     /// Major units.
-    pub total_expenses: f64,
+    pub total: f64,
 }
 
 impl From<CategoryBreakdownResponse> for CategoryBreakdownResponseView {
     fn from(response: CategoryBreakdownResponse) -> Self {
         Self {
             buckets: response.buckets.into_iter().map(Into::into).collect(),
-            total_expenses: money::to_major(response.total_expenses),
+            total: money::to_major(response.total),
         }
     }
 }
@@ -87,7 +87,7 @@ impl From<MonthBucketedResponse> for MonthBucketedResponseView {
     }
 }
 
-/// Category-breakdown aggregate for an account over a period preset.
+/// Expense category-breakdown aggregate for an account over a period preset.
 #[tauri::command]
 pub fn category_breakdown(
     entry_repo: tauri::State<'_, DynEntryRepository>,
@@ -99,6 +99,25 @@ pub fn category_breakdown(
         account_id,
         preset,
         &clock::today(),
+        EntryKind::Debit,
+    )
+    .map(Into::into)
+}
+
+/// Credit (income) category-breakdown aggregate for an account over a period
+/// preset — mirrors `category_breakdown`, parameterized for credits.
+#[tauri::command]
+pub fn credit_breakdown(
+    entry_repo: tauri::State<'_, DynEntryRepository>,
+    account_id: i64,
+    preset: PeriodPreset,
+) -> Result<CategoryBreakdownResponseView, EntryError> {
+    crate::usecases::statistics::category_breakdown(
+        &**entry_repo,
+        account_id,
+        preset,
+        &clock::today(),
+        EntryKind::Credit,
     )
     .map(Into::into)
 }
@@ -130,12 +149,12 @@ mod tests {
                 amount: 123_456,
                 percentage: 42.5,
             }],
-            total_expenses: 290_500,
+            total: 290_500,
         };
 
         let view = CategoryBreakdownResponseView::from(response);
 
-        assert_eq!(view.total_expenses, 2_905.00);
+        assert_eq!(view.total, 2_905.00);
         assert_eq!(view.buckets[0].amount, 1_234.56);
         assert_eq!(view.buckets[0].percentage, 42.5);
     }

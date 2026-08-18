@@ -66,6 +66,7 @@ pub fn run() {
             commands::settings::get_display_settings,
             commands::settings::update_display_settings,
             commands::statistics::category_breakdown,
+            commands::statistics::credit_breakdown,
             commands::statistics::month_bucketed,
         ])
         .setup(|app| {

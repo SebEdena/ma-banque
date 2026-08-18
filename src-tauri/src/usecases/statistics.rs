@@ -11,21 +11,24 @@
 use std::collections::HashMap;
 
 use crate::domain::date::IsoDate;
-use crate::domain::entry::{EntryError, EntryRepository};
+use crate::domain::entry::{EntryError, EntryKind, EntryRepository};
 use crate::domain::statistics::{
     CategoryBreakdownResponse, MonthBucket, MonthBucketedResponse, PeriodPreset,
 };
 
 /// Fetches the category breakdown for an account over a period preset,
-/// computing percentages in Rust.
+/// computing percentages in Rust. `kind` selects the expense donut
+/// (`EntryKind::Debit`) or the credit donut (`EntryKind::Credit`) — the same
+/// aggregate serves both.
 pub fn category_breakdown(
     repo: &dyn EntryRepository,
     account_id: i64,
     preset: PeriodPreset,
     today: &IsoDate,
+    kind: EntryKind,
 ) -> Result<CategoryBreakdownResponse, EntryError> {
     let (from, to) = date_range_for_preset(preset, today);
-    repo.category_breakdown_aggregate(account_id, &from, &to)
+    repo.category_breakdown_aggregate(account_id, &from, &to, kind)
 }
 
 /// Fetches the month-bucketed aggregate for an account over a period preset,
@@ -209,13 +212,14 @@ mod tests {
             _account_id: i64,
             _from: &IsoDate,
             _to: &IsoDate,
+            _kind: EntryKind,
         ) -> Result<CategoryBreakdownResponse, EntryError> {
             Ok(self
                 .category_breakdown
                 .clone()
                 .unwrap_or(CategoryBreakdownResponse {
                     buckets: Vec::new(),
-                    total_expenses: 0,
+                    total: 0,
                 }))
         }
 
@@ -263,27 +267,70 @@ mod tests {
         let repo = FakeRepo {
             category_breakdown: Some(CategoryBreakdownResponse {
                 buckets: vec![bucket.clone()],
-                total_expenses: 1_500,
+                total: 1_500,
             }),
             ..Default::default()
         };
 
-        let response =
-            category_breakdown(&repo, 1, PeriodPreset::ThreeMonths, &date("2026-08-18")).unwrap();
+        let response = category_breakdown(
+            &repo,
+            1,
+            PeriodPreset::ThreeMonths,
+            &date("2026-08-18"),
+            EntryKind::Debit,
+        )
+        .unwrap();
 
         assert_eq!(response.buckets, vec![bucket]);
-        assert_eq!(response.total_expenses, 1_500);
+        assert_eq!(response.total, 1_500);
+    }
+
+    #[test]
+    fn credit_breakdown_passes_through_the_repositorys_response() {
+        let bucket = CategoryBreakdownBucket {
+            category_id: Some(2),
+            name: "Salaire".to_owned(),
+            color: "#3b82f6".to_owned(),
+            icon: "lucideBanknote".to_owned(),
+            amount: 2_500,
+            percentage: 100.0,
+        };
+        let repo = FakeRepo {
+            category_breakdown: Some(CategoryBreakdownResponse {
+                buckets: vec![bucket.clone()],
+                total: 2_500,
+            }),
+            ..Default::default()
+        };
+
+        let response = category_breakdown(
+            &repo,
+            1,
+            PeriodPreset::ThreeMonths,
+            &date("2026-08-18"),
+            EntryKind::Credit,
+        )
+        .unwrap();
+
+        assert_eq!(response.buckets, vec![bucket]);
+        assert_eq!(response.total, 2_500);
     }
 
     #[test]
     fn category_breakdown_is_empty_when_the_period_has_no_expenses() {
         let repo = FakeRepo::default();
 
-        let response =
-            category_breakdown(&repo, 1, PeriodPreset::OneMonth, &date("2026-08-18")).unwrap();
+        let response = category_breakdown(
+            &repo,
+            1,
+            PeriodPreset::OneMonth,
+            &date("2026-08-18"),
+            EntryKind::Debit,
+        )
+        .unwrap();
 
         assert!(response.buckets.is_empty());
-        assert_eq!(response.total_expenses, 0);
+        assert_eq!(response.total, 0);
     }
 
     #[test]

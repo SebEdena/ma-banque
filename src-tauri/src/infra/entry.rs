@@ -476,6 +476,7 @@ impl EntryRepository for SqliteEntryRepository {
         account_id: i64,
         from: &IsoDate,
         to: &IsoDate,
+        kind: EntryKind,
     ) -> Result<crate::domain::statistics::CategoryBreakdownResponse, EntryError> {
         use crate::domain::statistics::{CategoryBreakdownBucket, CategoryBreakdownResponse};
 
@@ -487,18 +488,18 @@ impl EntryRepository for SqliteEntryRepository {
                  SUM(e.amount) FROM entries e \
                  LEFT JOIN categories c ON e.category_id = c.id \
                  WHERE e.account_id = ?1 AND e.date >= ?2 AND e.date <= ?3 \
-                 AND e.is_system = 0 AND e.type = 'DEBIT' \
+                 AND e.is_system = 0 AND e.type = ?4 \
                  GROUP BY e.category_id \
                  ORDER BY CASE WHEN e.category_id IS NULL THEN 1 ELSE 0 END",
             )
             .map_err(io_err)?;
 
         let mut buckets = Vec::new();
-        let mut total_expenses: i64 = 0;
+        let mut total: i64 = 0;
 
         let rows = stmt
             .query_map(
-                rusqlite::params![account_id, from.as_str(), to.as_str()],
+                rusqlite::params![account_id, from.as_str(), to.as_str(), kind.as_str()],
                 |row| {
                     Ok((
                         row.get::<_, Option<i64>>(0)?,
@@ -513,11 +514,11 @@ impl EntryRepository for SqliteEntryRepository {
 
         for row in rows {
             let (category_id, name, color, icon, amount) = row.map_err(io_err)?;
-            total_expenses += amount;
+            total += amount;
             buckets.push((category_id, name, color, icon, amount));
         }
 
-        let buckets = if total_expenses == 0 {
+        let buckets = if total == 0 {
             Vec::new()
         } else {
             buckets
@@ -529,16 +530,13 @@ impl EntryRepository for SqliteEntryRepository {
                         color,
                         icon,
                         amount,
-                        percentage: amount as f64 / total_expenses as f64,
+                        percentage: amount as f64 / total as f64,
                     },
                 )
                 .collect()
         };
 
-        Ok(CategoryBreakdownResponse {
-            buckets,
-            total_expenses,
-        })
+        Ok(CategoryBreakdownResponse { buckets, total })
     }
 
     fn month_bucketed_aggregate(
@@ -1813,10 +1811,10 @@ mod tests {
         let to = IsoDate::parse("2026-02-28").unwrap();
 
         let response = repo
-            .category_breakdown_aggregate(account_id, &from, &to)
+            .category_breakdown_aggregate(account_id, &from, &to, EntryKind::Debit)
             .unwrap();
 
-        assert_eq!(response.total_expenses, 10_000);
+        assert_eq!(response.total, 10_000);
         assert_eq!(response.buckets.len(), 2);
         assert_eq!(response.buckets[0].amount, 8_000); // cat1: 5000 + 3000
         assert_eq!(response.buckets[0].percentage, 0.8);
@@ -1825,33 +1823,75 @@ mod tests {
     }
 
     #[test]
-    fn category_breakdown_aggregate_excludes_income_entries() {
+    fn category_breakdown_aggregate_sums_credits_by_category() {
         let (conn, account_id) = fixture();
-        let cat_id = add_category(&conn, "Groceries", "#ff0000");
+        let cat1_id = add_category(&conn, "Salaire", "#ff0000");
+        let cat2_id = add_category(&conn, "Freelance", "#00ff00");
 
-        // Add one expense and one income
-        add_categorized_expense(&conn, account_id, "2026-02-01", cat_id, 5_000);
-        conn.lock()
-            .unwrap()
-            .execute(
-                "INSERT INTO entries (account_id, date, type, amount, is_system, category_id) \
-                 VALUES (?1, ?2, 'CREDIT', ?3, 0, ?4)",
-                rusqlite::params![account_id, "2026-02-02", 3_000, cat_id],
-            )
-            .unwrap();
+        add_categorized_income(&conn, account_id, "2026-02-01", cat1_id, 5_000);
+        add_categorized_income(&conn, account_id, "2026-02-05", cat1_id, 3_000);
+        add_categorized_income(&conn, account_id, "2026-02-10", cat2_id, 2_000);
 
         let repo = SqliteEntryRepository::new(conn);
         let from = IsoDate::parse("2026-02-01").unwrap();
         let to = IsoDate::parse("2026-02-28").unwrap();
 
         let response = repo
-            .category_breakdown_aggregate(account_id, &from, &to)
+            .category_breakdown_aggregate(account_id, &from, &to, EntryKind::Credit)
+            .unwrap();
+
+        assert_eq!(response.total, 10_000);
+        assert_eq!(response.buckets.len(), 2);
+        assert_eq!(response.buckets[0].amount, 8_000); // cat1: 5000 + 3000
+        assert_eq!(response.buckets[0].percentage, 0.8);
+        assert_eq!(response.buckets[1].amount, 2_000); // cat2
+        assert_eq!(response.buckets[1].percentage, 0.2);
+    }
+
+    #[test]
+    fn category_breakdown_aggregate_expense_query_excludes_income_entries() {
+        let (conn, account_id) = fixture();
+        let cat_id = add_category(&conn, "Groceries", "#ff0000");
+
+        // Add one expense and one income
+        add_categorized_expense(&conn, account_id, "2026-02-01", cat_id, 5_000);
+        add_categorized_income(&conn, account_id, "2026-02-02", cat_id, 3_000);
+
+        let repo = SqliteEntryRepository::new(conn);
+        let from = IsoDate::parse("2026-02-01").unwrap();
+        let to = IsoDate::parse("2026-02-28").unwrap();
+
+        let response = repo
+            .category_breakdown_aggregate(account_id, &from, &to, EntryKind::Debit)
             .unwrap();
 
         // Only the debit (expense) should be counted
-        assert_eq!(response.total_expenses, 5_000);
+        assert_eq!(response.total, 5_000);
         assert_eq!(response.buckets.len(), 1);
         assert_eq!(response.buckets[0].amount, 5_000);
+    }
+
+    #[test]
+    fn category_breakdown_aggregate_credit_query_excludes_expense_entries() {
+        let (conn, account_id) = fixture();
+        let cat_id = add_category(&conn, "Groceries", "#ff0000");
+
+        // Add one expense and one income
+        add_categorized_expense(&conn, account_id, "2026-02-01", cat_id, 5_000);
+        add_categorized_income(&conn, account_id, "2026-02-02", cat_id, 3_000);
+
+        let repo = SqliteEntryRepository::new(conn);
+        let from = IsoDate::parse("2026-02-01").unwrap();
+        let to = IsoDate::parse("2026-02-28").unwrap();
+
+        let response = repo
+            .category_breakdown_aggregate(account_id, &from, &to, EntryKind::Credit)
+            .unwrap();
+
+        // Only the credit (income) should be counted
+        assert_eq!(response.total, 3_000);
+        assert_eq!(response.buckets.len(), 1);
+        assert_eq!(response.buckets[0].amount, 3_000);
     }
 
     #[test]
@@ -1867,11 +1907,30 @@ mod tests {
         let to = IsoDate::parse("2026-02-28").unwrap();
 
         let response = repo
-            .category_breakdown_aggregate(account_id, &from, &to)
+            .category_breakdown_aggregate(account_id, &from, &to, EntryKind::Debit)
             .unwrap();
 
         // Only the real expense, not the system entry from the fixture
-        assert_eq!(response.total_expenses, 5_000);
+        assert_eq!(response.total, 5_000);
+    }
+
+    #[test]
+    fn category_breakdown_aggregate_excludes_system_entry_for_credits_too() {
+        let (conn, account_id) = fixture();
+        let cat_id = add_category(&conn, "Salaire", "#ff0000");
+
+        add_categorized_income(&conn, account_id, "2026-02-01", cat_id, 5_000);
+
+        let repo = SqliteEntryRepository::new(conn.clone());
+        let from = IsoDate::parse("2026-01-01").unwrap();
+        let to = IsoDate::parse("2026-02-28").unwrap();
+
+        let response = repo
+            .category_breakdown_aggregate(account_id, &from, &to, EntryKind::Credit)
+            .unwrap();
+
+        // Only the real income, not the system entry (opening balance) from the fixture
+        assert_eq!(response.total, 5_000);
     }
 
     #[test]
@@ -1889,10 +1948,10 @@ mod tests {
         let to = IsoDate::parse("2026-02-28").unwrap();
 
         let response = repo
-            .category_breakdown_aggregate(account_id, &from, &to)
+            .category_breakdown_aggregate(account_id, &from, &to, EntryKind::Debit)
             .unwrap();
 
-        assert_eq!(response.total_expenses, 10_000);
+        assert_eq!(response.total, 10_000);
         assert_eq!(response.buckets.len(), 2);
 
         // First bucket should be the categorized expense
@@ -1900,6 +1959,32 @@ mod tests {
         assert_eq!(response.buckets[0].amount, 5_000);
 
         // Second bucket should be "Sans poste" (uncategorized)
+        assert_eq!(response.buckets[1].category_id, None);
+        assert_eq!(response.buckets[1].name, "Sans poste");
+        assert_eq!(response.buckets[1].amount, 5_000); // 3000 + 2000
+    }
+
+    #[test]
+    fn category_breakdown_aggregate_collapses_null_category_into_sans_poste_for_credits_too() {
+        let (conn, account_id) = fixture();
+        let cat_id = add_category(&conn, "Salaire", "#ff0000");
+
+        add_categorized_income(&conn, account_id, "2026-02-01", cat_id, 5_000);
+        add_uncategorized_income(&conn, account_id, "2026-02-02", 3_000);
+        add_uncategorized_income(&conn, account_id, "2026-02-03", 2_000);
+
+        let repo = SqliteEntryRepository::new(conn);
+        let from = IsoDate::parse("2026-02-01").unwrap();
+        let to = IsoDate::parse("2026-02-28").unwrap();
+
+        let response = repo
+            .category_breakdown_aggregate(account_id, &from, &to, EntryKind::Credit)
+            .unwrap();
+
+        assert_eq!(response.total, 10_000);
+        assert_eq!(response.buckets.len(), 2);
+        assert_eq!(response.buckets[0].category_id.unwrap(), cat_id);
+        assert_eq!(response.buckets[0].amount, 5_000);
         assert_eq!(response.buckets[1].category_id, None);
         assert_eq!(response.buckets[1].name, "Sans poste");
         assert_eq!(response.buckets[1].amount, 5_000); // 3000 + 2000
@@ -1922,11 +2007,33 @@ mod tests {
         let to = IsoDate::parse("2026-02-28").unwrap();
 
         let response = repo
-            .category_breakdown_aggregate(account_id, &from, &to)
+            .category_breakdown_aggregate(account_id, &from, &to, EntryKind::Debit)
             .unwrap();
 
         // Should include 02-01 and 02-28, exclude 01-31 and 03-01
-        assert_eq!(response.total_expenses, 9_000); // 2000 + 3000 + 4000
+        assert_eq!(response.total, 9_000); // 2000 + 3000 + 4000
+    }
+
+    #[test]
+    fn category_breakdown_aggregate_range_boundaries_are_inclusive_for_credits_too() {
+        let (conn, account_id) = fixture();
+        let cat_id = add_category(&conn, "Salaire", "#ff0000");
+
+        add_categorized_income(&conn, account_id, "2026-01-31", cat_id, 1_000);
+        add_categorized_income(&conn, account_id, "2026-02-01", cat_id, 2_000); // on boundary
+        add_categorized_income(&conn, account_id, "2026-02-15", cat_id, 3_000);
+        add_categorized_income(&conn, account_id, "2026-02-28", cat_id, 4_000); // on boundary
+        add_categorized_income(&conn, account_id, "2026-03-01", cat_id, 5_000);
+
+        let repo = SqliteEntryRepository::new(conn);
+        let from = IsoDate::parse("2026-02-01").unwrap();
+        let to = IsoDate::parse("2026-02-28").unwrap();
+
+        let response = repo
+            .category_breakdown_aggregate(account_id, &from, &to, EntryKind::Credit)
+            .unwrap();
+
+        assert_eq!(response.total, 9_000); // 2000 + 3000 + 4000
     }
 
     #[test]
@@ -1958,11 +2065,11 @@ mod tests {
         let to = IsoDate::parse("2026-02-28").unwrap();
 
         let response = repo
-            .category_breakdown_aggregate(account_id, &from, &to)
+            .category_breakdown_aggregate(account_id, &from, &to, EntryKind::Debit)
             .unwrap();
 
         // Should only include expenses from account_id
-        assert_eq!(response.total_expenses, 5_000);
+        assert_eq!(response.total, 5_000);
     }
 
     #[test]
@@ -1973,11 +2080,11 @@ mod tests {
         let to = IsoDate::parse("2026-02-28").unwrap();
 
         let response = repo
-            .category_breakdown_aggregate(account_id, &from, &to)
+            .category_breakdown_aggregate(account_id, &from, &to, EntryKind::Debit)
             .unwrap();
 
         assert_eq!(response.buckets.len(), 0);
-        assert_eq!(response.total_expenses, 0);
+        assert_eq!(response.total, 0);
     }
 
     #[test]
@@ -2142,6 +2249,17 @@ mod tests {
             .unwrap();
     }
 
+    fn add_uncategorized_income(conn: &SharedConnection, account_id: i64, date: &str, amount: i64) {
+        conn.lock()
+            .unwrap()
+            .execute(
+                "INSERT INTO entries (account_id, date, type, amount, is_system) \
+                 VALUES (?1, ?2, 'CREDIT', ?3, 0)",
+                rusqlite::params![account_id, date, amount],
+            )
+            .unwrap();
+    }
+
     fn add_category(conn: &SharedConnection, name: &str, color: &str) -> i64 {
         use crate::domain::category::{CategoryDetails, CategoryRepository};
         use crate::infra::category::SqliteCategoryRepository;
@@ -2168,6 +2286,23 @@ mod tests {
             .execute(
                 "INSERT INTO entries (account_id, date, type, amount, is_system, category_id) \
                  VALUES (?1, ?2, 'DEBIT', ?3, 0, ?4)",
+                rusqlite::params![account_id, date, amount, category_id],
+            )
+            .unwrap();
+    }
+
+    fn add_categorized_income(
+        conn: &SharedConnection,
+        account_id: i64,
+        date: &str,
+        category_id: i64,
+        amount: i64,
+    ) {
+        conn.lock()
+            .unwrap()
+            .execute(
+                "INSERT INTO entries (account_id, date, type, amount, is_system, category_id) \
+                 VALUES (?1, ?2, 'CREDIT', ?3, 0, ?4)",
                 rusqlite::params![account_id, date, amount, category_id],
             )
             .unwrap();
