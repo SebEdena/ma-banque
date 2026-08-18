@@ -779,6 +779,31 @@ mod tests {
         assert!(store.list_overrides(created.id).unwrap().is_empty());
     }
 
+    /// A schedule change forces `AllFuture` for the whole edit, template
+    /// fields included, when both change in the same save — the UI relies on
+    /// this to decide whether asking about scope is even meaningful.
+    #[test]
+    fn a_combined_schedule_and_template_change_mutates_the_rule_whatever_scope_is_requested() {
+        let store = FakeStore::default();
+        let created = create_rule(&store, 1, input("Loyer", -750.0)).unwrap();
+
+        update_rule(
+            &store,
+            created.id,
+            RuleInput {
+                frequency: Frequency::Yearly,
+                ..input("Loyer", -800.0)
+            },
+            EditScope::NextOccurrenceOnly,
+        )
+        .unwrap();
+
+        let stored = store.rules.borrow()[0].clone();
+        assert_eq!(stored.schedule.frequency, Frequency::Yearly);
+        assert_eq!(stored.template.amount.to_cents(), -80_000);
+        assert!(store.list_overrides(created.id).unwrap().is_empty());
+    }
+
     #[test]
     fn deleting_a_rule_leaves_the_entries_it_generated_in_place() {
         let store = FakeStore::default();

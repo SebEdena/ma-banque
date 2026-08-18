@@ -329,6 +329,23 @@ describe('RecurringRulesModal', () => {
         'ALL_FUTURE',
       );
     });
+
+    it('skips the scope question when both a template and a schedule field changed', async () => {
+      const api = stubApi([rule({ id: 7, interval: 1 })]);
+      const fixture = await createModal(api);
+
+      await click(fixture, 'recurring-edit');
+      type(fixture, 'recurring-form-amount', '-800');
+      type(fixture, 'recurring-form-interval', '3');
+      await click(fixture, 'recurring-save');
+
+      expect(has(fixture, 'recurring-scope-dialog')).toBe(false);
+      expect(api.updateRecurringRule).toHaveBeenCalledWith(
+        7,
+        expect.objectContaining({ amount: -800, interval: 3 }),
+        'ALL_FUTURE',
+      );
+    });
   });
 
   describe('deleting', () => {

@@ -1,149 +1,35 @@
 import {
   ChangeDetectionStrategy,
   Component,
-  computed,
   effect,
   inject,
   input,
   output,
   signal,
 } from '@angular/core';
-import { FieldTree, form, requiredError, schema, submit, validate } from '@angular/forms/signals';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import {
-  lucideCalendarClock,
-  lucidePencil,
-  lucidePlus,
-  lucideTrash2,
-  lucideX,
-} from '@ng-icons/lucide';
+import { lucideCalendarClock, lucidePlus } from '@ng-icons/lucide';
 import { toast } from '@spartan-ng/brain/sonner';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
 
-import { CurrencyFormatPipe } from '@core/display-settings/currency-format.pipe';
-import { formatDate } from '@core/display-settings/format';
 import type { CurrencyFormat, DateFormat } from '@core/display-settings/display-settings.types';
 import { Category } from '@data/categories/categories-api';
 import {
   EditScope,
-  Frequency,
   RecurringRule,
   RecurringRuleInput,
   RecurringRulesApi,
   parseRecurringError,
 } from '@data/recurring-rules/recurring-rules-api';
-import { AmountInput, formatAmountInput, parseAmount } from '@shared/amount-input/amount-input';
 import { ConfirmDialog } from '@shared/confirm-dialog/confirm-dialog';
-import { parseIsoDate, todayIso } from '@shared/iso-date/iso-date';
 import { ModalShell } from '@shared/modal-shell/modal-shell';
-import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
-import { AMOUNT_INVALID_MESSAGE, LABEL_REQUIRED_MESSAGE } from '../entry-field-messages';
-import { RowCategory, UNCATEGORIZED } from '../row-category';
-
-/**
- * What the rule form edits. The template half mirrors `EntryDraft` field for
- * field — `amount` is the field's **raw text, sign included**, so the
- * débit/crédit selector stays a view over that sign rather than a second
- * piece of state. `interval` is text for the same reason: `type="number"`
- * reads a half-typed or non-numeric value back as `""`, which would make
- * "interval below 1" unreportable.
- */
-interface RuleDraft {
-  label: string;
-  categoryId: number | null;
-  amount: string;
-  description: string;
-  frequency: Frequency;
-  interval: string;
-  startDate: string;
-  endDate: string;
-}
-
-const INTERVAL_INVALID_MESSAGE = 'Intervalle invalide : 1 au minimum';
-const END_BEFORE_START_MESSAGE = 'La date de fin précède la date de début';
-
-/**
- * What makes a draft saveable. The label and amount rules are `EntryForm`'s,
- * unchanged — money and required fields behave the same wherever they are
- * typed (user story 27) — and the two schedule rules are user story 26's,
- * checked here so a schedule that would produce nothing is refused as it is
- * entered rather than on the round trip.
- */
-const ruleDraftSchema = schema<RuleDraft>((draft) => {
-  validate(draft.label, ({ value }) =>
-    value().trim() === '' ? requiredError({ message: LABEL_REQUIRED_MESSAGE }) : null,
-  );
-  validate(draft.amount, ({ value }) =>
-    parseAmount(value()) === null
-      ? { kind: 'unreadableAmount', message: AMOUNT_INVALID_MESSAGE }
-      : null,
-  );
-  validate(draft.interval, ({ value }) =>
-    parseInterval(value()) === null
-      ? { kind: 'invalidInterval', message: INTERVAL_INVALID_MESSAGE }
-      : null,
-  );
-  validate(draft.endDate, ({ value, valueOf }) =>
-    value() !== '' && value() < valueOf(draft.startDate)
-      ? { kind: 'endBeforeStart', message: END_BEFORE_START_MESSAGE }
-      : null,
-  );
-});
-
-/** The interval field's text as a whole number of periods, or `null`. */
-function parseInterval(text: string): number | null {
-  const value = Number(text.trim());
-  return Number.isInteger(value) && value >= 1 ? value : null;
-}
-
-const FREQUENCIES: readonly { value: Frequency; label: string }[] = [
-  { value: 'WEEKLY', label: 'Hebdomadaire' },
-  { value: 'MONTHLY', label: 'Mensuelle' },
-  { value: 'YEARLY', label: 'Annuelle' },
-];
-
-/**
- * The plain-language schedule a row shows. Singular and plural are separate
- * strings rather than an interval spliced into one template, because French
- * changes the article as well as the noun ("Tous les mois" / "Toutes les 3
- * semaines").
- */
-function scheduleSummary(frequency: Frequency, interval: number): string {
-  switch (frequency) {
-    case 'WEEKLY':
-      return interval === 1 ? 'Toutes les semaines' : `Toutes les ${interval} semaines`;
-    case 'YEARLY':
-      return interval === 1 ? 'Tous les ans' : `Tous les ${interval} ans`;
-    default:
-      return interval === 1 ? 'Tous les mois' : `Tous les ${interval} mois`;
-  }
-}
-
-function emptyDraft(): RuleDraft {
-  return {
-    label: '',
-    categoryId: null,
-    amount: '',
-    description: '',
-    frequency: 'MONTHLY',
-    interval: '1',
-    startDate: todayIso(),
-    endDate: '',
-  };
-}
-
-function draftOf(rule: RecurringRule): RuleDraft {
-  return {
-    label: rule.label,
-    categoryId: rule.category_id,
-    amount: formatAmountInput(rule.amount),
-    description: rule.description,
-    frequency: rule.frequency,
-    interval: String(rule.interval),
-    startDate: rule.start_date,
-    endDate: rule.end_date ?? '',
-  };
-}
+import {
+  RecurringRuleForm,
+  RuleDraft,
+  draftOf,
+  emptyDraft,
+} from '../recurring-rule-form/recurring-rule-form';
+import { RecurringRuleList } from '../recurring-rule-list/recurring-rule-list';
 
 /**
  * The account's recurring rules, as a modal over its register (business
@@ -151,14 +37,13 @@ function draftOf(rule: RecurringRule): RuleDraft {
  * configuration belongs to the account behind it, and because every other
  * configuration surface in this app already is one.
  *
- * A container, unlike the account screen's other children: it owns the whole
- * feature — list, form, deletion and the scope question — so `Account` hosts
- * it with an `accountId` and nothing else to coordinate. `RecurringRulesApi`
- * is the seam its tests mock.
- *
- * One component in both of its states rather than two: the list and the form
- * are the same panel, and switching between them is `editing` changing, so
- * there is no second markup to keep in step.
+ * A thin business container: it owns loading, writing and deleting rules,
+ * and the edit-scope decision (`changesTemplate`/`changesSchedule` below) —
+ * nothing about rendering a rule or a form field. The list and the form are
+ * `RecurringRuleList`/`RecurringRuleForm`, each presentational in the same
+ * way `EntryRow`/`EntryForm` are for the register; this container just
+ * decides which one is on screen (`editing`) and reacts to what they emit.
+ * `RecurringRulesApi` is the seam its tests mock.
  */
 @Component({
   selector: 'app-recurring-rules-modal',
@@ -166,16 +51,13 @@ function draftOf(rule: RecurringRule): RuleDraft {
     NgIcon,
     ModalShell,
     ConfirmDialog,
-    AmountInput,
-    CurrencyFormatPipe,
+    RecurringRuleList,
+    RecurringRuleForm,
     ...HlmButtonImports,
   ],
   templateUrl: './recurring-rules-modal.html',
   styleUrl: '../accent.css',
-  providers: [
-    provideCatalogIcons(),
-    provideIcons({ lucideCalendarClock, lucidePencil, lucidePlus, lucideTrash2, lucideX }),
-  ],
+  providers: [provideIcons({ lucideCalendarClock, lucidePlus })],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class RecurringRulesModal {
@@ -207,24 +89,6 @@ export class RecurringRulesModal {
   } | null>(null);
 
   protected readonly draft = signal<RuleDraft>(emptyDraft());
-  private readonly fields = form(this.draft, ruleDraftSchema);
-
-  protected readonly labelError = computed(() => this.messageOf(this.fields.label));
-  protected readonly amountError = computed(() => this.messageOf(this.fields.amount));
-  protected readonly intervalError = computed(() => this.messageOf(this.fields.interval));
-  protected readonly endDateError = computed(() => this.messageOf(this.fields.endDate));
-
-  protected readonly isDebit = computed(() => this.draft().amount.trim().startsWith('-'));
-  protected readonly frequencies = FREQUENCIES;
-  protected readonly parseIsoDate = parseIsoDate;
-  protected readonly scheduleSummary = scheduleSummary;
-
-  private readonly categoriesById = computed(
-    () => new Map(this.categories().map((category) => [category.id, category])),
-  );
-
-  /** The swatch beside the poste select, and the one on each list row. */
-  protected readonly draftSwatch = computed(() => this.swatchOf(this.draft().categoryId));
 
   constructor() {
     // An effect rather than a constructor call: `accountId` is a required
@@ -235,82 +99,46 @@ export class RecurringRulesModal {
     });
   }
 
-  protected swatchOf(categoryId: number | null): RowCategory {
-    return (
-      (categoryId === null ? undefined : this.categoriesById().get(categoryId)) ?? UNCATEGORIZED
-    );
-  }
-
-  /** The date range a row spells out beside its frequency. */
-  protected dateRange(rule: RecurringRule): string {
-    const format = this.dateFormat();
-    const start = formatDate(parseIsoDate(rule.start_date), format);
-    return rule.end_date === null
-      ? `depuis le ${start}`
-      : `du ${start} au ${formatDate(parseIsoDate(rule.end_date), format)}`;
-  }
-
   protected startCreate(): void {
-    this.openForm(emptyDraft(), 'new');
+    this.draft.set(emptyDraft());
+    this.editing.set('new');
   }
 
   protected startEdit(rule: RecurringRule): void {
-    this.openForm(draftOf(rule), rule);
-  }
-
-  /**
-   * The field tree outlives any one form — it is built once over `draft` —
-   * so opening a form has to clear the touched state a previous refused save
-   * left behind, or the fresh form renders that form's errors. `reset()`
-   * clears touched and dirty only; the value is the draft we just set.
-   */
-  private openForm(draft: RuleDraft, target: RecurringRule | 'new'): void {
-    this.draft.set(draft);
-    this.fields().reset();
-    this.editing.set(target);
+    this.draft.set(draftOf(rule));
+    this.editing.set(rule);
   }
 
   protected backToList(): void {
     this.editing.set(null);
   }
 
-  protected patch(changes: Partial<RuleDraft>): void {
-    this.draft.update((draft) => ({ ...draft, ...changes }));
-  }
-
-  /** Rewrites the amount's sign, which is all the débit/crédit selector is. */
-  protected setDebit(debit: boolean): void {
-    const magnitude = this.draft().amount.trim().replace(/^-/, '');
-    this.patch({ amount: debit ? `-${magnitude}` : magnitude });
-  }
-
   /**
-   * Marks every field touched and, if the draft holds up, saves it. Creating
-   * writes straight away; editing asks about scope first, but only when a
-   * template field actually changed — a schedule change has no meaningful
-   * answer to that question (user story 21).
+   * What `RecurringRuleForm` emits once its own validation finds the draft
+   * saveable. Creating writes straight away. Editing asks about scope only
+   * when a template field changed and the schedule did not —
+   * `usecases::recurring::update_rule` forces `ALL_FUTURE` whenever the
+   * schedule changed, whatever scope it is sent, so asking would offer a
+   * choice the backend won't honour (user story 21). A schedule change is
+   * checked first for exactly that reason: it wins even over a template
+   * field that also changed in the same save.
    */
-  protected async attemptSave(): Promise<void> {
-    await submit(this.fields, {
-      action: async () => {
-        const target = this.editing();
-        const input = this.buildInput();
-        if (input === null || target === null) {
-          return;
-        }
+  protected async onFormSaved(input: RecurringRuleInput): Promise<void> {
+    const target = this.editing();
+    if (target === null) {
+      return;
+    }
 
-        if (target === 'new') {
-          await this.create(input);
-          return;
-        }
+    if (target === 'new') {
+      await this.create(input);
+      return;
+    }
 
-        if (changesTemplate(target, input)) {
-          this.awaitingScope.set({ rule: target, input });
-          return;
-        }
-        await this.update(target, input, 'ALL_FUTURE');
-      },
-    });
+    if (!changesSchedule(target, input) && changesTemplate(target, input)) {
+      this.awaitingScope.set({ rule: target, input });
+      return;
+    }
+    await this.update(target, input, 'ALL_FUTURE');
   }
 
   protected async applyScope(scope: EditScope): Promise<void> {
@@ -376,32 +204,6 @@ export class RecurringRulesModal {
       toast.error(parseRecurringError(error));
     }
   }
-
-  /** The draft as the wire payload, or `null` if the schema would have caught it. */
-  private buildInput(): RecurringRuleInput | null {
-    const draft = this.draft();
-    const amount = parseAmount(draft.amount);
-    const interval = parseInterval(draft.interval);
-    if (amount === null || interval === null) {
-      return null;
-    }
-
-    return {
-      label: draft.label.trim(),
-      category_id: draft.categoryId,
-      amount,
-      description: draft.description.trim(),
-      frequency: draft.frequency,
-      interval,
-      start_date: draft.startDate,
-      end_date: draft.endDate === '' ? null : draft.endDate,
-    };
-  }
-
-  private messageOf(field: FieldTree<string>): string | null {
-    const state = field();
-    return state.touched() && state.invalid() ? (state.errors()[0]?.message ?? null) : null;
-  }
 }
 
 /**
@@ -416,5 +218,21 @@ function changesTemplate(rule: RecurringRule, input: RecurringRuleInput): boolea
     input.category_id !== rule.category_id ||
     input.amount !== rule.amount ||
     input.description !== rule.description
+  );
+}
+
+/**
+ * Whether an edit touched the schedule — mirrors `current.schedule !=
+ * details.schedule` in `usecases::recurring::update_rule`, the check that
+ * decides server-side whether the requested scope is honoured at all.
+ * Checked before `changesTemplate` in `onFormSaved` so a save that changes
+ * both never asks about scope only to have the backend ignore the answer.
+ */
+function changesSchedule(rule: RecurringRule, input: RecurringRuleInput): boolean {
+  return (
+    input.frequency !== rule.frequency ||
+    input.interval !== rule.interval ||
+    input.start_date !== rule.start_date ||
+    input.end_date !== rule.end_date
   );
 }

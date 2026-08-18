@@ -1,0 +1,66 @@
+@if (rules().length === 0) {
+  <p data-testid="recurring-empty" class="px-5 py-12 text-center text-sm text-muted-foreground">
+    Aucune écriture périodique sur ce compte.
+  </p>
+} @else {
+  <ul class="flex flex-col divide-y divide-border overflow-hidden rounded-xl border border-border">
+    @for (rule of rules(); track rule.id) {
+      <li
+        data-testid="recurring-row"
+        [attr.data-rule-id]="rule.id"
+        class="flex items-center gap-3 px-3.5 py-3"
+      >
+        <span
+          data-testid="recurring-row-category"
+          class="flex size-[30px] shrink-0 items-center justify-center rounded-[9px] text-white"
+          [style.background-color]="swatchOf(rule.category_id).color"
+        >
+          <ng-icon [name]="swatchOf(rule.category_id).icon" size="15" />
+        </span>
+
+        <span class="min-w-0 flex-1">
+          <span data-testid="recurring-row-label" class="block truncate text-[14px] font-bold">
+            {{ rule.label }}
+          </span>
+          <span
+            data-testid="recurring-row-schedule"
+            class="block truncate text-[12.5px] text-muted-foreground"
+          >
+            {{ scheduleSummary(rule.frequency, rule.interval) }} · {{ dateRange(rule) }}
+          </span>
+        </span>
+
+        <span
+          data-testid="recurring-row-amount"
+          class="shrink-0 text-right font-mono text-[14.5px] font-semibold"
+          [class]="rule.amount < 0 ? 'text-destructive' : 'text-emerald-600 dark:text-emerald-400'"
+        >
+          {{ rule.amount | currencyFormat: currencyFormat() }}
+        </span>
+
+        <span class="flex shrink-0 gap-1">
+          <button
+            type="button"
+            data-testid="recurring-edit"
+            data-accent
+            [attr.aria-label]="'Modifier ' + rule.label"
+            class="flex size-7 items-center justify-center rounded-lg bg-muted outline-none transition-colors"
+            (click)="edit.emit(rule)"
+          >
+            <ng-icon name="lucidePencil" size="14" />
+          </button>
+          <button
+            type="button"
+            data-testid="recurring-delete"
+            data-accent-solid
+            [attr.aria-label]="'Supprimer ' + rule.label"
+            class="flex size-7 items-center justify-center rounded-lg bg-destructive/10 text-destructive outline-none transition-colors hover:bg-destructive hover:text-white"
+            (click)="delete.emit(rule)"
+          >
+            <ng-icon name="lucideTrash2" size="14" />
+          </button>
+        </span>
+      </li>
+    }
+  </ul>
+}
