@@ -26,8 +26,9 @@ impl PeriodPreset {
 }
 
 /// One bucket in the category-breakdown aggregate: a category and its
-/// share of the period's expenses. `category_id` is `None` for the
-/// uncategorized bucket ("Sans poste").
+/// share of the period's total (expenses in the expense donut, credits in
+/// the credit donut). `category_id` is `None` for the uncategorized bucket
+/// ("Sans poste").
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CategoryBreakdownBucket {
     pub category_id: Option<i64>,
@@ -38,12 +39,13 @@ pub struct CategoryBreakdownBucket {
     pub percentage: f64,
 }
 
-/// Category-breakdown aggregate response: the period's expense buckets
-/// and the total expense for the period.
+/// Category-breakdown aggregate response: the period's buckets and their
+/// total, for one sign (expense or credit) — the same shape serves both
+/// donuts, parameterized by `EntryKind` at the repository call.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct CategoryBreakdownResponse {
     pub buckets: Vec<CategoryBreakdownBucket>,
-    pub total_expenses: i64, // in cents
+    pub total: i64, // in cents
 }
 
 /// One month's entry in the month-bucketed aggregate.

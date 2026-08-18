@@ -281,15 +281,18 @@ pub trait EntryRepository {
     /// [`EntryError::SystemEntryReadOnly`].
     fn set_reconciled(&self, id: i64, reconciled: bool) -> Result<Entry, EntryError>;
 
-    /// Category-breakdown aggregate: sums expenses by category over an
-    /// account and date range, joined to category name/color/icon,
-    /// with uncategorized entries collapsed into one bucket. Excludes
-    /// system entries and income entries. Percentages are computed in Rust.
+    /// Category-breakdown aggregate: sums entries of one sign (`kind`) by
+    /// category over an account and date range, joined to category
+    /// name/color/icon, with uncategorized entries collapsed into one
+    /// bucket. Excludes system entries and entries of the other sign — the
+    /// same query serves both the expense donut (`EntryKind::Debit`) and the
+    /// credit donut (`EntryKind::Credit`). Percentages are computed in Rust.
     fn category_breakdown_aggregate(
         &self,
         account_id: i64,
         from: &IsoDate,
         to: &IsoDate,
+        kind: EntryKind,
     ) -> Result<CategoryBreakdownResponse, EntryError>;
 
     /// Month-bucketed aggregate: sums income and expense totals by calendar

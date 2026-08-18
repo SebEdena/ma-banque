@@ -278,6 +278,7 @@ mod tests {
             _account_id: i64,
             _from: &IsoDate,
             _to: &IsoDate,
+            _kind: crate::domain::entry::EntryKind,
         ) -> Result<crate::domain::statistics::CategoryBreakdownResponse, EntryError> {
             unimplemented!("reconciliation doesn't compute statistics")
         }
