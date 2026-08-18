@@ -2,6 +2,37 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.7.0] - 2026-08-18
+
+### Bug Fixes
+
+- Stop an archived account generating when it is opened
+- Clear a refused save's errors when the rule form reopens
+- Backfill a new rule from its own start date
+- Stop toasts from intercepting clicks on the UI beneath them
+- Stop the schedule change from silently overriding a chosen edit scope, and split the fat rules modal
+
+### Features
+
+- Add the recurring rule entity at the backend boundary
+- Generate due occurrences on startup and account open
+- Manage an account's recurring rules from its own screen
+- Add a close button to the rules modal, align the mock register with the seeded rule
+- Show a small icon on entries a recurring rule generated
+
+### Miscellaneous Tasks
+
+- Mark issue 02 done, hand off the generation contract
+
+### Styling
+
+- Make the recurring icon bigger
+
+### Testing
+
+- Drive recurring entries end to end
+- Fix stub call sites broken by the rebase onto main's reconciliation param
+
 ## [0.6.0] - 2026-08-18
 
 ### Bug Fixes
