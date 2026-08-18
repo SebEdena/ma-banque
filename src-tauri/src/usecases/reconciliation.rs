@@ -272,6 +272,24 @@ mod tests {
         fn set_reconciled(&self, _id: i64, _reconciled: bool) -> Result<Entry, EntryError> {
             unimplemented!("reconciliation doesn't tick entries")
         }
+
+        fn category_breakdown_aggregate(
+            &self,
+            _account_id: i64,
+            _from: &IsoDate,
+            _to: &IsoDate,
+        ) -> Result<crate::domain::statistics::CategoryBreakdownResponse, EntryError> {
+            unimplemented!("reconciliation doesn't compute statistics")
+        }
+
+        fn month_bucketed_aggregate(
+            &self,
+            _account_id: i64,
+            _from: &IsoDate,
+            _to: &IsoDate,
+        ) -> Result<crate::domain::statistics::MonthBucketedResponse, EntryError> {
+            unimplemented!("reconciliation doesn't compute statistics")
+        }
     }
 
     /// Opening 100_000, one ticked debit of 2_550 and one ticked credit of

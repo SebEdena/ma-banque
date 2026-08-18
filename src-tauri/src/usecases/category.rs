@@ -279,6 +279,24 @@ mod tests {
         ) -> Result<crate::domain::entry::Entry, EntryError> {
             unimplemented!("category rules never reconcile entries")
         }
+
+        fn category_breakdown_aggregate(
+            &self,
+            _account_id: i64,
+            _from: &crate::domain::date::IsoDate,
+            _to: &crate::domain::date::IsoDate,
+        ) -> Result<crate::domain::statistics::CategoryBreakdownResponse, EntryError> {
+            unimplemented!("category rules don't compute statistics")
+        }
+
+        fn month_bucketed_aggregate(
+            &self,
+            _account_id: i64,
+            _from: &crate::domain::date::IsoDate,
+            _to: &crate::domain::date::IsoDate,
+        ) -> Result<crate::domain::statistics::MonthBucketedResponse, EntryError> {
+            unimplemented!("category rules don't compute statistics")
+        }
     }
 
     fn input(name: &str) -> CategoryInput {

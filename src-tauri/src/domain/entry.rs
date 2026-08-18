@@ -9,6 +9,7 @@ use thiserror::Error;
 
 use crate::domain::date::IsoDate;
 use crate::domain::money::InvalidAmount;
+use crate::domain::statistics::{CategoryBreakdownResponse, MonthBucketedResponse};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
@@ -279,6 +280,28 @@ pub trait EntryRepository {
     /// its fields. Rejects the system entry with
     /// [`EntryError::SystemEntryReadOnly`].
     fn set_reconciled(&self, id: i64, reconciled: bool) -> Result<Entry, EntryError>;
+
+    /// Category-breakdown aggregate: sums expenses by category over an
+    /// account and date range, joined to category name/color/icon,
+    /// with uncategorized entries collapsed into one bucket. Excludes
+    /// system entries and income entries. Percentages are computed in Rust.
+    fn category_breakdown_aggregate(
+        &self,
+        account_id: i64,
+        from: &IsoDate,
+        to: &IsoDate,
+    ) -> Result<CategoryBreakdownResponse, EntryError>;
+
+    /// Month-bucketed aggregate: sums income and expense totals by calendar
+    /// month over an account and date range, reporting both as positive
+    /// magnitudes. Excludes system entries. Missing months are filled by
+    /// the use case, not here.
+    fn month_bucketed_aggregate(
+        &self,
+        account_id: i64,
+        from: &IsoDate,
+        to: &IsoDate,
+    ) -> Result<MonthBucketedResponse, EntryError>;
 }
 
 pub type DynEntryRepository = Box<dyn EntryRepository + Send + Sync>;

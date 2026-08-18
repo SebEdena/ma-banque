@@ -332,6 +332,24 @@ mod tests {
             entry.reconciled = reconciled;
             Ok(entry.clone())
         }
+
+        fn category_breakdown_aggregate(
+            &self,
+            _account_id: i64,
+            _from: &crate::domain::date::IsoDate,
+            _to: &crate::domain::date::IsoDate,
+        ) -> Result<crate::domain::statistics::CategoryBreakdownResponse, EntryError> {
+            unimplemented!("entry tests don't compute statistics")
+        }
+
+        fn month_bucketed_aggregate(
+            &self,
+            _account_id: i64,
+            _from: &crate::domain::date::IsoDate,
+            _to: &crate::domain::date::IsoDate,
+        ) -> Result<crate::domain::statistics::MonthBucketedResponse, EntryError> {
+            unimplemented!("entry tests don't compute statistics")
+        }
     }
 
     fn input(label: &str, date: &str, amount: f64) -> EntryInput {
