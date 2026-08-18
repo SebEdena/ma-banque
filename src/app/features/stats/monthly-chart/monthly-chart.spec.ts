@@ -1,6 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { By } from '@angular/platform-browser';
 import { VisAxisComponent, VisGroupedBarComponent, VisXYContainerComponent } from '@unovis/angular';
+import { GroupedBar } from '@unovis/ts';
 
 import { formatAmount } from '@core/display-settings/format';
 import { MonthBucket } from '@data/statistics/statistics-api';
@@ -74,5 +75,34 @@ describe('MonthlyChart', () => {
 
     expect(yAxis).toBeTruthy();
     expect(yAxis?.tickFormat?.(1500, 0, [1500])).toBe(formatAmount(1500, 'SYMBOL_AFTER'));
+  });
+
+  it('formats the tooltip for a bar in a later month, whose element index runs past the series count', async () => {
+    // Unovis's tooltip trigger passes the hovered element's index across every
+    // bar the GroupedBar renders (all months flattened), not its index within
+    // its own month's group. For the third month's expense bar that's element
+    // index 5 — well past MONTH_SERIES.length (2) — so the handler must reduce
+    // it back to a series index instead of indexing MONTH_SERIES directly.
+    const months = [
+      month({ month: '2026-01' }),
+      month({ month: '2026-02' }),
+      month({ month: '2026-03' }),
+    ];
+    const fixture = await createChart(months);
+    const triggers = (fixture.componentInstance as unknown as { monthTooltipTriggers: unknown })
+      .monthTooltipTriggers as Record<
+      string,
+      (d: MonthBucket, i: number, els: unknown[]) => string
+    >;
+    const template = triggers[GroupedBar.selectors.bar];
+
+    const thirdMonthExpenseBar = months[2];
+    expect(template(thirdMonthExpenseBar, 5, [])).toBe(
+      `Dépenses : ${formatAmount(thirdMonthExpenseBar.expense, 'SYMBOL_AFTER')}`,
+    );
+    const thirdMonthIncomeBar = months[2];
+    expect(template(thirdMonthIncomeBar, 4, [])).toBe(
+      `Recettes : ${formatAmount(thirdMonthIncomeBar.income, 'SYMBOL_AFTER')}`,
+    );
   });
 });

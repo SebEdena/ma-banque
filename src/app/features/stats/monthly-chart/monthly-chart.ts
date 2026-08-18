@@ -76,8 +76,14 @@ export class MonthlyChart {
     formatAmount(Number(tick), this.currencyFormat());
 
   protected readonly monthTooltipTriggers = {
-    [GroupedBar.selectors.bar]: (bucket: MonthBucket, seriesIndex: number): string => {
-      const series = MONTH_SERIES[seriesIndex];
+    /**
+     * Unovis's tooltip passes the hovered bar's index across *every* bar in
+     * the component (all months flattened), not its index within its own
+     * month's group — `% MONTH_SERIES.length` recovers the series (income
+     * vs. expense) regardless of which month was hovered.
+     */
+    [GroupedBar.selectors.bar]: (bucket: MonthBucket, elementIndex: number): string => {
+      const series = MONTH_SERIES[elementIndex % MONTH_SERIES.length];
       return `${series.label} : ${formatAmount(series.value(bucket), this.currencyFormat())}`;
     },
   };
