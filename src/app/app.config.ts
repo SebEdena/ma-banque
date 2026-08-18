@@ -18,6 +18,8 @@ import { ReconciliationApi } from './data/reconciliation/reconciliation-api';
 import { InMemoryReconciliationApi } from './data/reconciliation/reconciliation-api.mock';
 import { RecurringRulesApi } from './data/recurring-rules/recurring-rules-api';
 import { InMemoryRecurringRulesApi } from './data/recurring-rules/recurring-rules-api.mock';
+import { StatisticsApi } from './data/statistics/statistics-api';
+import { InMemoryStatisticsApi } from './data/statistics/statistics-api.mock';
 
 /**
  * Only non-empty when built with `--configuration mock` (`npm run
@@ -33,6 +35,7 @@ const mockProviders = mockBackend
       { provide: ReconciliationApi, useClass: InMemoryReconciliationApi },
       { provide: RecurringRulesApi, useClass: InMemoryRecurringRulesApi },
       { provide: SettingsApi, useClass: InMemorySettingsApi },
+      { provide: StatisticsApi, useClass: InMemoryStatisticsApi },
     ]
   : [];
 

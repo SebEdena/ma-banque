@@ -8,7 +8,7 @@ export const routes: Routes = [
     loadComponent: () => import('./features/account/account').then((m) => m.Account),
   },
   {
-    path: 'stats/:id',
+    path: 'stats/:accountId',
     loadComponent: () => import('./features/stats/stats').then((m) => m.Stats),
   },
   {
