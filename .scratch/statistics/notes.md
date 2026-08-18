@@ -10,7 +10,7 @@ Both aggregate methods on `EntryRepository` are implemented as single SQL `GROUP
   - `total_expenses: i64` — sum of all expense amounts
   - Excludes: system entries (`is_system = 1`), income entries (`type = 'CREDIT'`)
   - Missing categories do not appear; uncategorised entries are collapsed into one bucket
-  
+
 - **`month_bucketed_aggregate(account_id, from, to)`** — Returns `MonthBucketedResponse`:
   - `months: Vec<MonthBucket>` — only months with at least one entry (gap-filling happens in the use case)
   - Each month carries `month` (YYYY-MM format), `income` (positive magnitude), `expense` (positive magnitude)
@@ -20,6 +20,7 @@ Both aggregate methods on `EntryRepository` are implemented as single SQL `GROUP
 ## Use Case Layer
 
 `usecases::statistics` handles:
+
 - **Period preset → date range derivation**: `PeriodPreset` enum (1/3/6/12 months) derives an inclusive `IsoDate` range ending today
 - **Month gap-filling**: `month_bucketed()` calls the repository and fills missing months with zero-valued entries, so the series always covers every month of the period in order
 - **No DateTime dependency**: Date arithmetic uses only standard library (`SystemTime` + manual leap-year logic), avoiding external dependencies
@@ -29,6 +30,7 @@ Date calculations are tested to verify presets derive the expected ranges and ga
 ## Response Types
 
 All types are in `domain::statistics`:
+
 - `PeriodPreset` — the four preset enum values
 - `CategoryBreakdownBucket` and `CategoryBreakdownResponse`
 - `MonthBucket` and `MonthBucketedResponse`
@@ -37,6 +39,7 @@ All types are in `domain::statistics`:
 ## Tauri Commands
 
 Two commands in `commands::statistics`:
+
 - `category_breakdown(account_id, preset)` → `CategoryBreakdownResponse`
 - `month_bucketed(account_id, preset)` → `MonthBucketedResponse`
 
@@ -45,10 +48,12 @@ Both are registered in `lib.rs`'s invoke handler and take the `DynEntryRepositor
 ## Test Coverage
 
 **SQLite integration tests** (13 total):
+
 - 7 for category-breakdown: multi-category summing, income exclusion, system entry exclusion, NULL-category collapsing, range boundaries (inclusive both ends), account isolation, empty response
 - 6 for month-bucketed: per-month summing, system entry exclusion, months-only-with-activity behavior, range boundaries, account isolation, empty response
 
 **Use-case tests** (5 total):
+
 - Period preset derivation: one-month and three-month presets resolve correctly
 - Gap-filling: missing months filled with zeros, series is chronologically ordered, wraps year boundaries
 - Empty period handling: returns empty when no activity
@@ -56,3 +61,22 @@ Both are registered in `lib.rs`'s invoke handler and take the `DynEntryRepositor
 All tests use a hand-written in-memory `FakeRepo` (no `mockall`) and test behavior through public interfaces only.
 
 **Test count**: 251 total (including all existing tests); 18 new statistics tests.
+
+## Frontend Dependency Setup (Issue 02)
+
+**Unovis Version:** 1.6.7 (stable)
+
+- Installed as `@unovis/ts@1.6.7` and `@unovis/angular@1.6.7`
+- Verified: 1.6.7 supports Angular ^22.1.0; a future upgrade to 1.7.0 final will provide explicit Angular 22 LTS tracking once released
+- Modules imported by downstream components: `VisDonutModule`, `VisXYContainerModule`, `VisAxisModule`, `VisGroupedBarModule`
+- No custom configuration needed; standard Angular module bootstrap is sufficient
+
+**Frontend API Layer:** `StatisticsApi` service (src/app/data/statistics/statistics-api.ts)
+
+- Mirrors existing pattern (AccountsApi, EntriesApi, CategoriesApi)
+- Two methods: `categoryBreakdown(accountId, preset)` and `monthBucketed(accountId, preset)`
+- Type definitions match Rust backend exactly: `PeriodPreset` (ONE_MONTH | THREE_MONTHS | SIX_MONTHS | TWELVE_MONTHS), `CategoryBreakdownResponse`, `MonthBucketedResponse`
+- Error handling: `parseStatisticsError()` follows existing pattern (parseAccountError, parseCategoryError)
+- Injectable singleton service; component tests mock this boundary, never `invoke()` directly
+
+**Test Coverage:** 3 new tests added (unovis-smoke.spec.ts verifies module bootstrap; statistics-api.spec.ts tests error handling)
