@@ -1,14 +1,7 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { signal } from '@angular/core';
 import { provideRouter, Router } from '@angular/router';
-import { By } from '@angular/platform-browser';
 import { toast } from '@spartan-ng/brain/sonner';
-import {
-  VisDonutComponent,
-  VisGroupedBarComponent,
-  VisSingleContainerComponent,
-  VisXYContainerComponent,
-} from '@unovis/angular';
 
 import { AccountsApi } from '@data/accounts/accounts-api';
 import { AccountsStore } from '@data/accounts/accounts-store';
@@ -105,12 +98,6 @@ function one(fixture: ComponentFixture<Stats>, testId: string): HTMLElement | nu
   return (fixture.nativeElement as HTMLElement).querySelector(`[data-testid="${testId}"]`);
 }
 
-function all(fixture: ComponentFixture<Stats>, testId: string): HTMLElement[] {
-  return Array.from(
-    (fixture.nativeElement as HTMLElement).querySelectorAll(`[data-testid="${testId}"]`),
-  );
-}
-
 async function click(fixture: ComponentFixture<Stats>, element: HTMLElement): Promise<void> {
   element.click();
   await settle(fixture);
@@ -161,112 +148,14 @@ describe('Stats', () => {
     expect(statisticsApi.monthBucketed).toHaveBeenLastCalledWith(2, 'ONE_MONTH');
   });
 
-  it('feeds the Donut component one data point per bucket with the expected colour and value', async () => {
-    const buckets = [
-      bucket({
-        category_id: 1,
-        name: 'Alimentation',
-        color: '#10b981',
-        amount: 150,
-        percentage: 60,
-      }),
-      bucket({
-        category_id: null,
-        name: 'Sans poste',
-        color: '#9ca3af',
-        amount: 100,
-        percentage: 40,
-      }),
-    ];
-    const statisticsApi = stubStatisticsApi({ buckets, total_expenses: 250 });
+  it('passes the fetched breakdown and month data down to the two chart components', async () => {
+    const buckets = [bucket({ name: 'Alimentation', amount: 150 })];
+    const months = [month({ month: '2026-01' })];
+    const statisticsApi = stubStatisticsApi({ buckets, total_expenses: 150 }, { months });
     const fixture = await createStats(statisticsApi);
 
-    const container = fixture.debugElement.query(By.directive(VisSingleContainerComponent))
-      .componentInstance as VisSingleContainerComponent<CategoryBreakdownBucket[]>;
-    expect(container.data).toEqual(buckets);
-
-    const donut = fixture.debugElement.query(By.directive(VisDonutComponent))
-      .componentInstance as VisDonutComponent<CategoryBreakdownBucket>;
-    const donutColor = donut.color as (d: CategoryBreakdownBucket, i: number) => string;
-    const donutValue = donut.value as (d: CategoryBreakdownBucket, i: number) => number;
-    expect(buckets.map((b, i) => donutColor(b, i))).toEqual(['#10b981', '#9ca3af']);
-    expect(buckets.map((b, i) => donutValue(b, i))).toEqual([150, 100]);
-    expect(donut.centralSubLabel).toBe('Total dépenses');
-  });
-
-  it('renders the hand-built legend with one row per bucket carrying the returned colour, name, percentage and amount', async () => {
-    const buckets = [
-      bucket({
-        category_id: 1,
-        name: 'Alimentation',
-        color: '#10b981',
-        amount: 150,
-        percentage: 60,
-      }),
-      bucket({
-        category_id: null,
-        name: 'Sans poste',
-        color: '#9ca3af',
-        amount: 100,
-        percentage: 40,
-      }),
-    ];
-    const statisticsApi = stubStatisticsApi({ buckets, total_expenses: 250 });
-    const fixture = await createStats(statisticsApi);
-
-    const rows = all(fixture, 'legend-row');
-    expect(rows).toHaveLength(2);
-
-    const first = rows[0];
-    expect(first.querySelector('[data-testid="legend-name"]')?.textContent).toContain(
-      'Alimentation',
-    );
-    expect(first.querySelector('[data-testid="legend-percentage"]')?.textContent).toContain('60');
-    expect(first.querySelector('[data-testid="legend-amount"]')?.textContent).toContain('150');
-    expect(
-      (first.querySelector('[data-testid="legend-swatch"]') as HTMLElement).style.backgroundColor,
-    ).toBeTruthy();
-
-    const second = rows[1];
-    expect(second.querySelector('[data-testid="legend-name"]')?.textContent).toContain(
-      'Sans poste',
-    );
-  });
-
-  it('renders the empty state when the breakdown comes back empty', async () => {
-    const statisticsApi = stubStatisticsApi({ buckets: [], total_expenses: 0 });
-    const fixture = await createStats(statisticsApi);
-
-    expect(one(fixture, 'breakdown-empty')?.textContent).toContain(
-      'Aucune dépense sur cette période.',
-    );
-    expect(one(fixture, 'donut-chart')).toBeNull();
-  });
-
-  it('feeds the GroupedBar component one data point per month, including zero-valued months, with both series populated', async () => {
-    const months = [
-      month({ month: '2026-01', income: 2000, expense: 1500 }),
-      month({ month: '2026-02', income: 0, expense: 0 }),
-    ];
-    const statisticsApi = stubStatisticsApi(undefined, { months });
-    const fixture = await createStats(statisticsApi);
-
-    const container = fixture.debugElement.query(By.directive(VisXYContainerComponent))
-      .componentInstance as VisXYContainerComponent<MonthBucket>;
-    expect(container.data).toEqual(months);
-
-    const groupedBar = fixture.debugElement.query(By.directive(VisGroupedBarComponent))
-      .componentInstance as VisGroupedBarComponent<MonthBucket>;
-    const [incomeAccessor, expenseAccessor] = groupedBar.y as ((
-      d: MonthBucket,
-      i: number,
-    ) => number)[];
-
-    expect(months.map((m, i) => incomeAccessor(m, i))).toEqual([2000, 0]);
-    expect(months.map((m, i) => expenseAccessor(m, i))).toEqual([1500, 0]);
-    const barColor = groupedBar.color as (d: MonthBucket, i: number) => string;
-    expect(barColor(months[0], 0)).toBe('var(--positive)');
-    expect(barColor(months[0], 1)).toBe('var(--negative)');
+    expect(one(fixture, 'breakdown-legend')?.textContent).toContain('Alimentation');
+    expect(one(fixture, 'monthly-chart')).not.toBeNull();
   });
 
   it('surfaces a failing aggregate request as a toast', async () => {

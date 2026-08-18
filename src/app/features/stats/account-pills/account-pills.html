@@ -1,0 +1,18 @@
+<div class="flex flex-wrap gap-2" data-testid="account-pills">
+  @for (candidate of accounts(); track candidate.id) {
+    <button
+      type="button"
+      data-accent
+      [attr.data-testid]="'account-pill-' + candidate.id"
+      [attr.aria-pressed]="candidate.id === selectedAccountId()"
+      class="flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-[13px] font-semibold text-muted-foreground outline-none transition-colors"
+      [style.border-color]="candidate.id === selectedAccountId() ? candidate.color : ''"
+      [style.color]="candidate.id === selectedAccountId() ? candidate.color : ''"
+      [style.background-color]="candidate.id === selectedAccountId() ? candidate.color + '14' : ''"
+      (click)="accountSelected.emit(candidate)"
+    >
+      <span class="size-2 shrink-0 rounded-full" [style.background-color]="candidate.color"></span>
+      {{ candidate.name }}
+    </button>
+  }
+</div>

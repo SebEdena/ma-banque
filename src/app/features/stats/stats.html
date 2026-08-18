@@ -37,101 +37,26 @@
       </div>
     </header>
 
-    <div class="mb-6 flex flex-wrap gap-2" data-testid="account-pills">
-      @for (candidate of accounts(); track candidate.id) {
-        <button
-          type="button"
-          data-accent
-          [attr.data-testid]="'account-pill-' + candidate.id"
-          [attr.aria-pressed]="candidate.id === accountId()"
-          class="flex items-center gap-2 rounded-full border border-border px-3 py-1.5 text-[13px] font-semibold text-muted-foreground outline-none transition-colors"
-          [style.border-color]="candidate.id === accountId() ? candidate.color : ''"
-          [style.color]="candidate.id === accountId() ? candidate.color : ''"
-          [style.background-color]="candidate.id === accountId() ? candidate.color + '14' : ''"
-          (click)="selectAccount(candidate)"
-        >
-          <span
-            class="size-2 shrink-0 rounded-full"
-            [style.background-color]="candidate.color"
-          ></span>
-          {{ candidate.name }}
-        </button>
-      }
-    </div>
+    <app-account-pills
+      class="mb-6"
+      [accounts]="accounts()"
+      [selectedAccountId]="accountId()"
+      (accountSelected)="selectAccount($event)"
+    />
 
     <div class="grid gap-5 lg:grid-cols-[1fr_1.3fr]">
-      <section
-        data-testid="breakdown-card"
-        class="rounded-[18px] border border-border bg-card p-6 shadow-sm"
-      >
-        <h2 class="mb-4.5 text-[15px] font-bold">Répartition des dépenses par poste</h2>
+      <app-breakdown-chart
+        [buckets]="buckets()"
+        [totalExpenses]="totalExpenses()"
+        [loaded]="loaded()"
+        [currencyFormat]="displaySettings.currencyFormat()"
+      />
 
-        @if (hasBreakdown()) {
-          <div class="flex flex-wrap items-center gap-5">
-            <vis-single-container
-              data-testid="donut-chart"
-              [data]="buckets()"
-              [height]="220"
-              [width]="220"
-            >
-              <vis-donut
-                [value]="donutValue"
-                [color]="donutColor"
-                [centralLabel]="totalExpenses() | currencyFormat: displaySettings.currencyFormat()"
-                [centralSubLabel]="centralSubLabel"
-              />
-            </vis-single-container>
-
-            <ul class="min-w-[160px] flex-1 space-y-2.5" data-testid="breakdown-legend">
-              @for (bucket of buckets(); track bucket.category_id ?? -1) {
-                <li data-testid="legend-row" class="flex items-center gap-2.5 text-[13px]">
-                  <span
-                    data-testid="legend-swatch"
-                    class="size-2.5 shrink-0 rounded-[3px]"
-                    [style.background-color]="bucket.color"
-                  ></span>
-                  <span data-testid="legend-name" class="flex-1 truncate font-semibold">
-                    {{ bucket.name }}
-                  </span>
-                  <span data-testid="legend-percentage" class="text-xs text-muted-foreground">
-                    {{ bucket.percentage.toFixed(1) }}%
-                  </span>
-                  <span data-testid="legend-amount" class="w-20 text-right font-mono font-semibold">
-                    {{ bucket.amount | currencyFormat: displaySettings.currencyFormat() }}
-                  </span>
-                </li>
-              }
-            </ul>
-          </div>
-        } @else if (showEmptyBreakdown()) {
-          <p data-testid="breakdown-empty" class="py-10 text-center text-sm text-muted-foreground">
-            Aucune dépense sur cette période.
-          </p>
-        }
-      </section>
-
-      <section
-        data-testid="monthly-card"
-        class="rounded-[18px] border border-border bg-card p-6 shadow-sm"
-      >
-        <div class="mb-4.5 flex items-center justify-between">
-          <h2 class="text-[15px] font-bold">Recettes / Dépenses par mois</h2>
-          <div class="flex gap-3.5 text-xs text-muted-foreground" data-testid="monthly-legend">
-            @for (series of monthSeries; track series.label) {
-              <span class="flex items-center gap-1.5">
-                <span class="size-2.5 rounded-[3px]" [style.background-color]="series.color"></span>
-                {{ series.label }}
-              </span>
-            }
-          </div>
-        </div>
-
-        <vis-xy-container data-testid="monthly-chart" [data]="months()" [height]="220">
-          <vis-grouped-bar [x]="monthX" [y]="monthY" [color]="monthColor" />
-          <vis-axis type="x" [tickValues]="monthTickValues()" [tickFormat]="monthAxisTickFormat" />
-          <vis-tooltip [triggers]="monthTooltipTriggers" />
-        </vis-xy-container>
-      </section>
+      <app-monthly-chart
+        [months]="months()"
+        [dateFormat]="displaySettings.dateFormat()"
+        [currencyFormat]="displaySettings.currencyFormat()"
+      />
     </div>
   </div>
 }
