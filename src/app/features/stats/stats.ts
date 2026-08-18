@@ -12,22 +12,10 @@ import { Router, RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideBarChart3, lucideWallet } from '@ng-icons/lucide';
 import { toast } from '@spartan-ng/brain/sonner';
-import {
-  VisAxisModule,
-  VisDonutModule,
-  VisGroupedBarModule,
-  VisSingleContainerModule,
-  VisTooltipModule,
-  VisXYContainerModule,
-} from '@unovis/angular';
-import { GroupedBar } from '@unovis/ts';
 
 import { Account } from '@data/accounts/accounts-api';
 import { AccountsStore } from '@data/accounts/accounts-store';
-import { CurrencyFormatPipe } from '@core/display-settings/currency-format.pipe';
 import { DisplaySettingsService } from '@core/display-settings/display-settings';
-import type { DateFormat } from '@core/display-settings/display-settings.types';
-import { formatAmount } from '@core/display-settings/format';
 import {
   CategoryBreakdownBucket,
   MonthBucket,
@@ -35,6 +23,9 @@ import {
   StatisticsApi,
   parseStatisticsError,
 } from '@data/statistics/statistics-api';
+import { AccountPills } from './account-pills/account-pills';
+import { BreakdownChart } from './breakdown-chart/breakdown-chart';
+import { MonthlyChart } from './monthly-chart/monthly-chart';
 
 /** The four presets, in display order, with their French labels. */
 const PERIOD_PRESETS: readonly { preset: PeriodPreset; label: string }[] = [
@@ -45,48 +36,22 @@ const PERIOD_PRESETS: readonly { preset: PeriodPreset; label: string }[] = [
 ];
 
 /**
- * `GroupedBar`'s two y-series in display order — index 0 is income, index 1
- * is expense. `color`/tooltip accessors below key off this same order, since
- * that is the order Unovis calls them in (one call per series, per bar
- * group) rather than the order dictated by the datum itself.
- */
-const MONTH_SERIES: readonly {
-  label: string;
-  color: string;
-  value: (bucket: MonthBucket) => number;
-}[] = [
-  { label: 'Recettes', color: 'var(--positive)', value: (bucket) => bucket.income },
-  { label: 'Dépenses', color: 'var(--negative)', value: (bucket) => bucket.expense },
-];
-
-/** Renders a `YYYY-MM` month key as a short label, respecting date-format order. */
-function monthLabel(month: string, format: DateFormat): string {
-  const [year, monthNumber] = month.split('-');
-  return format === 'YMD' ? `${year}-${monthNumber}` : `${monthNumber}/${year}`;
-}
-
-/**
  * The Statistics screen (business requirements §4.5, `docs/spec/09-statistics.md`):
- * account-scoped breakdown of expenses by _Poste_ (Unovis `Donut`) and a
- * month-by-month _Recettes_/_Dépenses_ comparison (Unovis `GroupedBar` inside
- * an `XYContainer`), over a selectable period. The period choice persists
- * across account switches; the selected account's colour drives the screen's
- * interactive elements, the same convention `Account` uses (see
- * `../account/accent.css`, shared here rather than duplicated).
+ * account-scoped breakdown of expenses by _Poste_ (`BreakdownChart`) and a
+ * month-by-month _Recettes_/_Dépenses_ comparison (`MonthlyChart`), over a
+ * selectable period. The period choice persists across account switches; the
+ * selected account's colour drives the screen's interactive elements, the
+ * same convention `Account` uses (see `../account/accent.css`, shared here
+ * rather than duplicated).
+ *
+ * A container: this component owns fetching both aggregates and the
+ * account/period selection state. The donut, the grouped-bar chart and the
+ * account switcher are each their own presentational component — see
+ * `breakdown-chart/`, `monthly-chart/` and `account-pills/`.
  */
 @Component({
   selector: 'app-stats',
-  imports: [
-    NgIcon,
-    RouterLink,
-    CurrencyFormatPipe,
-    VisDonutModule,
-    VisSingleContainerModule,
-    VisXYContainerModule,
-    VisGroupedBarModule,
-    VisAxisModule,
-    VisTooltipModule,
-  ],
+  imports: [NgIcon, RouterLink, AccountPills, BreakdownChart, MonthlyChart],
   templateUrl: './stats.html',
   styleUrls: ['./stats.css', '../account/accent.css'],
   providers: [
@@ -127,39 +92,6 @@ export class Stats {
   protected readonly loading = signal(false);
   protected readonly loaded = signal(false);
 
-  protected readonly hasBreakdown = computed(() => this.buckets().length > 0);
-  protected readonly showEmptyBreakdown = computed(() => this.loaded() && !this.hasBreakdown());
-
-  protected readonly centralSubLabel = 'Total dépenses';
-
-  protected readonly monthSeries = MONTH_SERIES;
-
-  protected readonly monthLabels = computed(() =>
-    this.months().map((bucket) => monthLabel(bucket.month, this.displaySettings.dateFormat())),
-  );
-
-  /** One tick per month, so every month in the period gets a label (business requirements §4.5, story 16). */
-  protected readonly monthTickValues = computed(() => this.months().map((_, index) => index));
-
-  protected readonly donutColor = (bucket: CategoryBreakdownBucket): string => bucket.color;
-  protected readonly donutValue = (bucket: CategoryBreakdownBucket): number => bucket.amount;
-
-  protected readonly monthX = (_bucket: MonthBucket, index: number): number => index;
-  protected readonly monthY = MONTH_SERIES.map((series) => series.value);
-  protected readonly monthColor = (_bucket: MonthBucket, seriesIndex: number): string =>
-    MONTH_SERIES[seriesIndex].color;
-
-  /** Ticks are month indexes (0..n-1) — labels come from `monthLabels`, not the tick value. */
-  protected readonly monthAxisTickFormat = (tick: number | Date): string =>
-    this.monthLabels()[Number(tick)] ?? '';
-
-  protected readonly monthTooltipTriggers = {
-    [GroupedBar.selectors.bar]: (bucket: MonthBucket, seriesIndex: number): string => {
-      const series = MONTH_SERIES[seriesIndex];
-      return `${series.label} : ${this.formatAmount(series.value(bucket))}`;
-    },
-  };
-
   constructor() {
     effect(() => {
       // Re-requests both aggregates whenever the account or the period changes.
@@ -178,10 +110,6 @@ export class Stats {
 
   protected selectAccount(account: Account): void {
     void this.router.navigate(['/stats', account.id]);
-  }
-
-  protected formatAmount(amount: number): string {
-    return formatAmount(amount, this.displaySettings.currencyFormat());
   }
 
   private async load(accountId: number, preset: PeriodPreset): Promise<void> {
