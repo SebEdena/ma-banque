@@ -65,6 +65,8 @@ pub fn run() {
             commands::db::get_startup_db_error,
             commands::settings::get_display_settings,
             commands::settings::update_display_settings,
+            commands::statistics::category_breakdown,
+            commands::statistics::month_bucketed,
         ])
         .setup(|app| {
             if cfg!(debug_assertions) {

@@ -12,3 +12,4 @@ pub mod money;
 pub mod reconciliation;
 pub mod recurring;
 pub mod settings;
+pub mod statistics;

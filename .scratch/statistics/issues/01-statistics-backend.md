@@ -4,7 +4,7 @@
 
 **Blocked by:** None — can start immediately.
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] No schema change/migration — reads existing `entries`/`categories` columns only.
 - [ ] `EntryRepository` gains a **category-breakdown aggregate** (`GROUP BY category_id` over an account + inclusive date range, expenses only, uncategorised rows collapsed into one null-category bucket, joined to category name/colour/icon) and a **month-bucketed aggregate** (`GROUP BY` month over the same account + range, summed income and summed expense totals per month). Both are single `GROUP BY` queries, not fetch-and-sum-in-Rust.

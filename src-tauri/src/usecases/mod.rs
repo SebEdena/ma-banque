@@ -11,3 +11,4 @@ pub mod entry;
 pub mod reconciliation;
 pub mod recurring;
 pub mod settings;
+pub mod statistics;
