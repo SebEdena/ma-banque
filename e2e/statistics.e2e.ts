@@ -25,15 +25,35 @@ async function addEntry(label: string, amount: string, categoryName?: string): P
 }
 
 /**
- * Helper to create a category from the new category option in the entry form.
+ * Helper to add an entry while creating its category inline, via the entry
+ * form's "new category" option. Unlike `addEntry`, the form stays open
+ * (no save yet) until the new category is created and selected, matching the
+ * flow `entries.e2e.ts` exercises — `addEntry` itself already saves and
+ * closes the form, so the category picker wouldn't exist by the time a
+ * separate "create category" step tried to reach it.
  */
-async function createCategory(categoryName: string, iconTestId = 'icon-option'): Promise<void> {
+async function addEntryWithNewCategory(
+  label: string,
+  amount: string,
+  categoryName: string,
+  iconTestId = 'icon-option',
+): Promise<void> {
+  await (await $('[data-testid="entries-new"]')).click();
+  await (await $('[data-testid="entry-form-label"]')).setValue(label);
+  await (await $('[data-testid="entry-form-amount"]')).setValue(amount);
+
   await (await $('[data-testid="entry-form-category"]')).click();
   await (await $('[data-testid="entry-form-category-new"]')).click();
 
   await (await $('[data-testid="category-name"]')).setValue(categoryName);
   await (await $('[data-testid="' + iconTestId + '"]')).click();
   await (await $('[data-testid="category-save"]')).click();
+
+  await expect($('[data-testid="entry-form-category"]')).toHaveText(categoryName, {
+    containing: true,
+  });
+
+  await (await $('[data-testid="entry-save"]')).click();
 }
 
 describe('statistics', () => {
@@ -52,20 +72,10 @@ describe('statistics', () => {
     await expect($('[data-testid="entries-new"]')).toExist();
 
     // Create first category and add expense
-    await addEntry('Setup entry 1', '-50');
-    await createCategory('Alimentation', 'icon-option');
-    await expect($('[data-testid="entry-form-category"]')).toHaveText('Alimentation', {
-      containing: true,
-    });
-    await (await $('[data-testid="entry-save"]')).click();
+    await addEntryWithNewCategory('Setup entry 1', '-50', 'Alimentation');
 
     // Add another entry to set up second category
-    await addEntry('Setup entry 2', '-30');
-    await createCategory('Transport', 'icon-option');
-    await expect($('[data-testid="entry-form-category"]')).toHaveText('Transport', {
-      containing: true,
-    });
-    await (await $('[data-testid="entry-save"]')).click();
+    await addEntryWithNewCategory('Setup entry 2', '-30', 'Transport');
 
     // Add expense entries with categories
     await addEntry('Expense 1', '-25.50', 'Alimentation');
