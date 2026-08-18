@@ -98,6 +98,21 @@ impl IsoDate {
         let (year, month, day) = self.parts();
         Self::from_parts(year + years, month, day)
     }
+
+    /// Goes back by whole months, clamping the day to the target month's
+    /// length the same way [`Self::add_months`] does. Used by
+    /// `usecases::statistics` to derive a period preset's start date from
+    /// "today".
+    pub fn subtract_months(&self, months: u32) -> Self {
+        let (year, month, day) = self.parts();
+        let zero_based = i64::from(month) - 1 - i64::from(months);
+        let year_offset = zero_based.div_euclid(12);
+        let new_month =
+            u32::try_from(zero_based.rem_euclid(12)).expect("rem_euclid(12) is non-negative") + 1;
+        let new_year = u32::try_from(i64::from(year) + year_offset)
+            .expect("statistics periods stay well within the u32 year range");
+        Self::from_parts(new_year, new_month, day)
+    }
 }
 
 fn days_in_month(year: u32, month: u32) -> u32 {
@@ -224,6 +239,33 @@ mod tests {
         assert_eq!(date("2026-06-15").add_months(8), date("2027-02-15"));
         assert_eq!(date("2026-06-15").add_years(3), date("2029-06-15"));
         assert_eq!(date("2026-06-15").add_weeks(4), date("2026-07-13"));
+    }
+
+    #[test]
+    fn subtract_months_clamps_to_a_shorter_months_last_day() {
+        assert_eq!(date("2026-03-31").subtract_months(1), date("2026-02-28"));
+        assert_eq!(date("2024-03-31").subtract_months(1), date("2024-02-29"));
+    }
+
+    #[test]
+    fn subtract_months_crosses_a_year_boundary() {
+        assert_eq!(date("2026-02-15").subtract_months(3), date("2025-11-15"));
+        assert_eq!(date("2026-01-15").subtract_months(24), date("2024-01-15"));
+    }
+
+    #[test]
+    fn subtract_months_is_the_inverse_of_add_months_within_a_year() {
+        assert_eq!(
+            date("2026-08-18").add_months(3).subtract_months(3),
+            date("2026-08-18")
+        );
+    }
+
+    #[test]
+    fn subtracting_nothing_is_the_identity() {
+        for value in ["2026-01-31", "2024-02-29", "2026-06-15"] {
+            assert_eq!(date(value).subtract_months(0), date(value));
+        }
     }
 
     #[test]

@@ -15,7 +15,7 @@ pub enum PeriodPreset {
 }
 
 impl PeriodPreset {
-    pub fn months(&self) -> i32 {
+    pub fn months(&self) -> u32 {
         match self {
             PeriodPreset::OneMonth => 1,
             PeriodPreset::ThreeMonths => 3,

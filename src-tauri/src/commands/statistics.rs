@@ -13,6 +13,7 @@ use crate::domain::statistics::{
     CategoryBreakdownBucket, CategoryBreakdownResponse, MonthBucket, MonthBucketedResponse,
     PeriodPreset,
 };
+use crate::infra::clock;
 
 #[derive(Debug, Clone, Serialize, PartialEq)]
 pub struct CategoryBreakdownBucketView {
@@ -93,8 +94,13 @@ pub fn category_breakdown(
     account_id: i64,
     preset: PeriodPreset,
 ) -> Result<CategoryBreakdownResponseView, EntryError> {
-    crate::usecases::statistics::category_breakdown(&**entry_repo, account_id, preset)
-        .map(Into::into)
+    crate::usecases::statistics::category_breakdown(
+        &**entry_repo,
+        account_id,
+        preset,
+        &clock::today(),
+    )
+    .map(Into::into)
 }
 
 /// Month-bucketed aggregate for an account over a period preset,
@@ -105,7 +111,8 @@ pub fn month_bucketed(
     account_id: i64,
     preset: PeriodPreset,
 ) -> Result<MonthBucketedResponseView, EntryError> {
-    crate::usecases::statistics::month_bucketed(&**entry_repo, account_id, preset).map(Into::into)
+    crate::usecases::statistics::month_bucketed(&**entry_repo, account_id, preset, &clock::today())
+        .map(Into::into)
 }
 
 #[cfg(test)]
