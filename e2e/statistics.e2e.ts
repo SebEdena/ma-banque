@@ -81,6 +81,7 @@ describe('statistics', () => {
     await addEntry('Expense 1', '-25.50', 'Alimentation');
     await addEntry('Expense 2', '-15.75', 'Transport');
     await addEntry('Income entry', '100', 'Alimentation');
+    await addEntry('Income entry 2', '200', 'Transport');
 
     // Create second account with different data
     await (await $('[data-testid="sidebar-home"]')).click();
@@ -100,25 +101,35 @@ describe('statistics', () => {
     await (await accountCard(ACCOUNT_ONE).$('[data-testid="account-link"]')).click();
   });
 
-  it('navigates to statistics screen and asserts both charts render with data', async () => {
+  it('navigates to statistics screen and asserts all three charts render with data', async () => {
     // Click the statistics button
     await (await $('[data-testid="statistics-button"]')).click();
 
     // Verify we're on the statistics screen
     await expect($('[data-testid="view-account-button"]')).toExist();
 
-    // Assert the breakdown chart card exists and contains chart elements
+    // Assert the expense breakdown chart card exists and contains chart elements
     await expect($('[data-testid="breakdown-card"]')).toExist();
     await expect($('[data-testid="donut-chart"]')).toExist();
     await expect($('[data-testid="breakdown-legend"]')).toExist();
+
+    // Assert the credit breakdown chart card exists and contains chart elements
+    await expect($('[data-testid="credit-breakdown-card"]')).toExist();
+    await expect($('[data-testid="credit-donut-chart"]')).toExist();
+    await expect($('[data-testid="credit-breakdown-legend"]')).toExist();
 
     // Assert the monthly chart card exists
     await expect($('[data-testid="monthly-card"]')).toExist();
     await expect($('[data-testid="monthly-chart"]')).toExist();
 
-    // Assert legend has at least one row (categories)
+    // Assert both legends have at least one row (categories)
     const legendRows = await $$('[data-testid="breakdown-legend"] [data-testid="legend-row"]');
     await expect(legendRows.length).toBeGreaterThan(0);
+
+    const creditLegendRows = await $$(
+      '[data-testid="credit-breakdown-legend"] [data-testid="credit-legend-row"]',
+    );
+    await expect(creditLegendRows.length).toBeGreaterThan(0);
   });
 
   it('switches the period preset and asserts the charts update', async () => {
