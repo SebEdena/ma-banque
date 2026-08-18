@@ -1,13 +1,13 @@
 <section
-  data-testid="breakdown-card"
+  [attr.data-testid]="testId('breakdown-card')"
   class="rounded-[18px] border border-border bg-card p-6 shadow-sm"
 >
-  <h2 class="mb-4.5 text-[15px] font-bold">Répartition des dépenses par poste</h2>
+  <h2 class="mb-4.5 text-[15px] font-bold">{{ title() }}</h2>
 
   @if (hasBreakdown()) {
     <div class="flex flex-wrap items-center gap-5">
       <vis-single-container
-        data-testid="donut-chart"
+        [attr.data-testid]="testId('donut-chart')"
         [data]="buckets()"
         [height]="220"
         [width]="220"
@@ -15,26 +15,35 @@
         <vis-donut
           [value]="donutValue"
           [color]="donutColor"
-          [centralLabel]="totalExpenses() | currencyFormat: currencyFormat()"
-          [centralSubLabel]="centralSubLabel"
+          [centralLabel]="total() | currencyFormat: currencyFormat()"
+          [centralSubLabel]="centralSubLabel()"
         />
       </vis-single-container>
 
-      <ul class="min-w-[160px] flex-1 space-y-2.5" data-testid="breakdown-legend">
+      <ul class="min-w-[160px] flex-1 space-y-2.5" [attr.data-testid]="testId('breakdown-legend')">
         @for (bucket of buckets(); track bucket.category_id ?? -1) {
-          <li data-testid="legend-row" class="flex items-center gap-2.5 text-[13px]">
+          <li
+            [attr.data-testid]="testId('legend-row')"
+            class="flex items-center gap-2.5 text-[13px]"
+          >
             <span
-              data-testid="legend-swatch"
+              [attr.data-testid]="testId('legend-swatch')"
               class="size-2.5 shrink-0 rounded-[3px]"
               [style.background-color]="bucket.color"
             ></span>
-            <span data-testid="legend-name" class="flex-1 truncate font-semibold">
+            <span [attr.data-testid]="testId('legend-name')" class="flex-1 truncate font-semibold">
               {{ bucket.name }}
             </span>
-            <span data-testid="legend-percentage" class="text-xs text-muted-foreground">
+            <span
+              [attr.data-testid]="testId('legend-percentage')"
+              class="text-xs text-muted-foreground"
+            >
               {{ bucket.percentage.toFixed(1) }}%
             </span>
-            <span data-testid="legend-amount" class="w-20 text-right font-mono font-semibold">
+            <span
+              [attr.data-testid]="testId('legend-amount')"
+              class="w-20 text-right font-mono font-semibold"
+            >
               {{ bucket.amount | currencyFormat: currencyFormat() }}
             </span>
           </li>
@@ -42,8 +51,11 @@
       </ul>
     </div>
   } @else if (showEmpty()) {
-    <p data-testid="breakdown-empty" class="py-10 text-center text-sm text-muted-foreground">
-      Aucune dépense sur cette période.
+    <p
+      [attr.data-testid]="testId('breakdown-empty')"
+      class="py-10 text-center text-sm text-muted-foreground"
+    >
+      {{ emptyMessage() }}
     </p>
   }
 </section>

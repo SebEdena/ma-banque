@@ -44,19 +44,34 @@
       (accountSelected)="selectAccount($event)"
     />
 
-    <div class="grid gap-5 lg:grid-cols-[1fr_1.3fr]">
+    <div class="grid gap-5 lg:grid-cols-2">
       <app-breakdown-chart
         [buckets]="buckets()"
-        [totalExpenses]="totalExpenses()"
+        [total]="total()"
         [loaded]="loaded()"
         [currencyFormat]="displaySettings.currencyFormat()"
+        title="Répartition des dépenses par poste"
+        emptyMessage="Aucune dépense sur cette période."
+        centralSubLabel="Total dépenses"
       />
 
-      <app-monthly-chart
-        [months]="months()"
-        [dateFormat]="displaySettings.dateFormat()"
+      <app-breakdown-chart
+        [buckets]="creditBuckets()"
+        [total]="totalCredits()"
+        [loaded]="loaded()"
         [currencyFormat]="displaySettings.currencyFormat()"
+        title="Répartition des recettes par poste"
+        emptyMessage="Aucune recette sur cette période."
+        centralSubLabel="Total recettes"
+        testIdPrefix="credit-"
       />
     </div>
+
+    <app-monthly-chart
+      class="mt-5 block"
+      [months]="months()"
+      [dateFormat]="displaySettings.dateFormat()"
+      [currencyFormat]="displaySettings.currencyFormat()"
+    />
   </div>
 }

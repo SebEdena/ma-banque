@@ -6,12 +6,20 @@ import type { CurrencyFormat } from '@core/display-settings/display-settings.typ
 import { CategoryBreakdownBucket } from '@data/statistics/statistics-api';
 
 /**
- * The "Répartition des dépenses par poste" card (`docs/spec/09-statistics.md`,
- * user stories 8–13): a Unovis `Donut` of the period's expense buckets, its
- * hand-built legend, and the "Aucune dépense sur cette période." empty state.
+ * A category-breakdown donut card (`docs/spec/09-statistics.md`, user
+ * stories 8–13 for the expense donut, "Credit breakdown" under
+ * Implementation Decisions for its credit twin): a Unovis `Donut` of the
+ * period's buckets, its hand-built legend, and an empty-state message.
  *
- * Presentational: `Stats` owns fetching the aggregate and knowing when a
- * `loaded`-but-empty result is genuinely empty rather than not-yet-requested.
+ * Presentational and reused for both the expense and credit donuts — `title`,
+ * `emptyMessage` and `centralSubLabel` are inputs rather than hard-coded so
+ * one component instance serves both cards. `testIdPrefix` keeps the two
+ * instances' `data-testid` hooks distinct so they can render side by side
+ * without collision (the expense instance defaults to no prefix, keeping its
+ * existing e2e/test hooks unchanged).
+ *
+ * `Stats` owns fetching the aggregate and knowing when a `loaded`-but-empty
+ * result is genuinely empty rather than not-yet-requested.
  */
 @Component({
   selector: 'app-breakdown-chart',
@@ -21,12 +29,15 @@ import { CategoryBreakdownBucket } from '@data/statistics/statistics-api';
 })
 export class BreakdownChart {
   readonly buckets = input.required<CategoryBreakdownBucket[]>();
-  readonly totalExpenses = input.required<number>();
+  readonly total = input.required<number>();
   /** Whether the aggregate has come back at least once — see `showEmpty`. */
   readonly loaded = input.required<boolean>();
   readonly currencyFormat = input.required<CurrencyFormat>();
-
-  protected readonly centralSubLabel = 'Total dépenses';
+  readonly title = input.required<string>();
+  readonly emptyMessage = input.required<string>();
+  readonly centralSubLabel = input.required<string>();
+  /** Prepended to every `data-testid` in this instance; defaults to none. */
+  readonly testIdPrefix = input<string>('');
 
   protected readonly hasBreakdown = computed(() => this.buckets().length > 0);
   /** Only shown once a request has actually come back empty, never on first render. */
@@ -34,4 +45,8 @@ export class BreakdownChart {
 
   protected readonly donutColor = (bucket: CategoryBreakdownBucket): string => bucket.color;
   protected readonly donutValue = (bucket: CategoryBreakdownBucket): number => bucket.amount;
+
+  protected testId(id: string): string {
+    return this.testIdPrefix() + id;
+  }
 }
