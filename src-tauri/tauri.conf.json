@@ -17,7 +17,8 @@
         "width": 800,
         "height": 600,
         "resizable": true,
-        "fullscreen": false
+        "fullscreen": false,
+        "maximized": true
       }
     ],
     "security": {
@@ -36,6 +37,18 @@
     ],
     "android": {
       "debugApplicationIdSuffix": ".debug"
+    },
+    "windows": {
+      "nsis": {
+        "languages": ["French"],
+        "installerHooks": "nsis/hooks.nsh"
+      }
+    }
+  },
+  "plugins": {
+    "updater": {
+      "endpoints": ["https://github.com/SebEdena/ma-banque/releases/latest/download/latest.json"],
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDJBOUFBMzE0NEY4RDUwMzIKUldReVVJMVBGS09hS2xQeUphai9JdkFlSU9GSjEvYWIyY1liNStJaXZMUGlKWDhvVGhXdmd2cG4K"
     }
   }
 }
