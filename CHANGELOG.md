@@ -2,6 +2,26 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.9.0] - 2026-08-19
+
+### Bug Fixes
+
+- Cache Tauri's Linux apt dependencies
+
+### Documentation
+
+- Note the unsigned Windows-only release as a known limitation
+
+### Features
+
+- Improve installation and runtime UX
+- Populate GitHub Release notes from the changelog
+- Replace default app icon with amber bank glyph
+
+### Miscellaneous Tasks
+
+- Rename app identifier to com.sebedena.mabanque
+
 ## [0.8.0] - 2026-08-19
 
 ### Bug Fixes
