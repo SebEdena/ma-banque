@@ -19,6 +19,17 @@ jobs:
       - uses: actions/checkout@v5
         with:
           ref: ${{ inputs.tag || github.ref }}
+          # git-cliff (below) needs the full tag/commit history to render
+          # the release notes; the default shallow clone only has the tip.
+          fetch-depth: 0
+      - name: Generate release notes
+        id: release-notes
+        uses: orhun/git-cliff-action@v4
+        with:
+          config: cliff.toml
+          args: --latest --strip header
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
@@ -53,9 +64,14 @@ jobs:
           # integration"). RELEASE_TOKEN is a PAT with Contents: write,
           # used to sidestep that.
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+          # Signs the bundle and makes tauri-action emit latest.json (the
+          # in-app updater's manifest) as a release asset.
+          TAURI_SIGNING_PRIVATE_KEY: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY }}
+          TAURI_SIGNING_PRIVATE_KEY_PASSWORD: ${{ secrets.TAURI_SIGNING_PRIVATE_KEY_PASSWORD }}
         with:
           tagName: ${{ inputs.tag || github.ref_name }}
           releaseName: "Ma Banque ${{ inputs.tag || github.ref_name }}"
+          releaseBody: ${{ steps.release-notes.outputs.content }}
           releaseDraft: true
           prerelease: false
           projectPath: src-tauri
