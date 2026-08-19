@@ -2,6 +2,43 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.8.0] - 2026-08-19
+
+### Bug Fixes
+
+- Convert category/month aggregates to major units at the command boundary
+- Stop the statistics scenario clicking a category picker on an already-saved entry
+- Remove placebo Unovis smoke test, fix StatisticsApi's error type
+- Fix monthly chart tooltip for months after the first
+
+### Documentation
+
+- Mark issue 02 done and add frontend dependency notes
+- Mark issue 03 done and update cross-issue notes for issue 04
+- Mark issue 04 done and update cross-issue notes
+- Fix stale notes after the today-parameter and smoke-test fixes
+- Reverse expenses-only scope, spec a credit-breakdown donut
+- Leave a resume brief before pausing the session
+
+### Features
+
+- Implement statistics aggregates (category breakdown and monthly totals)
+- Add Unovis charting dependency and StatisticsApi service
+- Build the Statistiques screen with Unovis Donut and GroupedBar charts
+- Parameterize the category-breakdown aggregate by entry sign
+- Add a credit-breakdown donut card alongside the expense donut
+- Add a y-axis with currency-formatted ticks to the monthly chart
+
+### Refactor
+
+- Align usecase structure with other usecases, centralize date math
+- Split Stats into one component per chart plus an account-pills selector
+
+### Testing
+
+- Add statistics screen e2e scenario
+- Assert both breakdown donuts render with data
+
 ## [0.7.0] - 2026-08-18
 
 ### Bug Fixes
