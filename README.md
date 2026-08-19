@@ -142,3 +142,10 @@ compile check, Angular eslint/vitest/tsc), a Windows e2e job on PRs
 targeting `main`, and a release workflow on `vX.Y.Z` tags. See
 `docs/architecture/technical-architecture.md` §3 and
 `.github/workflows/`.
+
+Windows-only, and unsigned: the release workflow only builds on
+`windows-latest`, and the installer isn't code-signed, so first launches
+trip a SmartScreen "unknown publisher" warning. Both a macOS/Linux build
+matrix and code signing need external resources (an Apple developer
+account, a paid signing certificate) this project doesn't currently have —
+known limitations, not oversights.
