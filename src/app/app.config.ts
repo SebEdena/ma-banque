@@ -1,4 +1,9 @@
-import { ApplicationConfig, provideBrowserGlobalErrorListeners } from '@angular/core';
+import {
+  ApplicationConfig,
+  inject,
+  provideAppInitializer,
+  provideBrowserGlobalErrorListeners,
+} from '@angular/core';
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { provideBrnCalendarI18n } from '@spartan-ng/brain/calendar';
 import { provideNativeDateAdapter } from '@spartan-ng/brain/date-time';
@@ -8,6 +13,9 @@ import { routes } from './app.routes';
 import { FRENCH_CALENDAR_I18N } from './core/display-settings/calendar-i18n';
 import { InMemorySettingsApi } from './core/settings-api/settings-api.mock';
 import { SettingsApi } from './core/settings-api/settings-api';
+import { UpdateCheckService } from './core/updater-api/update-check';
+import { InMemoryUpdaterApi } from './core/updater-api/updater-api.mock';
+import { UpdaterApi } from './core/updater-api/updater-api';
 import { AccountsApi } from './data/accounts/accounts-api';
 import { InMemoryAccountsApi } from './data/accounts/accounts-api.mock';
 import { CategoriesApi } from './data/categories/categories-api';
@@ -36,6 +44,7 @@ const mockProviders = mockBackend
       { provide: RecurringRulesApi, useClass: InMemoryRecurringRulesApi },
       { provide: SettingsApi, useClass: InMemorySettingsApi },
       { provide: StatisticsApi, useClass: InMemoryStatisticsApi },
+      { provide: UpdaterApi, useClass: InMemoryUpdaterApi },
     ]
   : [];
 
@@ -46,5 +55,7 @@ export const appConfig: ApplicationConfig = {
     provideNativeDateAdapter(),
     provideBrnCalendarI18n(FRENCH_CALENDAR_I18N),
     ...mockProviders,
+    // Fire-and-forget: an update check must never delay app boot or fail it.
+    provideAppInitializer(() => void inject(UpdateCheckService).run()),
   ],
 };

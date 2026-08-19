@@ -30,8 +30,37 @@ use infra::settings::SqliteSettingsRepository;
 
 #[cfg_attr(mobile, tauri::mobile_entry_point)]
 pub fn run() {
-    tauri::Builder::default()
+    let mut builder = tauri::Builder::default();
+
+    #[cfg(desktop)]
+    {
+        // Must be the first plugin registered (single-instance requirement)
+        // so a second launch focuses the existing window instead of
+        // spinning up a second process against the same SQLite database.
+        builder = builder
+            .plugin(tauri_plugin_single_instance::init(|app, _args, _cwd| {
+                if let Some(window) = app.get_webview_window("main") {
+                    let _ = window.show();
+                    let _ = window.set_focus();
+                }
+            }))
+            .plugin(tauri_plugin_updater::Builder::default().build());
+
+        // tauri-plugin-window-state always persists to the OS-standard
+        // app_config_dir() — unlike this app's own data, it has no override
+        // for that path — so registering it in debug builds would leak a
+        // window-state file into a real user profile, breaking the "debug
+        // builds never touch real user directories" guarantee described
+        // above. Release-only avoids that; debug windows just always open
+        // per `tauri.conf.json`'s static config instead of a remembered one.
+        if !cfg!(debug_assertions) {
+            builder = builder.plugin(tauri_plugin_window_state::Builder::default().build());
+        }
+    }
+
+    builder
         .plugin(tauri_plugin_dialog::init())
+        .plugin(tauri_plugin_process::init())
         .invoke_handler(tauri::generate_handler![
             commands::data_folder_location::get_current_data_folder,
             commands::data_folder_location::set_default_data_folder,
