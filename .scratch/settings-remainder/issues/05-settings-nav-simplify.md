@@ -4,7 +4,7 @@
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] Settings section switcher is a standard form control (e.g. a select), not a sidebar nav list
 - [ ] All three sections (Postes, Affichage, Stockage) remain reachable and functionally unchanged

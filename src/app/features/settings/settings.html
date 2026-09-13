@@ -1,45 +1,34 @@
-<div class="flex items-start gap-5 p-9">
-  <nav class="flex w-56 flex-shrink-0 flex-col gap-0.5 rounded-2xl border bg-card p-2.5">
-    <span
-      class="px-2.5 pt-1.5 pb-3 text-xs font-bold tracking-wide text-muted-foreground uppercase"
-    >
+<div class="flex flex-col gap-5 p-6 sm:p-9">
+  <div class="flex flex-col gap-2">
+    <span class="text-xs font-bold tracking-wide text-muted-foreground uppercase">
       Paramètres
     </span>
-    <a
-      routerLink="categories"
-      routerLinkActive="bg-primary/10 text-primary font-bold hover:bg-primary/10"
-      class="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13.5px] font-medium text-muted-foreground hover:bg-muted"
-    >
-      <ng-icon name="lucideLayoutGrid" size="16" />
-      Postes
-    </a>
-    <a
-      routerLink="display-format"
-      routerLinkActive="bg-primary/10 text-primary font-bold hover:bg-primary/10"
-      class="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13.5px] font-medium text-muted-foreground hover:bg-muted"
-    >
-      <ng-icon name="lucideList" size="16" />
-      Affichage
-    </a>
-    <a
-      routerLink="storage"
-      routerLinkActive="bg-primary/10 text-primary font-bold hover:bg-primary/10"
-      class="flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13.5px] font-medium text-muted-foreground hover:bg-muted"
-    >
-      <ng-icon name="lucideFolder" size="16" />
-      Stockage
-    </a>
+    <hlm-select class="w-full sm:w-64" [value]="section()" (valueChange)="selectSection($event)">
+      <hlm-select-trigger data-testid="settings-section-select" class="w-full">
+        <hlm-select-value />
+      </hlm-select-trigger>
+      <hlm-select-content *hlmSelectPortal class="w-[--radix-select-trigger-width]">
+        @for (option of sectionOptions; track option.value) {
+          <hlm-select-item
+            [attr.data-testid]="'settings-section-option-' + option.value"
+            [value]="option.value"
+          >
+            {{ option.label }}
+          </hlm-select-item>
+        }
+      </hlm-select-content>
+    </hlm-select>
 
     <!-- TEMPORARY demo link back to Home — see the class doc on `Settings`. -->
     <a
       routerLink="/home"
-      class="mt-4 flex items-center gap-2.5 rounded-md px-2.5 py-2 text-[13.5px] text-muted-foreground underline hover:bg-muted"
+      class="flex w-fit items-center gap-1.5 text-[13.5px] text-muted-foreground underline hover:text-foreground"
     >
-      <ng-icon name="lucideHouse" size="16" />
+      <ng-icon name="lucideHouse" size="14" />
       Accueil
     </a>
-  </nav>
-  <div class="min-w-0 flex-1 rounded-2xl border bg-card p-6">
+  </div>
+  <div class="min-w-0 rounded-2xl border bg-card p-6">
     <router-outlet />
   </div>
 </div>
