@@ -149,16 +149,38 @@ describe('EntryForm', () => {
     expect(one(fixture, 'entry-form-debit')?.dataset['selected']).toBe('true');
   });
 
-  it('picking Débit on an empty draft shows the sign the next digits land after', async () => {
+  it('leaves an empty amount empty when Débit is picked, so every caret position stays typable', async () => {
     const fixture = await createEntryForm(draft({ amount: '' }));
-
     (one(fixture, 'entry-form-debit') as HTMLButtonElement).click();
     fixture.detectChanges();
 
-    expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('-');
+    // No stray sign character is written — the field stays empty rather than
+    // landing on a lone `-` a caret placed before it couldn't type around.
+    expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('');
+    type(fixture, 'entry-form-amount', '30');
+    expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('30');
+  });
 
-    type(fixture, 'entry-form-amount', '-30');
+  it('leaves an empty amount empty when Crédit is picked, so every caret position stays typable', async () => {
+    const fixture = await createEntryForm(draft({ amount: '' }));
+    (one(fixture, 'entry-form-credit') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('');
+    type(fixture, 'entry-form-amount', '45');
+    expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('45');
+  });
+
+  it('keeps sign-toggling a non-empty amount unchanged', async () => {
+    const fixture = await createEntryForm(draft({ amount: '30' }));
+
+    (one(fixture, 'entry-form-debit') as HTMLButtonElement).click();
+    fixture.detectChanges();
     expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('-30');
+
+    (one(fixture, 'entry-form-credit') as HTMLButtonElement).click();
+    fixture.detectChanges();
+    expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('30');
   });
 
   it('accepts the fr-FR decimal comma the same as a dot', async () => {
