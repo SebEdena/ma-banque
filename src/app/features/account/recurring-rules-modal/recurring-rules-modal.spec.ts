@@ -165,6 +165,12 @@ describe('RecurringRulesModal', () => {
       expect(has(fixture, 'recurring-new')).toBe(true);
     });
 
+    it('labels the create-rule button exactly "Nouvelle"', async () => {
+      const fixture = await createModal();
+
+      expect(el(fixture, 'recurring-new').textContent?.trim()).toBe('Nouvelle');
+    });
+
     it('emits closed from the header’s close button', async () => {
       const fixture = await createModal();
       let closed = 0;
