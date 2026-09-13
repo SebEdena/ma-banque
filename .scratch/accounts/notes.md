@@ -135,6 +135,27 @@ the consuming form owns the value. Test hooks: `data-testid="icon-search" | "ico
 - The deletion guard stays entirely server-side: the UI always offers delete on an archived card and surfaces
   `HasNonSystemEntries` as a toast if Rust refuses, rather than trying to predict the answer.
 
+### From 06 — Reachable "edit account" entry point
+
+- **`Home` now uses the same `editing: Account | null | undefined` tri-state pattern as `Categories`**
+  (`null` = create, an `Account` = edit, `undefined` = closed), replacing the old `creating: boolean`
+  signal — `startCreate()` / `startEdit(account)` / `closeModal()`, with `onAccountSubmitted` branching
+  create vs. `AccountsStore.update` off the held account. Any later screen that reuses a shared
+  create/edit modal should follow this same shape rather than a separate boolean flag plus a `null`
+  "account being edited" signal.
+- **The account screen (`account.ts`/`account.html`) also opens `AccountSettingsModal`** from a new
+  "Paramètres" header button (`data-testid="account-settings-button"`, icon `lucideSettings`), always in
+  edit mode for the current account — no create branch needed there, so its `onAccountSubmitted` calls
+  `AccountsStore.update` unconditionally rather than mirroring `Home`'s tri-state signal.
+- **Test-hook collision:** `AccountSettingsModal`'s own `data-testid="account-name"` (the form's name input)
+  collides with `account.html`'s pre-existing `data-testid="account-name"` (the header breadcrumb span) once
+  the modal is open over the account screen. `account.spec.ts` scopes the lookup with
+  `app-account-settings-modal [data-testid="account-name"]` rather than renaming either testid — any other
+  screen embedding this modal alongside its own `account-name` element should do the same rather than
+  renaming a hook other specs already depend on.
+- New card action `data-testid="edit-account"` (icon `lucidePencil`, "Modifier" title) sits on active cards
+  only, next to `archive-account` — mirrors `category-edit`'s styling in `categories.html`.
+
 ### From PR review — why the async layer stays promise-based
 
 Reviewed on request ("use Angular resources & observables, Promises are not the go-to"). The conclusion was to

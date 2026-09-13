@@ -4,9 +4,9 @@
 
 **Blocked by:** 04 — Account settings modal (already implemented; this ticket only wires up a missing entry point to it)
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] An edit affordance exists on the account card (Home) and the account screen header
-- [ ] Activating it opens the existing account-settings modal in edit mode, pre-filled with that account's current values
-- [ ] Saving updates the account, including opening balance, via the existing update path
-- [ ] Component tests: the edit entry point opens the modal in edit mode with the right account; saving calls the update method, not create
+- [x] An edit affordance exists on the account card (Home) and the account screen header
+- [x] Activating it opens the existing account-settings modal in edit mode, pre-filled with that account's current values
+- [x] Saving updates the account, including opening balance, via the existing update path
+- [x] Component tests: the edit entry point opens the modal in edit mode with the right account; saving calls the update method, not create
