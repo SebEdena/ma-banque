@@ -61,12 +61,12 @@ impl IsoDate {
         Self(format!("{year:04}-{month:02}-{day:02}"))
     }
 
-    /// Advances by whole weeks. Walks a month at a time rather than a day at
+    /// Advances by whole days. Walks a month at a time rather than a day at
     /// a time, so leap years and month lengths come from [`days_in_month`]
     /// like everything else here.
-    pub fn add_weeks(&self, weeks: u32) -> Self {
+    pub fn add_days(&self, days: u32) -> Self {
         let (mut year, mut month, mut day) = self.parts();
-        let mut remaining = weeks * 7;
+        let mut remaining = days;
 
         loop {
             let month_length = days_in_month(year, month);
@@ -81,6 +81,11 @@ impl IsoDate {
                 (year, month + 1)
             };
         }
+    }
+
+    /// Advances by whole weeks — [`Self::add_days`] in units of 7.
+    pub fn add_weeks(&self, weeks: u32) -> Self {
+        self.add_days(weeks * 7)
     }
 
     /// Advances by whole months, clamping the day to the target month's
@@ -191,6 +196,22 @@ mod tests {
     }
 
     #[test]
+    fn add_days_crosses_a_month_boundary() {
+        assert_eq!(date("2026-01-30").add_days(3), date("2026-02-02"));
+    }
+
+    #[test]
+    fn add_days_crosses_a_year_boundary() {
+        assert_eq!(date("2025-12-30").add_days(3), date("2026-01-02"));
+    }
+
+    #[test]
+    fn add_days_crosses_a_leap_day() {
+        assert_eq!(date("2024-02-28").add_days(1), date("2024-02-29"));
+        assert_eq!(date("2024-02-28").add_days(2), date("2024-03-01"));
+    }
+
+    #[test]
     fn add_weeks_crosses_a_month_boundary() {
         assert_eq!(date("2026-01-25").add_weeks(2), date("2026-02-08"));
     }
@@ -227,6 +248,7 @@ mod tests {
     #[test]
     fn adding_nothing_is_the_identity() {
         for value in ["2026-01-31", "2024-02-29", "2026-06-15"] {
+            assert_eq!(date(value).add_days(0), date(value));
             assert_eq!(date(value).add_weeks(0), date(value));
             assert_eq!(date(value).add_months(0), date(value));
             assert_eq!(date(value).add_years(0), date(value));

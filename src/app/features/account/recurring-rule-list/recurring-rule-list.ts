@@ -19,6 +19,8 @@ import { RowCategory, UNCATEGORIZED } from '../row-category';
  */
 function scheduleSummary(frequency: Frequency, interval: number): string {
   switch (frequency) {
+    case 'DAILY':
+      return interval === 1 ? 'Tous les jours' : `Tous les ${interval} jours`;
     case 'WEEKLY':
       return interval === 1 ? 'Toutes les semaines' : `Toutes les ${interval} semaines`;
     case 'YEARLY':

@@ -75,6 +75,17 @@ describe('RecurringRuleList', () => {
     expect(one(fixture, 'recurring-row-schedule')?.textContent).toContain('Tous les mois');
   });
 
+  it('renders a daily schedule as "Tous les jours" (or "Tous les X jours")', async () => {
+    const fixture = await createList([
+      rule({ id: 7, frequency: 'DAILY', interval: 1 }),
+      rule({ id: 8, frequency: 'DAILY', interval: 3 }),
+    ]);
+
+    const schedules = all(fixture, 'recurring-row-schedule').map((el) => el.textContent);
+    expect(schedules[0]).toContain('Tous les jours');
+    expect(schedules[1]).toContain('Tous les 3 jours');
+  });
+
   it('emits which rule an edit or delete click landed on, without acting itself', async () => {
     const fixture = await createList([rule({ id: 7 })]);
     let edited: RecurringRule | undefined;

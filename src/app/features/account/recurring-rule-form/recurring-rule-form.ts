@@ -35,9 +35,11 @@ import { RowCategory, UNCATEGORIZED } from '../row-category';
  * What the rule form edits. The template half mirrors `EntryDraft` field for
  * field — `amount` is the field's **raw text, sign included**, so the
  * débit/crédit selector stays a view over that sign rather than a second
- * piece of state. `interval` is text for the same reason: `type="number"`
- * reads a half-typed or non-numeric value back as `""`, which would make
- * "interval below 1" unreportable.
+ * piece of state. `interval` stays text too, even though it is rendered
+ * through a native `type="number"` input: a number input still round-trips
+ * `"0"` and negative values as themselves (it only ever blanks out a value
+ * that isn't a number at all), so `parseInterval` can keep reporting
+ * "interval below 1" from the same text `EntryDraft`'s other fields use.
  */
 export interface RuleDraft {
   label: string;
@@ -87,10 +89,17 @@ function parseInterval(text: string): number | null {
   return Number.isInteger(value) && value >= 1 ? value : null;
 }
 
+/**
+ * The frequency unit as it reads after the interval number — "Tous les 2
+ * jours/mois/années", "Toutes les 2 semaines" — not the frequency's own
+ * name, since the schedule row phrases the whole thing around "Tous les X
+ * ...".
+ */
 const FREQUENCIES: readonly { value: Frequency; label: string }[] = [
-  { value: 'WEEKLY', label: 'Hebdomadaire' },
-  { value: 'MONTHLY', label: 'Mensuelle' },
-  { value: 'YEARLY', label: 'Annuelle' },
+  { value: 'DAILY', label: 'jours' },
+  { value: 'WEEKLY', label: 'semaines' },
+  { value: 'MONTHLY', label: 'mois' },
+  { value: 'YEARLY', label: 'années' },
 ];
 
 export function emptyDraft(): RuleDraft {
@@ -161,6 +170,16 @@ export class RecurringRuleForm {
     isDebitSelected(this.draft().amount, this.pendingDebit()),
   );
   protected readonly frequencies = FREQUENCIES;
+
+  /**
+   * The schedule row's leading words — "Tous les"/"Toutes les" — matching
+   * the frequency unit's gender the way `recurring-rule-list`'s
+   * `scheduleSummary` does ("Toutes les 3 semaines" needs the feminine
+   * article; every other unit is masculine).
+   */
+  protected readonly intervalPrefix = computed(() =>
+    this.draft().frequency === 'WEEKLY' ? 'Toutes les' : 'Tous les',
+  );
 
   private readonly categoriesById = computed(
     () => new Map(this.categories().map((category) => [category.id, category])),
