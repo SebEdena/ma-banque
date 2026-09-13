@@ -21,11 +21,13 @@ import {
   lucidePlus,
   lucideRotateCcw,
   lucideSearch,
+  lucideSettings,
 } from '@ng-icons/lucide';
 import { toast } from '@spartan-ng/brain/sonner';
 import { HlmDatePickerImports } from '@spartan-ng/helm/date-picker';
 import { HlmTooltipImports } from '@spartan-ng/helm/tooltip';
 
+import { AccountInput, parseAccountError } from '@data/accounts/accounts-api';
 import { AccountsStore } from '@data/accounts/accounts-store';
 import { CategoryInput, parseCategoryError } from '@data/categories/categories-api';
 import { CategoriesStore } from '@data/categories/categories-store';
@@ -50,6 +52,7 @@ import {
   generatedEntriesMessage,
   parseRecurringError,
 } from '@data/recurring-rules/recurring-rules-api';
+import { AccountSettingsModal } from '@features/home/account-settings-modal/account-settings-modal';
 import { CategoryModal } from '@features/settings/categories/category-modal/category-modal';
 import { formatAmountInput } from '@shared/amount-input/amount-input';
 import { ConfirmDialog } from '@shared/confirm-dialog/confirm-dialog';
@@ -125,6 +128,7 @@ function emptyDraft(): EntryDraft {
     CurrencyFormatPipe,
     ConfirmDialog,
     CategoryModal,
+    AccountSettingsModal,
     EntryRow,
     EntryForm,
     ReconciliationPanel,
@@ -146,6 +150,7 @@ function emptyDraft(): EntryDraft {
       lucidePlus,
       lucideRotateCcw,
       lucideSearch,
+      lucideSettings,
     }),
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
@@ -242,6 +247,10 @@ export class Account {
   /** Whether the account's recurring rules modal is open over the register. */
   protected readonly rulesOpen = signal(false);
 
+  /** Whether the account settings modal is open — always in edit mode from this screen. */
+  protected readonly editingAccount = signal(false);
+  protected readonly savingAccount = signal(false);
+
   /** Whether the quick-create category modal is open over the form. */
   protected readonly creatingCategory = signal(false);
   protected readonly savingCategory = signal(false);
@@ -321,6 +330,24 @@ export class Account {
    * figures; closing leaves the checkbox alone, since `filterUnreconciled`
    * already makes it inert.
    */
+  /**
+   * Saves what the settings modal found valid. Opened only from this screen's
+   * "Paramètres" button, so it's always editing the current account — never
+   * creation — hence a plain `update`, not `AccountSettingsModal`'s usual
+   * create-vs-edit branch (`Home`'s `onAccountSubmitted`).
+   */
+  protected async onAccountSubmitted(input: AccountInput): Promise<void> {
+    this.savingAccount.set(true);
+    try {
+      await this.accountsStore.update(this.accountId(), input);
+      this.editingAccount.set(false);
+    } catch (error) {
+      toast.error(parseAccountError(error));
+    } finally {
+      this.savingAccount.set(false);
+    }
+  }
+
   protected togglePanel(): void {
     const opening = !this.panelOpen();
     this.panelOpen.set(opening);

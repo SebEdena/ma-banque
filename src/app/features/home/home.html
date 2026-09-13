@@ -39,7 +39,7 @@
         type="button"
         data-testid="new-account-header"
         class="flex items-center gap-2 rounded-[11px] bg-primary px-4.5 py-2.5 text-sm font-bold text-primary-foreground outline-none transition-all hover:opacity-90 focus-visible:ring-3 focus-visible:ring-ring/50"
-        (click)="creating.set(true)"
+        (click)="startCreate()"
       >
         <ng-icon name="lucidePlus" size="17" />
         Nouveau compte
@@ -107,6 +107,16 @@
           } @else {
             <button
               type="button"
+              data-testid="edit-account"
+              title="Modifier"
+              aria-label="Modifier le compte"
+              class="relative rounded-lg p-1.5 text-muted-foreground outline-none transition-all hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
+              (click)="startEdit(account)"
+            >
+              <ng-icon name="lucidePencil" size="15" />
+            </button>
+            <button
+              type="button"
               data-testid="archive-account"
               aria-label="Archiver le compte"
               class="relative rounded-lg p-1.5 text-muted-foreground outline-none transition-all hover:bg-muted hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
@@ -141,7 +151,7 @@
           type="button"
           data-testid="new-account"
           class="flex size-full min-h-40 flex-col items-center justify-center gap-2 rounded-[20px] border border-dashed border-border text-sm text-muted-foreground outline-none transition-all hover:-translate-y-1 hover:border-ring hover:text-foreground focus-visible:ring-3 focus-visible:ring-ring/50"
-          (click)="creating.set(true)"
+          (click)="startCreate()"
         >
           <ng-icon name="lucidePlus" size="18" />
           Nouveau compte
@@ -151,10 +161,17 @@
   </ul>
 }
 
-@if (creating()) {
+@if (editing(); as account) {
+  <app-account-settings-modal
+    [account]="account"
+    [saving]="savingAccount()"
+    (cancelled)="closeModal()"
+    (submitted)="onAccountSubmitted($event)"
+  />
+} @else if (editing() === null) {
   <app-account-settings-modal
     [saving]="savingAccount()"
-    (cancelled)="creating.set(false)"
+    (cancelled)="closeModal()"
     (submitted)="onAccountSubmitted($event)"
   />
 }

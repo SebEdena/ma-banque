@@ -185,6 +185,7 @@ async function createAccount(
   categoriesApi: StubCategoriesApi = stubCategoriesApi(),
   reconciliationApi: StubReconciliationApi = stubReconciliationApi(),
   recurringRulesApi: StubRecurringRulesApi = stubRecurringRulesApi(),
+  accountsApiOverrides: Partial<AccountsApi> = {},
 ): Promise<ComponentFixture<Account>> {
   await TestBed.configureTestingModule({
     imports: [Account],
@@ -199,6 +200,9 @@ async function createAccount(
             .fn()
             .mockResolvedValue([accountFixture({ id: 1, name: 'Compte Courant' })]),
           listArchivedAccounts: vi.fn().mockResolvedValue([]),
+          createAccount: vi.fn().mockResolvedValue(accountFixture()),
+          updateAccount: vi.fn().mockResolvedValue(accountFixture()),
+          ...accountsApiOverrides,
         },
       },
       { provide: CategoriesApi, useValue: categoriesApi },
@@ -476,6 +480,50 @@ describe('Account', () => {
     expect(one(fixture, 'account-name')?.textContent?.trim()).toBe('Compte Courant');
     expect(one(fixture, 'account-icon')).not.toBeNull();
     expect(one(fixture, 'account-balance')?.textContent).toContain('234,56');
+  });
+
+  /**
+   * `[data-testid="account-name"]` also names the header's breadcrumb span,
+   * so the modal's copy of that testid is looked up scoped to
+   * `app-account-settings-modal` rather than through the generic `one()`.
+   */
+  function modalNameInput(fixture: ComponentFixture<Account>): HTMLInputElement | null {
+    return (fixture.nativeElement as HTMLElement).querySelector(
+      'app-account-settings-modal [data-testid="account-name"]',
+    );
+  }
+
+  it('opens the settings modal in edit mode, pre-filled with the account', async () => {
+    const fixture = await createAccount(stubEntriesApi([entry()]));
+
+    await click(fixture, 'account-settings-button');
+
+    expect(modalNameInput(fixture)?.value).toBe('Compte Courant');
+    expect(fixture.nativeElement.textContent).toContain('Paramètres du compte');
+  });
+
+  it('updates the account through the settings modal, not create', async () => {
+    const updateAccount = vi.fn().mockResolvedValue(accountFixture({ id: 1 }));
+    const fixture = await createAccount(
+      stubEntriesApi([entry()]),
+      stubCategoriesApi(),
+      stubReconciliationApi(),
+      stubRecurringRulesApi(),
+      { updateAccount },
+    );
+
+    await click(fixture, 'account-settings-button');
+    const name = modalNameInput(fixture) as HTMLInputElement;
+    name.value = 'Compte renommé';
+    name.dispatchEvent(new Event('input'));
+    await settle(fixture);
+    await click(fixture, 'account-save');
+
+    expect(updateAccount).toHaveBeenCalledWith(
+      1,
+      expect.objectContaining({ name: 'Compte renommé' }),
+    );
+    expect(modalNameInput(fixture)).toBeNull();
   });
 
   it('routes to the statistics screen with the current account preselected', async () => {

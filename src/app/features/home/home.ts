@@ -1,7 +1,13 @@
 import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { RouterLink } from '@angular/router';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideArchive, lucidePlus, lucideRotateCcw, lucideTrash2 } from '@ng-icons/lucide';
+import {
+  lucideArchive,
+  lucidePencil,
+  lucidePlus,
+  lucideRotateCcw,
+  lucideTrash2,
+} from '@ng-icons/lucide';
 import { toast } from '@spartan-ng/brain/sonner';
 
 import { Account, AccountInput, parseAccountError } from '@data/accounts/accounts-api';
@@ -36,7 +42,7 @@ import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
   styleUrl: './home.css',
   providers: [
     provideCatalogIcons(),
-    provideIcons({ lucideArchive, lucidePlus, lucideRotateCcw, lucideTrash2 }),
+    provideIcons({ lucideArchive, lucidePencil, lucidePlus, lucideRotateCcw, lucideTrash2 }),
   ],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
@@ -54,20 +60,42 @@ export class Home {
 
   protected readonly parseIsoDate = parseIsoDate;
 
-  /** Whether the create/edit modal is open. Creation is its only mode here. */
-  protected readonly creating = signal(false);
+  /** The account the settings modal is editing, `null` for a create, `undefined` when closed. */
+  protected readonly editing = signal<Account | null | undefined>(undefined);
   protected readonly savingAccount = signal(false);
+
+  protected startCreate(): void {
+    this.editing.set(null);
+  }
+
+  protected startEdit(account: Account): void {
+    this.editing.set(account);
+  }
+
+  protected closeModal(): void {
+    this.editing.set(undefined);
+  }
 
   /**
    * Saves what the modal found valid. `AccountSettingsModal` only validates
-   * and builds the input (presentational); this container owns the backend
-   * call and keeps the modal open on rejection.
+   * and builds the input (presentational); this container decides create
+   * vs. update off the account it's already holding, owns the backend call,
+   * and keeps the modal open on rejection.
    */
   protected async onAccountSubmitted(input: AccountInput): Promise<void> {
+    const target = this.editing();
+    if (target === undefined || this.savingAccount()) {
+      return;
+    }
+
     this.savingAccount.set(true);
     try {
-      await this.accounts.create(input);
-      this.creating.set(false);
+      if (target === null) {
+        await this.accounts.create(input);
+      } else {
+        await this.accounts.update(target.id, input);
+      }
+      this.closeModal();
     } catch (error) {
       toast.error(parseAccountError(error));
     } finally {

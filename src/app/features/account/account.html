@@ -74,6 +74,17 @@
           <ng-icon name="lucideCircleCheck" size="14" />
           Pointage
         </button>
+
+        <button
+          type="button"
+          data-testid="account-settings-button"
+          data-accent
+          class="flex items-center gap-1.5 rounded-[9px] border border-border bg-card px-3 py-2 text-[13px] font-semibold text-muted-foreground outline-none transition-colors"
+          (click)="editingAccount.set(true)"
+        >
+          <ng-icon name="lucideSettings" size="14" />
+          Paramètres
+        </button>
       </div>
 
       <div
@@ -333,6 +344,15 @@
       }
     </div>
   </div>
+
+  @if (editingAccount()) {
+    <app-account-settings-modal
+      [account]="account"
+      [saving]="savingAccount()"
+      (cancelled)="editingAccount.set(false)"
+      (submitted)="onAccountSubmitted($event)"
+    />
+  }
 
   @if (rulesOpen()) {
     <app-recurring-rules-modal

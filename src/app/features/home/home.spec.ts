@@ -17,6 +17,8 @@ function stubApi(
   return {
     listActiveAccounts: vi.fn().mockResolvedValue(active),
     listArchivedAccounts: vi.fn().mockResolvedValue(archived),
+    createAccount: vi.fn().mockResolvedValue(account()),
+    updateAccount: vi.fn().mockResolvedValue(account()),
     archiveAccount: vi.fn().mockResolvedValue(undefined),
     unarchiveAccount: vi.fn().mockResolvedValue(undefined),
     deleteAccount: vi.fn().mockResolvedValue(undefined),
@@ -232,6 +234,50 @@ describe('Home', () => {
       expect.objectContaining({ name: 'Compte courant' }),
     );
     expect(compiled.querySelector('app-account-settings-modal')).toBeNull();
+  });
+
+  it('opens the settings modal in edit mode, pre-filled, from the card', async () => {
+    const fixture = await createHome(stubApi([account({ id: 4, name: 'Livret A' })]));
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    click(fixture, 'edit-account');
+    fixture.detectChanges();
+
+    const name = compiled.querySelector('[data-testid="account-name"]') as HTMLInputElement;
+    expect(name.value).toBe('Livret A');
+    expect(compiled.textContent).toContain('Paramètres du compte');
+  });
+
+  it('updates, not creates, the account edited from the card', async () => {
+    const accountsApi = stubApi([account({ id: 4, name: 'Livret A' })], [], {
+      updateAccount: vi.fn().mockResolvedValue(account({ id: 4 })),
+    });
+    const fixture = await createHome(accountsApi);
+    const compiled = fixture.nativeElement as HTMLElement;
+
+    click(fixture, 'edit-account');
+    fixture.detectChanges();
+    const name = compiled.querySelector('[data-testid="account-name"]') as HTMLInputElement;
+    name.value = 'Livret A renommé';
+    name.dispatchEvent(new Event('input'));
+    fixture.detectChanges();
+    click(fixture, 'account-save');
+    await fixture.whenStable();
+    fixture.detectChanges();
+
+    expect(accountsApi.updateAccount).toHaveBeenCalledWith(
+      4,
+      expect.objectContaining({ name: 'Livret A renommé' }),
+    );
+    expect(accountsApi.createAccount).not.toHaveBeenCalled();
+    expect(compiled.querySelector('app-account-settings-modal')).toBeNull();
+  });
+
+  it('offers no edit action on an archived card', async () => {
+    const fixture = await createHome(stubApi([], [account({ id: 2, archived: true })]));
+    await toggleArchived(fixture);
+
+    expect(has(fixture, 'edit-account')).toBe(false);
   });
 
   it('keeps the modal open and toasts when the create is rejected', async () => {
