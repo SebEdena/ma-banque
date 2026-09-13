@@ -4,9 +4,9 @@
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** done
 
-- [ ] Opening the Pointage panel does not automatically enable "Non pointées uniquement"; reconciled entries stay visible until the user opts in
-- [ ] Turning "Non pointées uniquement" on still filters correctly to unreconciled entries
-- [ ] The toggle's state isn't silently reset by opening/closing the panel
-- [ ] Existing reconciliation tests updated to reflect default-off behavior
+- [x] Opening the Pointage panel does not automatically enable "Non pointées uniquement"; reconciled entries stay visible until the user opts in
+- [x] Turning "Non pointées uniquement" on still filters correctly to unreconciled entries
+- [x] The toggle's state isn't silently reset by opening/closing the panel
+- [x] Existing reconciliation tests updated to reflect default-off behavior

@@ -325,10 +325,11 @@ export class Account {
   }
 
   /**
-   * Opens or closes the panel. Opening ticks "unreconciled only" — the common
-   * case is that the panel was opened in order to reconcile — and asks for the
-   * figures; closing leaves the checkbox alone, since `filterUnreconciled`
-   * already makes it inert.
+   * Opens or closes the panel. Opening asks for the figures but leaves the
+   * checkbox as the user last set it — already-reconciled entries stay
+   * visible until the user opts into the filter (`docs/spec/08-reconciliation.md`);
+   * closing leaves the checkbox alone too, since `filterUnreconciled` already
+   * makes it inert.
    */
   /**
    * Saves what the settings modal found valid. Opened only from this screen's
@@ -352,7 +353,6 @@ export class Account {
     const opening = !this.panelOpen();
     this.panelOpen.set(opening);
     if (opening) {
-      this.unreconciledOnly.set(true);
       void this.refreshSummary();
     }
   }

@@ -832,7 +832,7 @@ describe('Account', () => {
     expect(one(fixture, 'reconciliation-delta')?.textContent).toContain('15,50');
   });
 
-  it('ticks the unreconciled filter when the panel opens, and re-requests with it', async () => {
+  it('leaves the unreconciled filter off when the panel opens, reconciled entries included', async () => {
     const entriesApi = stubEntriesApi([
       entry({ id: 1, label: 'Pointée', reconciled: true }),
       entry({ id: 2, label: 'À pointer', reconciled: false }),
@@ -840,6 +840,24 @@ describe('Account', () => {
     const fixture = await createAccount(entriesApi);
 
     await click(fixture, 'reconciliation-toggle');
+
+    expect(queryOf(entriesApi)).toMatchObject({ unreconciled_only: false, offset: 0 });
+    expect(one(fixture, 'reconciliation-filter')?.dataset['checked']).toBe('false');
+    expect(rows(fixture).map((row) => textIn(row, 'entry-label'))).toEqual([
+      'À pointer',
+      'Pointée',
+    ]);
+  });
+
+  it('ticks the unreconciled filter on request, and re-requests with it', async () => {
+    const entriesApi = stubEntriesApi([
+      entry({ id: 1, label: 'Pointée', reconciled: true }),
+      entry({ id: 2, label: 'À pointer', reconciled: false }),
+    ]);
+    const fixture = await createAccount(entriesApi);
+
+    await click(fixture, 'reconciliation-toggle');
+    await click(fixture, 'reconciliation-filter');
 
     expect(queryOf(entriesApi)).toMatchObject({ unreconciled_only: true, offset: 0 });
     expect(one(fixture, 'reconciliation-filter')?.dataset['checked']).toBe('true');
@@ -854,6 +872,7 @@ describe('Account', () => {
     const fixture = await createAccount(entriesApi);
 
     await click(fixture, 'reconciliation-toggle');
+    await click(fixture, 'reconciliation-filter');
     await click(fixture, 'reconciliation-filter');
 
     expect(queryOf(entriesApi)).toMatchObject({ unreconciled_only: false });
@@ -871,6 +890,7 @@ describe('Account', () => {
     const fixture = await createAccount(entriesApi);
 
     await click(fixture, 'reconciliation-toggle');
+    await click(fixture, 'reconciliation-filter');
     expect(queryOf(entriesApi)).toMatchObject({ unreconciled_only: true });
 
     await click(fixture, 'reconciliation-toggle');
@@ -883,12 +903,29 @@ describe('Account', () => {
     ]);
   });
 
+  it('keeps the checkbox state across a close/reopen of the panel', async () => {
+    const entriesApi = stubEntriesApi([
+      entry({ id: 1, label: 'Pointée', reconciled: true }),
+      entry({ id: 2, label: 'À pointer', reconciled: false }),
+    ]);
+    const fixture = await createAccount(entriesApi);
+
+    await click(fixture, 'reconciliation-toggle');
+    await click(fixture, 'reconciliation-filter');
+    await click(fixture, 'reconciliation-toggle'); // close
+    await click(fixture, 'reconciliation-toggle'); // reopen
+
+    expect(one(fixture, 'reconciliation-filter')?.dataset['checked']).toBe('true');
+    expect(queryOf(entriesApi)).toMatchObject({ unreconciled_only: true });
+  });
+
   it('reloads the page when a row is ticked while the filter is active', async () => {
     const entriesApi = stubEntriesApi([entry({ id: 7, label: 'À pointer', reconciled: false })]);
     const reconciliationApi = stubReconciliationApi();
     const fixture = await createAccount(entriesApi, undefined, reconciliationApi);
 
     await click(fixture, 'reconciliation-toggle');
+    await click(fixture, 'reconciliation-filter');
     const listCalls = entriesApi.listEntries.mock.calls.length;
 
     await click(fixture, 'entry-reconciled');
@@ -906,7 +943,6 @@ describe('Account', () => {
     const fixture = await createAccount(entriesApi, undefined, reconciliationApi);
 
     await click(fixture, 'reconciliation-toggle');
-    await click(fixture, 'reconciliation-filter');
     const listCalls = entriesApi.listEntries.mock.calls.length;
 
     await click(fixture, 'entry-reconciled');

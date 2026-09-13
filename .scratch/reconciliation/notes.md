@@ -130,3 +130,14 @@ development"}}'`, start `tauri-driver` (the config's `driverProvider` is
   `external`, so WDIO does not spawn it), then `npm run e2e`. Delete
   `.dev-data/` first — the suite is stateful and a second run against a
   populated folder fails from the smoke test onwards.
+
+- **Issue 05 (Pointage default-off filter)**: `Account.togglePanel()` no
+  longer sets `unreconciledOnly` to `true` on open — it leaves the checkbox
+  exactly as the user last set it (it still starts `false` on first load, and
+  panel-open/close never mutates it). `docs/spec/00-business-requirements.md`
+  §4.3 and `docs/spec/08-reconciliation.md` were updated to state
+  "unchecked by default" instead of "checked by default" — anything that
+  still cites the old wording is out of date, not a divergent source of
+  truth. `e2e/reconciliation.e2e.ts`'s Pointage scenario now explicitly clicks
+  `reconciliation-filter` after opening the panel before asserting the list
+  narrowed.

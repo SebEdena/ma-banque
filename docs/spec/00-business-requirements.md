@@ -75,16 +75,16 @@ Out of scope for v1. Data portability relies solely on the SQLite file itself (c
 
 ### 3.1 Account
 
-| Field            | Type                    | Notes                                    |
-| ---------------- | ----------------------- | ---------------------------------------- |
-| id               | unique identifier       |                                          |
-| name             | text                    |                                          |
-| color            | color                   | displayed on cards and throughout the UI |
-| icon             | icon library reference  | e.g. Lucide, shown in the sidebar        |
-| created_date     | date                    |                                          |
-| opening_balance  | amount                  | generates a system entry at creation     |
-| archived         | boolean                 | true if the account is archived          |
-| last_viewed_date | date                    | used for generating recurring entries    |
+| Field            | Type                   | Notes                                    |
+| ---------------- | ---------------------- | ---------------------------------------- |
+| id               | unique identifier      |                                          |
+| name             | text                   |                                          |
+| color            | color                  | displayed on cards and throughout the UI |
+| icon             | icon library reference | e.g. Lucide, shown in the sidebar        |
+| created_date     | date                   |                                          |
+| opening_balance  | amount                 | generates a system entry at creation     |
+| archived         | boolean                | true if the account is archived          |
+| last_viewed_date | date                   | used for generating recurring entries    |
 
 **Rules**:
 
@@ -193,7 +193,7 @@ Dedicated screen for editing an existing account, distinct from the global setti
 
 - List of the account's entries (paginated, virtual scroll), sorted by default from most recent to oldest.
 - "Reconciliation" area: reconciled balance, bank balance (editable), statement date (editable), delta, red/green indicator. Collapsible panel, **collapsed by default**.
-  - "Unreconciled only" filter checkbox: checked by default when the panel is opened, disabled/grayed out if the account has no unreconciled entry. The filter only affects the entries list **while the panel is open** — collapsing the panel disables the filter's effect regardless of the checkbox state.
+  - "Unreconciled only" filter checkbox: **unchecked by default when the panel is opened** — already-reconciled entries stay visible until the user opts in — disabled/grayed out if the account has no unreconciled entry. The filter only affects the entries list **while the panel is open** — collapsing the panel disables the filter's effect regardless of the checkbox state.
 - Entries are created and edited **inline** in the list: a dedicated row for creating a new entry, and clicking an existing entry turns it into an editable row in place (no separate form or modal). Fields: label, category (with a quick-create shortcut on the fly), date, debit/credit selector synced with the amount, reconciliation checkbox, description, amount.
 - The system entry (opening balance) is shown in the list but **read-only**; editing it happens on the account settings screen (4.2).
 - Utility features:
