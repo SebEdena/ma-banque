@@ -81,11 +81,21 @@ describe('reconciliation', () => {
       'aria-expanded',
       'true',
     );
+    // Opening the panel no longer force-enables the filter — already-reconciled
+    // entries stay visible until the user opts in.
+    await expect($('[data-testid="reconciliation-filter"]')).toHaveAttribute(
+      'aria-checked',
+      'false',
+    );
+    await expect(entryRow(RECONCILED_ENTRY)).toExist();
+    await expect(entryRow(PENDING_ENTRY)).toExist();
+
+    await (await $('[data-testid="reconciliation-filter"]')).click();
+
     await expect($('[data-testid="reconciliation-filter"]')).toHaveAttribute(
       'aria-checked',
       'true',
     );
-
     await expect(entryRow(RECONCILED_ENTRY)).not.toExist();
     await expect(entryRow(PENDING_ENTRY)).toExist();
   });
