@@ -125,14 +125,30 @@
 
   <hr class="border-border" />
 
-  <div class="flex gap-3">
-    <div class="flex flex-1 flex-col gap-1.5">
-      <label for="recurring-form-frequency" class="text-sm font-semibold">Fréquence</label>
+  <div class="flex flex-col gap-1.5">
+    <label for="recurring-form-interval" class="text-sm font-semibold">
+      {{ intervalPrefix() }}
+    </label>
+    <div class="flex gap-3">
+      <input
+        id="recurring-form-interval"
+        type="number"
+        inputmode="numeric"
+        min="1"
+        step="1"
+        autocomplete="off"
+        data-testid="recurring-form-interval"
+        data-accent
+        class="w-[90px] rounded-[10px] bg-muted px-3 py-2 text-sm outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50"
+        [value]="draft().interval"
+        (input)="patch({ interval: $any($event.target).value })"
+      />
       <select
         id="recurring-form-frequency"
         data-testid="recurring-form-frequency"
         data-accent
-        class="rounded-[10px] bg-muted px-3 py-2.5 text-sm font-semibold outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50"
+        aria-label="Fréquence"
+        class="min-w-0 flex-1 rounded-[10px] bg-muted px-3 py-2.5 text-sm font-semibold outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50"
         (change)="patch({ frequency: $any($event.target).value })"
       >
         @for (frequency of frequencies; track frequency.value) {
@@ -141,20 +157,6 @@
           </option>
         }
       </select>
-    </div>
-
-    <div class="flex w-[130px] flex-col gap-1.5">
-      <label for="recurring-form-interval" class="text-sm font-semibold">Tous les</label>
-      <input
-        id="recurring-form-interval"
-        type="text"
-        inputmode="numeric"
-        data-testid="recurring-form-interval"
-        data-accent
-        class="rounded-[10px] bg-muted px-3 py-2 text-sm outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50"
-        [value]="draft().interval"
-        (input)="patch({ interval: $any($event.target).value })"
-      />
     </div>
   </div>
   @if (intervalError(); as message) {

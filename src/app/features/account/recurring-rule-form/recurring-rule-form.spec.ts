@@ -138,6 +138,40 @@ describe('RecurringRuleForm', () => {
     expect(saved).toBe(0);
   });
 
+  it('saves a daily frequency', async () => {
+    const fixture = await createForm({
+      ...emptyDraft(),
+      label: 'Café',
+      amount: '-3',
+      frequency: 'DAILY',
+    });
+    let saved: RecurringRuleInput | undefined;
+    fixture.componentInstance.saved.subscribe((input) => (saved = input));
+
+    await click(fixture, 'recurring-save');
+
+    expect(saved).toEqual(expect.objectContaining({ frequency: 'DAILY' }));
+  });
+
+  it('renders the interval as a native numeric input with autocomplete disabled', async () => {
+    const fixture = await createForm();
+
+    const field = one(fixture, 'recurring-form-interval') as HTMLInputElement;
+
+    expect(field.type).toBe('number');
+    expect(field.autocomplete).toBe('off');
+  });
+
+  it("uses the feminine article for a weekly schedule's label", async () => {
+    const fixture = await createForm({ ...emptyDraft(), frequency: 'WEEKLY' });
+
+    const label = (fixture.nativeElement as HTMLElement).querySelector(
+      'label[for="recurring-form-interval"]',
+    );
+
+    expect(label?.textContent?.trim()).toBe('Toutes les');
+  });
+
   it('rejects an end date before the start date inline, without emitting', async () => {
     const fixture = await createForm({
       ...emptyDraft(),

@@ -266,7 +266,7 @@ mod tests {
     #[test]
     fn an_unknown_frequency_is_reported_as_a_recurring_error() {
         let err = RuleInput::try_from(RecurringRuleInputPayload {
-            frequency: "DAILY".to_owned(),
+            frequency: "FORTNIGHTLY".to_owned(),
             ..payload()
         })
         .unwrap_err();

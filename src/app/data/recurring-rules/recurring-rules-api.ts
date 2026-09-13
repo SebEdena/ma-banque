@@ -1,8 +1,8 @@
 import { Service } from '@angular/core';
 import { invoke } from '@tauri-apps/api/core';
 
-/** The three frequencies §3.4 allows, as `Frequency` serializes them. */
-export type Frequency = 'WEEKLY' | 'MONTHLY' | 'YEARLY';
+/** The frequencies §3.4 allows, as `Frequency` serializes them. */
+export type Frequency = 'DAILY' | 'WEEKLY' | 'MONTHLY' | 'YEARLY';
 
 /** How far an edit to a rule's template reaches, as `EditScope` parses it. */
 export type EditScope = 'NEXT_OCCURRENCE_ONLY' | 'ALL_FUTURE';

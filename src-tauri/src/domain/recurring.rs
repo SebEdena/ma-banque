@@ -21,6 +21,7 @@ use crate::domain::money::InvalidAmount;
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize)]
 #[serde(rename_all = "SCREAMING_SNAKE_CASE")]
 pub enum Frequency {
+    Daily,
     Weekly,
     Monthly,
     Yearly,
@@ -29,6 +30,7 @@ pub enum Frequency {
 impl Frequency {
     pub fn as_str(&self) -> &'static str {
         match self {
+            Frequency::Daily => "DAILY",
             Frequency::Weekly => "WEEKLY",
             Frequency::Monthly => "MONTHLY",
             Frequency::Yearly => "YEARLY",
@@ -37,6 +39,7 @@ impl Frequency {
 
     pub fn parse(value: &str) -> Result<Self, RecurringError> {
         match value {
+            "DAILY" => Ok(Frequency::Daily),
             "WEEKLY" => Ok(Frequency::Weekly),
             "MONTHLY" => Ok(Frequency::Monthly),
             "YEARLY" => Ok(Frequency::Yearly),
@@ -166,6 +169,7 @@ impl From<AccountError> for RecurringError {
 fn occurrence(schedule: &RuleSchedule, n: u32) -> IsoDate {
     let steps = schedule.interval.max(1) * n;
     match schedule.frequency {
+        Frequency::Daily => schedule.start_date.add_days(steps),
         Frequency::Weekly => schedule.start_date.add_weeks(steps),
         Frequency::Monthly => schedule.start_date.add_months(steps),
         Frequency::Yearly => schedule.start_date.add_years(steps),
@@ -314,6 +318,32 @@ mod tests {
             .iter()
             .map(|d| d.to_string())
             .collect()
+    }
+
+    #[test]
+    fn a_daily_rule_lands_every_day() {
+        let rule = schedule(Frequency::Daily, 1, "2026-03-02", None);
+
+        assert_eq!(
+            between(&rule, "2026-03-02", "2026-03-05"),
+            ["2026-03-02", "2026-03-03", "2026-03-04", "2026-03-05"]
+        );
+    }
+
+    #[test]
+    fn a_daily_rule_with_an_interval_skips_the_days_between() {
+        let rule = schedule(Frequency::Daily, 2, "2026-03-02", None);
+
+        assert_eq!(
+            between(&rule, "2026-03-02", "2026-03-10"),
+            [
+                "2026-03-02",
+                "2026-03-04",
+                "2026-03-06",
+                "2026-03-08",
+                "2026-03-10"
+            ]
+        );
     }
 
     #[test]
@@ -516,10 +546,15 @@ mod tests {
 
     #[test]
     fn frequency_round_trips_through_its_stored_value() {
-        for frequency in [Frequency::Weekly, Frequency::Monthly, Frequency::Yearly] {
+        for frequency in [
+            Frequency::Daily,
+            Frequency::Weekly,
+            Frequency::Monthly,
+            Frequency::Yearly,
+        ] {
             assert_eq!(Frequency::parse(frequency.as_str()).unwrap(), frequency);
         }
-        assert!(Frequency::parse("DAILY").is_err());
+        assert!(Frequency::parse("FORTNIGHTLY").is_err());
     }
 
     #[test]
