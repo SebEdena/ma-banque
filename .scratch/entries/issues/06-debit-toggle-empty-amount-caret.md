@@ -6,7 +6,7 @@ Root cause: toggling the sign on an empty amount currently writes a bare sign ch
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] Selecting "Débit" or "Crédit" on an empty amount field leaves it either empty or immediately typable, with no stray sign character the user can't type around
 - [ ] Typing a digit works regardless of where the caret lands in the field

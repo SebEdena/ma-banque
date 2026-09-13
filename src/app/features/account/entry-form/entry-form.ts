@@ -283,10 +283,15 @@ export class EntryForm {
     this.patch({ categoryId: value ?? null });
   }
 
-  /** Rewrites the amount's sign, which is all the debit/credit selector is. */
+  /**
+   * Rewrites the amount's sign, which is all the debit/credit selector is.
+   * An empty amount stays empty rather than becoming a bare `-`: that lone
+   * sign character used to sit in the field un-selected, so a caret placed
+   * before it couldn't type past it (`docs/spec/06-entries.md`).
+   */
   protected setDebit(debit: boolean): void {
     const magnitude = this.draft().amount.trim().replace(/^-/, '');
-    this.patch({ amount: debit ? `-${magnitude}` : magnitude });
+    this.patch({ amount: magnitude === '' ? magnitude : debit ? `-${magnitude}` : magnitude });
   }
 
   protected patch(changes: Partial<EntryDraft>): void {
