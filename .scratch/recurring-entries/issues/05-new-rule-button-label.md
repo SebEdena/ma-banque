@@ -4,6 +4,6 @@
 
 **Blocked by:** None — can start immediately
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] The create-rule button's label reads exactly "Nouvelle"
