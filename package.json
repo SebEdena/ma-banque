@@ -12,6 +12,9 @@
     "lint:css": "stylelint \"src/**/*.css\"",
     "lint:css:fix": "stylelint \"src/**/*.css\" --fix",
     "e2e": "wdio run wdio.conf.ts --tsConfigPath=./e2e/tsconfig.json",
+    "tauri": "tauri",
+    "tauri:build:debug": "tauri build --debug --no-bundle",
+    "tauri:build:e2e": "tauri build --debug --no-bundle --config src-tauri/tauri.e2e.conf.json",
     "prepare": "husky"
   },
   "private": true,

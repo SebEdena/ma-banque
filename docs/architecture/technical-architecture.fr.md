@@ -47,13 +47,13 @@ Un workspace multi-crates apporterait une frontière de compilation plus stricte
 
 ### 1.6 Données locales de dev
 
-En build debug (`cargo tauri dev`, ainsi que le build `--debug` utilisé par
+En build debug (`npm run tauri dev`, ainsi que le build `--debug` utilisé par
 la suite e2e), le fichier pointeur du dossier de données et le dossier
 `saves/` par défaut sont conservés sous `.dev-data/` à la racine du repo au
 lieu des répertoires config/data standards de l'OS — les runs locaux et les
 tests e2e ne touchent jamais (et ne sont jamais pollués par) un vrai profil
 utilisateur. Supprimer `.dev-data/` réinitialise à un état de premier
-lancement. Les builds release (`cargo tauri build`) ne sont pas concernés et
+lancement. Les builds release (`npm run tauri build`) ne sont pas concernés et
 utilisent les vrais répertoires de l'OS.
 
 ---

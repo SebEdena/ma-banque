@@ -111,7 +111,7 @@ pub fn run() {
             }
 
             let (config_dir, data_dir) = if cfg!(debug_assertions) {
-                // Debug builds (`cargo tauri dev`, and the `--debug` build
+                // Debug builds (`npm run tauri dev`, and the `--debug` build
                 // the e2e suite drives) keep their pointer file and default
                 // save folder inside the repo instead of the OS-standard
                 // user directories, so local runs and e2e tests never touch

@@ -2,6 +2,49 @@
 
 Une application de gestion bancaire simple.
 
+## Environment setup
+
+Prerequisites for `## Development` below.
+
+**System packages** (Debian/Ubuntu, matches CI):
+
+```sh
+sudo apt-get install -y libwebkit2gtk-4.1-dev build-essential curl wget file \
+  libxdo-dev libssl-dev libayatana-appindicator3-dev librsvg2-dev
+```
+
+macOS: `xcode-select --install`. Windows: VS Build Tools ("Desktop
+development with C++") + WebView2.
+
+**Node** (24, via [nvm](https://github.com/nvm-sh/nvm)):
+
+```sh
+nvm install 24 && nvm use 24
+```
+
+**Rust** (stable; `src-tauri/Cargo.toml` requires >= 1.77.2):
+
+```sh
+curl --proto '=https' --tlsv1.2 -sSf https://sh.rustup.rs | sh
+rustup component add rustfmt clippy
+```
+
+**Project deps** (also installs the Husky pre-commit hook via `prepare`):
+
+```sh
+npm install
+```
+
+**E2E only:**
+
+```sh
+cargo install tauri-driver
+sudo apt-get install -y webkit2gtk-driver
+```
+
+`npm run tauri` (used below) resolves the `@tauri-apps/cli` devDependency
+once `npm install` has run — no separate global install needed.
+
 ## Development
 
 ### Backend (`src-tauri/`)
@@ -28,13 +71,14 @@ the Tauri shell's webview (`npm start` for dev, `npm run build` for the
 
 ### Local dev data
 
-Debug builds (`cargo tauri dev`, and the `--debug` build the e2e suite runs
-against) keep the data-folder pointer file and the default `saves/` folder
-under `.dev-data/` at the repo root instead of the OS-standard user config/data
-directories — local runs and e2e tests never touch (or get polluted by) a
-real user profile. Delete `.dev-data/` to reset to a clean first-launch state.
-Release builds (`cargo tauri build`) are unaffected and use the real OS
-directories. See `src-tauri/src/lib.rs`'s `.setup()` hook.
+Debug builds (`npm run tauri dev`, and the `--debug` build the e2e suite
+runs against) keep the data-folder pointer file and the default `saves/`
+folder under `.dev-data/` at the repo root instead of the OS-standard user
+config/data directories — local runs and e2e tests never touch (or get
+polluted by) a real user profile. Delete `.dev-data/` to reset to a clean
+first-launch state. Release builds (`npm run tauri build`) are unaffected
+and use the real OS directories. See `src-tauri/src/lib.rs`'s `.setup()`
+hook.
 
 ### Commands
 
@@ -43,7 +87,7 @@ All commands run from the repo root unless noted otherwise.
 **Run the app locally (dev, hot-reload, dev-tools)**
 
 ```sh
-cd src-tauri && cargo tauri dev
+npm run tauri dev
 ```
 
 Starts Angular (`npm start`) and opens the Tauri window pointed at it, per
@@ -66,7 +110,7 @@ seeded with fixture accounts you can create/archive/unarchive/delete
 interactively. It's for eyeballing a screen's layout/styling quickly, e.g.
 against `docs/design/design.html` — it has no real persistence (state resets
 on reload) and doesn't exercise the Rust backend at all, so it's not a
-substitute for `cargo tauri dev` or the e2e suite when what you're
+substitute for `npm run tauri dev` or the e2e suite when what you're
 verifying is actual behavior rather than appearance. The mock code is
 gated behind `src/environments/environment.ts`'s `mockBackend` flag and is
 excluded entirely from `npm run build`'s production bundle (dead-code
@@ -96,20 +140,20 @@ cargo clippy -- -D warnings
 ```sh
 cargo install tauri-driver                       # once
 sudo apt-get install -y webkit2gtk-driver         # once, Linux only
-cd src-tauri && cargo tauri build --debug --no-bundle   # compiles the binary wdio drives
+npm run tauri:build:debug                        # compiles the binary wdio drives
 npm run e2e
 ```
 
 **Debug build without the dev server** (matches what the e2e suite runs against)
 
 ```sh
-cd src-tauri && cargo tauri build --debug --no-bundle
+npm run tauri:build:debug
 ```
 
 Plain `cargo build`/`cargo run` still work for compiling the crate, but the
 resulting binary tries to connect to `devUrl` (`localhost:4200`) instead of
-loading a bundled frontend — use `cargo tauri build --debug --no-bundle` or
-`cargo tauri dev` instead when you need a working window.
+loading a bundled frontend — use `npm run tauri:build:debug` or
+`npm run tauri dev` instead when you need a working window.
 
 **Pre-commit hooks**
 

@@ -71,14 +71,14 @@ jobs:
           & "$HOME/.cargo/bin/msedgedriver-tool.exe"
           $PWD.Path >> $env:GITHUB_PATH
       - name: Build debug binary (no bundle)
-        working-directory: src-tauri
-        # Overrides beforeBuildCommand to build the frontend with Angular's
-        # development configuration instead of the default production one.
-        # That flips isDevMode() true, which is what gates loading
-        # @wdio/tauri-plugin in src/main.ts — without this the e2e run would
-        # build the same frontend bundle as a release, and the plugin (along
-        # with tauri_plugin_wdio's execute()/mock() API) would never activate.
-        run: npx tauri build --debug --no-bundle --config '{"build":{"beforeBuildCommand":"npm run build -- --configuration development"}}'
+        # src-tauri/tauri.e2e.conf.json overrides beforeBuildCommand to build
+        # the frontend with Angular's development configuration instead of
+        # the default production one. That flips isDevMode() true, which is
+        # what gates loading @wdio/tauri-plugin in src/main.ts — without this
+        # the e2e run would build the same frontend bundle as a release, and
+        # the plugin (along with tauri_plugin_wdio's execute()/mock() API)
+        # would never activate.
+        run: npm run tauri:build:e2e
       - name: Work around WebView2 150 elevated-host remote-debugging-port regression
         # windows-latest runners execute elevated (admin). WebView2 Runtime 150
         # deliberately ignores WEBVIEW2_ADDITIONAL_BROWSER_ARGUMENTS and HKCU policy
