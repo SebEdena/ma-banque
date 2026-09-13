@@ -10,7 +10,7 @@ Scope:
 
 **Blocked by:** None — can start immediately (independent of 05)
 
-**Status:** ready-for-agent
+**Status:** done
 
 - [ ] Frequency accepts a Daily value end to end: form, persisted rule, occurrence generation, and schedule summaries
 - [ ] Schedule row shows interval-then-unit order, phrased "Tous les X jours/mois/années"
