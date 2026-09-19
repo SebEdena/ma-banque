@@ -1,7 +1,14 @@
 import { Component, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { AmountInput, formatAmountInput, parseAmount, withDebitSign } from './amount-input';
+import {
+  AmountInput,
+  formatAmountInput,
+  isDebitSelected,
+  parseAmount,
+  withDebitSign,
+  withPendingSign,
+} from './amount-input';
 
 @Component({
   selector: 'app-amount-input-host',
@@ -166,5 +173,37 @@ describe('withDebitSign', () => {
     expect(withDebitSign('', true)).toBe('');
     expect(withDebitSign('', false)).toBe('');
     expect(withDebitSign('-', true)).toBe('');
+  });
+});
+
+describe('isDebitSelected', () => {
+  it('reads the sign off a non-empty amount, ignoring the pending flag', () => {
+    expect(isDebitSelected('-750', false)).toBe(true);
+    expect(isDebitSelected('750', true)).toBe(false);
+  });
+
+  it('falls back to the pending flag for an empty amount', () => {
+    // The regression this covers: with nothing typed yet there is no sign to
+    // read, so a click on Débit used to have no visible effect at all — it
+    // looked unselectable rather than merely unsaveable.
+    expect(isDebitSelected('', false)).toBe(false);
+    expect(isDebitSelected('', true)).toBe(true);
+    expect(isDebitSelected('   ', true)).toBe(true);
+  });
+});
+
+describe('withPendingSign', () => {
+  it('carries a pending débit choice onto the first magnitude typed', () => {
+    expect(withPendingSign('', '750', true)).toBe('-750');
+  });
+
+  it('does nothing once the field already has a magnitude of its own', () => {
+    expect(withPendingSign('-750', '-7502', true)).toBe('-7502');
+    expect(withPendingSign('750', '7502', true)).toBe('7502');
+  });
+
+  it('does nothing without a pending débit choice, or onto an empty edit', () => {
+    expect(withPendingSign('', '750', false)).toBe('750');
+    expect(withPendingSign('', '', true)).toBe('');
   });
 });

@@ -156,9 +156,8 @@ describe('EntryForm', () => {
 
     // No stray sign character is written — the field stays empty rather than
     // landing on a lone `-` a caret placed before it couldn't type around.
+    // (The next test covers what the first digit typed afterwards gets.)
     expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('');
-    type(fixture, 'entry-form-amount', '30');
-    expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('30');
   });
 
   it('leaves an empty amount empty when Crédit is picked, so every caret position stays typable', async () => {
@@ -169,6 +168,28 @@ describe('EntryForm', () => {
     expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('');
     type(fixture, 'entry-form-amount', '45');
     expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('45');
+  });
+
+  it('lets Débit be picked on an empty amount, and carries the sign onto the first digit typed', async () => {
+    const fixture = await createEntryForm(draft({ amount: '' }));
+
+    // Crédit is the default with nothing typed yet.
+    expect(one(fixture, 'entry-form-credit')?.dataset['selected']).toBe('true');
+    expect(one(fixture, 'entry-form-debit')?.getAttribute('aria-pressed')).toBe('false');
+
+    (one(fixture, 'entry-form-debit') as HTMLButtonElement).click();
+    fixture.detectChanges();
+
+    // Débit reads as picked immediately — not just once a sign shows up in
+    // the (still empty) field — and the field itself stays untouched.
+    expect(one(fixture, 'entry-form-debit')?.dataset['selected']).toBe('true');
+    expect(one(fixture, 'entry-form-debit')?.getAttribute('aria-pressed')).toBe('true');
+    expect(one(fixture, 'entry-form-credit')?.getAttribute('aria-pressed')).toBe('false');
+    expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('');
+
+    type(fixture, 'entry-form-amount', '30');
+    expect((one(fixture, 'entry-form-amount') as HTMLInputElement).value).toBe('-30');
+    expect(one(fixture, 'entry-form-debit')?.dataset['selected']).toBe('true');
   });
 
   it('keeps sign-toggling a non-empty amount unchanged', async () => {
