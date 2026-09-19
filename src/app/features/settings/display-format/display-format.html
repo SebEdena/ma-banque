@@ -3,41 +3,91 @@
     <h2 class="mb-2 text-[12.5px] font-semibold text-muted-foreground">
       Date · aperçu {{ exampleDate | dateFormat: displaySettings.dateFormat() }}
     </h2>
-    <app-option-toggle-group
-      [options]="dateFormatOptions"
-      [active]="displaySettings.dateFormat()"
-      (optionSelected)="selectDateFormat($event)"
-    />
+    <hlm-select
+      [value]="displaySettings.dateFormat()"
+      [itemToString]="dateFormatItemToString"
+      (valueChange)="selectDateFormat($event)"
+    >
+      <hlm-select-trigger
+        buttonId="display-format-date"
+        data-testid="display-format-date"
+        aria-label="Format de date"
+      >
+        <hlm-select-value />
+      </hlm-select-trigger>
+      <hlm-select-content *hlmSelectPortal class="w-max min-w-[220px] p-1">
+        @for (option of dateFormatOptions; track option.value) {
+          <hlm-select-item
+            class="cursor-pointer font-semibold"
+            [attr.data-testid]="'display-format-date-option-' + option.value"
+            [value]="option.value"
+          >
+            <span class="flex-1 whitespace-nowrap">{{ option.label }}</span>
+            <span class="text-muted-foreground text-xs font-normal">{{ option.tooltip }}</span>
+          </hlm-select-item>
+        }
+      </hlm-select-content>
+    </hlm-select>
   </div>
 
   <div class="border-b py-5">
     <h2 class="mb-2 text-[12.5px] font-semibold text-muted-foreground">
       Monétaire · aperçu {{ exampleAmount | currencyFormat: displaySettings.currencyFormat() }}
     </h2>
-    <app-option-toggle-group
-      [options]="currencyFormatOptions"
-      [active]="displaySettings.currencyFormat()"
-      (optionSelected)="selectCurrencyFormat($event)"
-    />
+    <hlm-select
+      [value]="displaySettings.currencyFormat()"
+      [itemToString]="currencyFormatItemToString"
+      (valueChange)="selectCurrencyFormat($event)"
+    >
+      <hlm-select-trigger
+        buttonId="display-format-currency"
+        data-testid="display-format-currency"
+        aria-label="Format monétaire"
+      >
+        <hlm-select-value />
+      </hlm-select-trigger>
+      <hlm-select-content *hlmSelectPortal class="w-max min-w-[220px] p-1">
+        @for (option of currencyFormatOptions; track option.value) {
+          <hlm-select-item
+            class="cursor-pointer font-semibold"
+            [attr.data-testid]="'display-format-currency-option-' + option.value"
+            [value]="option.value"
+          >
+            <span class="flex-1 whitespace-nowrap">{{ option.label }}</span>
+            <span class="text-muted-foreground text-xs font-normal">{{ option.tooltip }}</span>
+          </hlm-select-item>
+        }
+      </hlm-select-content>
+    </hlm-select>
   </div>
 
   <div class="pt-5">
     <h2 class="mb-2 text-[12.5px] font-semibold text-muted-foreground">Thème</h2>
-    <div class="flex gap-1 rounded-[10px] bg-muted p-1">
-      @for (option of themeOptions; track option.value) {
-        <button
-          type="button"
-          class="flex flex-1 items-center justify-center gap-1.5 rounded-lg py-2.5 text-[13px] font-semibold"
-          [class]="{
-            'bg-card text-foreground shadow-sm': theme.mode() === option.value,
-            'text-muted-foreground': theme.mode() !== option.value,
-          }"
-          (click)="selectTheme(option.value)"
-        >
-          <ng-icon [name]="option.icon" size="15" />
-          {{ option.label }}
-        </button>
-      }
-    </div>
+    <hlm-select
+      [value]="theme.mode()"
+      [itemToString]="themeItemToString"
+      (valueChange)="selectTheme($event)"
+    >
+      <hlm-select-trigger
+        buttonId="display-format-theme"
+        data-testid="display-format-theme"
+        aria-label="Thème"
+      >
+        <ng-icon [name]="selectedThemeIcon()" size="15" class="text-muted-foreground" />
+        <hlm-select-value />
+      </hlm-select-trigger>
+      <hlm-select-content *hlmSelectPortal class="w-max min-w-[180px] p-1">
+        @for (option of themeOptions; track option.value) {
+          <hlm-select-item
+            class="cursor-pointer font-semibold"
+            [attr.data-testid]="'display-format-theme-option-' + option.value"
+            [value]="option.value"
+          >
+            <ng-icon [name]="option.icon" size="14" />
+            {{ option.label }}
+          </hlm-select-item>
+        }
+      </hlm-select-content>
+    </hlm-select>
   </div>
 </section>
