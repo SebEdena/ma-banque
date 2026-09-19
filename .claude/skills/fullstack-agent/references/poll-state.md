@@ -7,7 +7,7 @@ The `ScheduleWakeup` polling loop in `actions/review/02-poll-pr.md` only runs wh
 
 ## File
 
-One file per feature, next to its issue tracker: `.scratch/<feature>/pr-poll-state.json`.
+One file per feature, inside that feature's own worktree (not the primary worktree's checkout): `<worktree_path>/.scratch/<feature>/pr-poll-state.json`. It lives on the feature's branch, not `main`'s, specifically so the primary worktree stays free to check out other branches without dirtying or hiding this state — `worktree_path` comes from `02-resolve-state.md`.
 
 ```json
 {
@@ -26,7 +26,8 @@ One file per feature, next to its issue tracker: `.scratch/<feature>/pr-poll-sta
 
 - Read this file at the start of every sweep; treat a missing file as an untouched PR (first-ever sweep), not an error.
 - Write the updated file **after** processing a sweep's comments but **before** scheduling the next wakeup — ordering the write before the reschedule means a crash always leaves the state at-or-behind reality, never ahead of it, so the failure mode is "a comment gets re-surfaced" (harmless, just re-shown to the user) rather than "a comment gets silently skipped."
-- Delete the file when the PR is merged or closed (`actions/review/04-handle-merge.md`) — a closed PR's state has no future sweep to serve, and leaving it around risks a stale `pr` field being read if the branch is ever reused.
+- Delete the file when the PR is merged or closed (`actions/review/04-handle-merge.md`) — a closed PR's state has no future sweep to serve, and leaving it around risks a stale `pr` field being read if the branch is ever reused. Note that a merged PR's worktree is also deleted at that point, which removes the file as a side effect; only a closed-without-merge PR needs an explicit delete.
 - This file is manager-internal bookkeeping, not part of `.scratch/<feature>/notes.md` (which is cross-issue implementation notes for agents, a different audience).
+- Never write this file into the primary worktree's `.scratch/<feature>/` — that copy tracks whatever branch is currently checked out there (typically `main`, pre-implementation) and is not this feature's state.
 
 Used by: `actions/review/02-poll-pr.md`, `actions/review/04-handle-merge.md`, `references/resuming.md`.
