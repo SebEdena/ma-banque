@@ -7,6 +7,7 @@ import {
   input,
   model,
   output,
+  signal,
   viewChild,
 } from '@angular/core';
 import { FieldTree, form, requiredError, schema, submit, validate } from '@angular/forms/signals';
@@ -20,7 +21,13 @@ import { HlmTooltipImports } from '@spartan-ng/helm/tooltip';
 import { Category } from '@data/categories/categories-api';
 import type { DateFormat } from '@core/display-settings/display-settings.types';
 import { formatDate, parseFormattedDate } from '@core/display-settings/format';
-import { AmountInput, parseAmount, withDebitSign } from '@shared/amount-input/amount-input';
+import {
+  AmountInput,
+  isDebitSelected,
+  parseAmount,
+  withDebitSign,
+  withPendingSign,
+} from '@shared/amount-input/amount-input';
 import { parseIsoDate, toIsoDate } from '@shared/iso-date/iso-date';
 import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
 import { AMOUNT_INVALID_MESSAGE, LABEL_REQUIRED_MESSAGE } from '../entry-field-messages';
@@ -163,7 +170,17 @@ export class EntryForm {
   protected readonly labelError = computed(() => this.messageOf(this.fields.label));
   protected readonly amountError = computed(() => this.messageOf(this.fields.amount));
 
-  protected readonly isDebit = computed(() => this.draft().amount.trim().startsWith('-'));
+  /**
+   * The last Débit/Crédit click made while the amount had no magnitude —
+   * `isDebitSelected`'s fallback for when there's no sign in the text to
+   * read. See its doc comment for why this exists as a separate signal
+   * rather than folding into `draft().amount`.
+   */
+  private readonly pendingDebit = signal(false);
+
+  protected readonly isDebit = computed(() =>
+    isDebitSelected(this.draft().amount, this.pendingDebit()),
+  );
 
   /** The swatch shown next to the category select. */
   protected readonly categorySwatch = computed<RowCategory>(() => {
@@ -285,7 +302,17 @@ export class EntryForm {
 
   /** Rewrites the amount's sign, which is all the debit/credit selector is. */
   protected setDebit(debit: boolean): void {
+    this.pendingDebit.set(debit);
     this.patch({ amount: withDebitSign(this.draft().amount, debit) });
+  }
+
+  /**
+   * The amount field's own input handler — carries a `pendingDebit` choice
+   * onto the first digit typed into a field that was empty, same as
+   * `withDebitSign` already does for the initial `-` on a fresh débit row.
+   */
+  protected onAmountInput(value: string): void {
+    this.patch({ amount: withPendingSign(this.draft().amount, value, this.pendingDebit()) });
   }
 
   protected patch(changes: Partial<EntryDraft>): void {

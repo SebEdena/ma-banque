@@ -57,6 +57,43 @@ export function withDebitSign(amountText: string, debit: boolean): string {
 }
 
 /**
+ * Whether the Débit/Crédit selector should read as débit. While the amount
+ * has a magnitude its sign is the only source of truth (`withDebitSign`'s
+ * doc comment). While it doesn't, there is no sign to read — but the toggle
+ * still has to answer *something*, and "always crédit" was the earlier bug:
+ * clicking Débit on an empty field wrote no sign (correctly, per
+ * `withDebitSign`) and so visibly did nothing, which read as the button
+ * being unselectable. `pendingDebit` is the component's own signal recording
+ * the last explicit click made while the field had no magnitude — it has no
+ * effect on what gets saved (an empty amount is invalid regardless) or on
+ * the field's text until a digit gives the sign somewhere to attach, via
+ * `withPendingSign` below.
+ */
+export function isDebitSelected(amountText: string, pendingDebit: boolean): boolean {
+  const magnitude = amountText.trim();
+  return magnitude === '' ? pendingDebit : magnitude.startsWith('-');
+}
+
+/**
+ * Carries a `pendingDebit` choice onto the first magnitude typed into a
+ * field that was empty — the same "preselection" `withDebitSign`'s own doc
+ * comment describes for the initial `-` on a fresh débit row, generalized to
+ * a later click. Leaves `nextText` untouched once the field already has a
+ * magnitude of its own: from then on the text is the only source of the
+ * sign again, same as `withDebitSign`.
+ */
+export function withPendingSign(
+  previousText: string,
+  nextText: string,
+  pendingDebit: boolean,
+): string {
+  if (previousText.trim() !== '' || !pendingDebit) {
+    return nextText;
+  }
+  return withDebitSign(nextText, true);
+}
+
+/**
  * Constrains a plain `<input>` to amount text without owning its value —
  * `type="number"` can't render an in-progress amount (a lone `-`, `12,`
  * mid-decimal) since its value sanitization algorithm reads those back as

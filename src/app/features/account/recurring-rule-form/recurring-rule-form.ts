@@ -1,4 +1,12 @@
-import { ChangeDetectionStrategy, Component, computed, input, model, output } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  computed,
+  input,
+  model,
+  output,
+  signal,
+} from '@angular/core';
 import { FieldTree, form, requiredError, schema, submit, validate } from '@angular/forms/signals';
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideX } from '@ng-icons/lucide';
@@ -13,8 +21,10 @@ import {
 import {
   AmountInput,
   formatAmountInput,
+  isDebitSelected,
   parseAmount,
   withDebitSign,
+  withPendingSign,
 } from '@shared/amount-input/amount-input';
 import { todayIso } from '@shared/iso-date/iso-date';
 import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
@@ -144,7 +154,12 @@ export class RecurringRuleForm {
   protected readonly intervalError = computed(() => this.messageOf(this.fields.interval));
   protected readonly endDateError = computed(() => this.messageOf(this.fields.endDate));
 
-  protected readonly isDebit = computed(() => this.draft().amount.trim().startsWith('-'));
+  /** See `EntryForm`'s own `pendingDebit` — same fallback, same reasoning. */
+  private readonly pendingDebit = signal(false);
+
+  protected readonly isDebit = computed(() =>
+    isDebitSelected(this.draft().amount, this.pendingDebit()),
+  );
   protected readonly frequencies = FREQUENCIES;
 
   private readonly categoriesById = computed(
@@ -163,7 +178,13 @@ export class RecurringRuleForm {
 
   /** Rewrites the amount's sign, which is all the débit/crédit selector is. */
   protected setDebit(debit: boolean): void {
+    this.pendingDebit.set(debit);
     this.patch({ amount: withDebitSign(this.draft().amount, debit) });
+  }
+
+  /** See `EntryForm.onAmountInput` — same reasoning, same helper. */
+  protected onAmountInput(value: string): void {
+    this.patch({ amount: withPendingSign(this.draft().amount, value, this.pendingDebit()) });
   }
 
   /**

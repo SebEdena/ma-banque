@@ -97,7 +97,7 @@
         aria-label="Montant de l’écriture périodique"
         class="min-w-0 flex-1 rounded-[10px] bg-muted px-3 py-2 text-right font-mono text-sm font-semibold outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50"
         [value]="draft().amount"
-        (input)="patch({ amount: $any($event.target).value })"
+        (input)="onAmountInput($any($event.target).value)"
       />
     </div>
     @if (amountError(); as message) {

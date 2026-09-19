@@ -43,6 +43,13 @@ async function click(fixture: ComponentFixture<unknown>, testId: string): Promis
   await settle(fixture);
 }
 
+function type(fixture: ComponentFixture<unknown>, testId: string, value: string): void {
+  const input = one(fixture, testId) as HTMLInputElement;
+  input.value = value;
+  input.dispatchEvent(new Event('input'));
+  fixture.detectChanges();
+}
+
 describe('RecurringRuleForm', () => {
   it('emits the parsed wire payload once the draft is valid', async () => {
     const fixture = await createForm({ ...emptyDraft(), label: 'Loyer', amount: '-750' });
@@ -87,6 +94,22 @@ describe('RecurringRuleForm', () => {
     // No stray sign character is written — the field stays empty rather than
     // landing on a lone `-` a caret placed before it couldn't type around.
     expect((one(fixture, 'recurring-form-amount') as HTMLInputElement).value).toBe('');
+  });
+
+  it('lets Débit be picked on an empty amount, and carries the sign onto the first digit typed', async () => {
+    const fixture = await createForm({ ...emptyDraft(), amount: '' });
+
+    expect(one(fixture, 'recurring-form-debit')?.getAttribute('aria-pressed')).toBe('false');
+
+    await click(fixture, 'recurring-form-debit');
+
+    // Débit reads as picked immediately, even though the still-empty field
+    // carries no sign of its own to read it back from.
+    expect(one(fixture, 'recurring-form-debit')?.getAttribute('aria-pressed')).toBe('true');
+    expect(one(fixture, 'recurring-form-credit')?.getAttribute('aria-pressed')).toBe('false');
+
+    type(fixture, 'recurring-form-amount', '750');
+    expect((one(fixture, 'recurring-form-amount') as HTMLInputElement).value).toBe('-750');
   });
 
   it('emits cancelled without touching the draft', async () => {
