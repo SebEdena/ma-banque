@@ -2,6 +2,49 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.10.0] - 2026-09-19
+
+### Bug Fixes
+
+- Show pretty display name in Windows installer
+- Patch critical XSS vuln in maplibre-gl via unovis bump
+- Bump tauri-plugin-updater to match npm package version
+- Polyfill SVG transform baseVal for jsdom donut animations
+- Stop writing a bare sign into an empty amount on toggle
+- Stop writing a bare sign on debit toggle too
+- Let Débit be picked while the amount is empty
+- Shorten create-rule button label to "Nouvelle"
+- Start-date-only schedule text, shared date picker
+- Keep reconciled entries visible by default in Pointage panel
+- Invert Pointage filter to an inclusion toggle
+- Widen the reconcile checkbox's hit area, extract its filter
+- Match reconcile checkbox size to delete button
+
+### Documentation
+
+- Record issue 06 cross-issue notes
+
+### Features
+
+- Add reachable edit-account entry points
+- Add daily frequency, reorder schedule field, numeric interval input
+
+### Miscellaneous Tasks
+
+- Invoke tauri via npm script instead of cargo tauri
+- Pin empty default features for tauri and tauri-build
+- Ignore worktrees folder
+- Mark ticket 06 done
+
+### Refactor
+
+- Replace sidebar section nav with a select
+- Use select controls for the Affichage row pickers
+
+### Reverts
+
+- Restore sidebar section nav, restyle with dividers
+
 ## [0.9.0] - 2026-08-19
 
 ### Bug Fixes
