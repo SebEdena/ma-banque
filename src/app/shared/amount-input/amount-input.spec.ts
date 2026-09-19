@@ -1,7 +1,7 @@
 import { Component, signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 
-import { AmountInput, formatAmountInput, parseAmount } from './amount-input';
+import { AmountInput, formatAmountInput, parseAmount, withDebitSign } from './amount-input';
 
 @Component({
   selector: 'app-amount-input-host',
@@ -153,5 +153,18 @@ describe('formatAmountInput', () => {
 
   it('round-trips through parseAmount back to the same number', () => {
     expect(parseAmount(formatAmountInput(-25.5))).toBe(-25.5);
+  });
+});
+
+describe('withDebitSign', () => {
+  it('rewrites a magnitude’s sign in both directions', () => {
+    expect(withDebitSign('750', true)).toBe('-750');
+    expect(withDebitSign('-750', false)).toBe('750');
+  });
+
+  it('leaves an empty amount empty instead of writing a bare sign', () => {
+    expect(withDebitSign('', true)).toBe('');
+    expect(withDebitSign('', false)).toBe('');
+    expect(withDebitSign('-', true)).toBe('');
   });
 });

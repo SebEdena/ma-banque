@@ -20,7 +20,7 @@ import { HlmTooltipImports } from '@spartan-ng/helm/tooltip';
 import { Category } from '@data/categories/categories-api';
 import type { DateFormat } from '@core/display-settings/display-settings.types';
 import { formatDate, parseFormattedDate } from '@core/display-settings/format';
-import { AmountInput, parseAmount } from '@shared/amount-input/amount-input';
+import { AmountInput, parseAmount, withDebitSign } from '@shared/amount-input/amount-input';
 import { parseIsoDate, toIsoDate } from '@shared/iso-date/iso-date';
 import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
 import { AMOUNT_INVALID_MESSAGE, LABEL_REQUIRED_MESSAGE } from '../entry-field-messages';
@@ -283,15 +283,9 @@ export class EntryForm {
     this.patch({ categoryId: value ?? null });
   }
 
-  /**
-   * Rewrites the amount's sign, which is all the debit/credit selector is.
-   * An empty amount stays empty rather than becoming a bare `-`: that lone
-   * sign character used to sit in the field un-selected, so a caret placed
-   * before it couldn't type past it (`docs/spec/06-entries.md`).
-   */
+  /** Rewrites the amount's sign, which is all the debit/credit selector is. */
   protected setDebit(debit: boolean): void {
-    const magnitude = this.draft().amount.trim().replace(/^-/, '');
-    this.patch({ amount: magnitude === '' ? magnitude : debit ? `-${magnitude}` : magnitude });
+    this.patch({ amount: withDebitSign(this.draft().amount, debit) });
   }
 
   protected patch(changes: Partial<EntryDraft>): void {
