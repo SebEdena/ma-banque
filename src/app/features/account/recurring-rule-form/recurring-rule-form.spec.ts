@@ -79,6 +79,16 @@ describe('RecurringRuleForm', () => {
     expect((one(fixture, 'recurring-form-amount') as HTMLInputElement).value).toBe('-750');
   });
 
+  it('leaves an empty amount empty when Débit is picked, so every caret position stays typable', async () => {
+    const fixture = await createForm({ ...emptyDraft(), amount: '' });
+
+    await click(fixture, 'recurring-form-debit');
+
+    // No stray sign character is written — the field stays empty rather than
+    // landing on a lone `-` a caret placed before it couldn't type around.
+    expect((one(fixture, 'recurring-form-amount') as HTMLInputElement).value).toBe('');
+  });
+
   it('emits cancelled without touching the draft', async () => {
     const fixture = await createForm();
     let cancelled = 0;

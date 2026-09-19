@@ -39,6 +39,24 @@ export function formatAmountInput(amount: number): string {
 }
 
 /**
+ * Rewrites an amount field's text to carry the given sign — what the
+ * Débit/Crédit selector is, in both `EntryForm` and `RecurringRuleForm`: a
+ * view over the amount text's leading `-` rather than a second piece of
+ * state. An empty field stays empty rather than becoming a bare `-`: a lone
+ * sign character with no magnitude used to sit in the field un-selectable,
+ * blocking typing for any caret placed before it, and made the toggle look
+ * like it had "picked" a side before the user had entered anything. Shared
+ * here — where `parseAmount`/`formatAmountInput` already live — rather than
+ * as a directive: there's no DOM/host behavior to attach, just a pure
+ * rewrite of text the caller already owns as a signal, so a plain function
+ * is the shallower fit.
+ */
+export function withDebitSign(amountText: string, debit: boolean): string {
+  const magnitude = amountText.trim().replace(/^-/, '');
+  return magnitude === '' ? magnitude : debit ? `-${magnitude}` : magnitude;
+}
+
+/**
  * Constrains a plain `<input>` to amount text without owning its value —
  * `type="number"` can't render an in-progress amount (a lone `-`, `12,`
  * mid-decimal) since its value sanitization algorithm reads those back as

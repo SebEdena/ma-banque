@@ -10,7 +10,12 @@ import {
   RecurringRule,
   RecurringRuleInput,
 } from '@data/recurring-rules/recurring-rules-api';
-import { AmountInput, formatAmountInput, parseAmount } from '@shared/amount-input/amount-input';
+import {
+  AmountInput,
+  formatAmountInput,
+  parseAmount,
+  withDebitSign,
+} from '@shared/amount-input/amount-input';
 import { todayIso } from '@shared/iso-date/iso-date';
 import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
 import { AMOUNT_INVALID_MESSAGE, LABEL_REQUIRED_MESSAGE } from '../entry-field-messages';
@@ -158,8 +163,7 @@ export class RecurringRuleForm {
 
   /** Rewrites the amount's sign, which is all the débit/crédit selector is. */
   protected setDebit(debit: boolean): void {
-    const magnitude = this.draft().amount.trim().replace(/^-/, '');
-    this.patch({ amount: debit ? `-${magnitude}` : magnitude });
+    this.patch({ amount: withDebitSign(this.draft().amount, debit) });
   }
 
   /**
