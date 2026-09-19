@@ -50,7 +50,7 @@
   "plugins": {
     "updater": {
       "endpoints": ["https://github.com/SebEdena/ma-banque/releases/latest/download/latest.json"],
-      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IDJBOUFBMzE0NEY4RDUwMzIKUldReVVJMVBGS09hS2xQeUphai9JdkFlSU9GSjEvYWIyY1liNStJaXZMUGlKWDhvVGhXdmd2cG4K"
+      "pubkey": "dW50cnVzdGVkIGNvbW1lbnQ6IG1pbmlzaWduIHB1YmxpYyBrZXk6IEVFMDZFMEIwOEUzOTYwOEEKUldTS1lEbU9zT0FHN245Rzc0eld6YmhBL0ovUlF0ekEyQ2QxeTVLeGhRUWNkMEZKMWlQR1plb1cK"
     }
   }
 }
