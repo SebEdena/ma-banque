@@ -72,6 +72,6 @@ jobs:
           tagName: ${{ inputs.tag || github.ref_name }}
           releaseName: "Ma Banque ${{ inputs.tag || github.ref_name }}"
           releaseBody: ${{ steps.release-notes.outputs.content }}
-          releaseDraft: true
+          releaseDraft: false
           prerelease: false
           projectPath: src-tauri
