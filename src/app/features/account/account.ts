@@ -186,17 +186,23 @@ export class Account {
    */
   protected readonly panelOpen = signal(false);
 
-  /** The panel checkbox's own value, kept even while the panel is closed. */
-  protected readonly unreconciledOnly = signal(false);
+  /**
+   * The panel checkbox's own value, kept even while the panel is closed.
+   * `true` ("Inclure lignes pointées") is the default — reconciled entries
+   * stay visible until the user unticks it to narrow down to the
+   * still-unreconciled ones.
+   */
+  protected readonly includeReconciled = signal(true);
 
   /**
-   * The filter as the query actually sees it. Collapsing the panel disables
-   * the filter's effect whatever the checkbox says — expressed here as one
-   * expression rather than as a flag some close handler must remember to
-   * reset.
+   * The filter as the query actually sees it — `true` here means "hide
+   * reconciled entries", the inverse of `includeReconciled`. Collapsing the
+   * panel disables the filter's effect whatever the checkbox says —
+   * expressed here as one expression rather than as a flag some close
+   * handler must remember to reset.
    */
   protected readonly filterUnreconciled = computed(
-    () => this.panelOpen() && this.unreconciledOnly(),
+    () => this.panelOpen() && !this.includeReconciled(),
   );
 
   /** The panel's figures, fetched when it opens and after anything that moves them. */

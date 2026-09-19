@@ -121,21 +121,21 @@
     role="checkbox"
     data-testid="reconciliation-filter"
     data-accent-solid
-    [attr.aria-checked]="unreconciledOnly()"
-    [attr.data-checked]="unreconciledOnly()"
+    [attr.aria-checked]="includeReconciled()"
+    [attr.data-checked]="includeReconciled()"
     [disabled]="filterDisabled()"
     class="flex items-center gap-2 text-[13px] font-semibold text-muted-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
-    (click)="unreconciledOnlyToggled.emit()"
+    (click)="includeReconciledToggled.emit()"
   >
     <span
       class="flex size-[18px] items-center justify-center rounded-[5px] border-[1.5px] text-white"
-      [style.background-color]="unreconciledOnly() ? accountColor() : 'transparent'"
-      [style.border-color]="unreconciledOnly() ? accountColor() : ''"
+      [style.background-color]="includeReconciled() ? accountColor() : 'transparent'"
+      [style.border-color]="includeReconciled() ? accountColor() : ''"
     >
-      @if (unreconciledOnly()) {
+      @if (includeReconciled()) {
         <ng-icon name="lucideCheck" size="12" />
       }
     </span>
-    Non pointées uniquement
+    Inclure lignes pointées
   </button>
 </div>

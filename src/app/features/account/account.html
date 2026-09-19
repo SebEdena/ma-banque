@@ -103,10 +103,10 @@
             [accountColor]="account.color"
             [currencyFormat]="displaySettings.currencyFormat()"
             [dateFormat]="displaySettings.dateFormat()"
-            [unreconciledOnly]="unreconciledOnly()"
+            [includeReconciled]="includeReconciled()"
             (bankBalanceChanged)="onBankBalanceChanged($event)"
             (statementDateChanged)="onStatementDateChanged($event)"
-            (unreconciledOnlyToggled)="unreconciledOnly.set(!unreconciledOnly())"
+            (includeReconciledToggled)="includeReconciled.set(!includeReconciled())"
           />
         }
       </div>

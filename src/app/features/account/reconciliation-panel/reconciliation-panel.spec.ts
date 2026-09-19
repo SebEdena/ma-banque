@@ -27,14 +27,14 @@ function summary(overrides: Partial<ReconciliationSummary> = {}): Reconciliation
 
 async function createPanel(
   overrides: Partial<ReconciliationSummary> = {},
-  unreconciledOnly = true,
+  includeReconciled = true,
 ): Promise<ComponentFixture<ReconciliationPanel>> {
   const fixture = TestBed.createComponent(ReconciliationPanel);
   fixture.componentRef.setInput('summary', summary(overrides));
   fixture.componentRef.setInput('accountColor', '#6366f1');
   fixture.componentRef.setInput('currencyFormat', 'SYMBOL_AFTER');
   fixture.componentRef.setInput('dateFormat', 'DMY');
-  fixture.componentRef.setInput('unreconciledOnly', unreconciledOnly);
+  fixture.componentRef.setInput('includeReconciled', includeReconciled);
   fixture.detectChanges();
   await fixture.whenStable();
   fixture.detectChanges();
@@ -217,7 +217,7 @@ describe('ReconciliationPanel', () => {
   it('emits when the filter checkbox is clicked', async () => {
     const fixture = await createPanel();
     let toggles = 0;
-    fixture.componentInstance.unreconciledOnlyToggled.subscribe(() => (toggles += 1));
+    fixture.componentInstance.includeReconciledToggled.subscribe(() => (toggles += 1));
 
     (one(fixture, 'reconciliation-filter') as HTMLButtonElement).click();
     await settle(fixture);
