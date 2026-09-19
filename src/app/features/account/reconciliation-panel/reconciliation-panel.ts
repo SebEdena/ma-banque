@@ -23,8 +23,9 @@ const BANK_BALANCE_INVALID_MESSAGE = 'Montant invalide';
  * The collapsible _Pointage_ strip above the entries filters (business
  * requirements §4.3): reconciled balance, the bank statement's own balance and
  * cut-off date, and the signed difference between the two with its red/green
- * verdict — plus the "unreconciled only" checkbox that narrows the register
- * while reconciling.
+ * verdict — plus the "Inclure lignes pointées" checkbox, ticked by default,
+ * that narrows the register to the still-unreconciled entries once
+ * unticked.
  *
  * Presentational: it renders the summary it is given and reports what the
  * user did. The panel-open/filter coupling and every backend call live in
@@ -48,13 +49,17 @@ export class ReconciliationPanel {
   readonly currencyFormat = input.required<CurrencyFormat>();
   readonly dateFormat = input.required<DateFormat>();
 
-  /** The checkbox's own value — `Account` owns whether it currently bites. */
-  readonly unreconciledOnly = input.required<boolean>();
+  /**
+   * The checkbox's own value — `Account` owns whether it currently bites.
+   * `true` means reconciled entries stay in the list (the default); unticking
+   * it is what narrows the list to the still-unreconciled ones.
+   */
+  readonly includeReconciled = input.required<boolean>();
 
   /** A bank balance the field read as a number, in major units as typed. */
   readonly bankBalanceChanged = output<number>();
   readonly statementDateChanged = output<string>();
-  readonly unreconciledOnlyToggled = output<void>();
+  readonly includeReconciledToggled = output<void>();
 
   /**
    * The bank-balance field's raw text. Re-seeded whenever a new summary

@@ -193,7 +193,7 @@ Dedicated screen for editing an existing account, distinct from the global setti
 
 - List of the account's entries (paginated, virtual scroll), sorted by default from most recent to oldest.
 - "Reconciliation" area: reconciled balance, bank balance (editable), statement date (editable), delta, red/green indicator. Collapsible panel, **collapsed by default**.
-  - "Unreconciled only" filter checkbox: **unchecked by default when the panel is opened** — already-reconciled entries stay visible until the user opts in — disabled/grayed out if the account has no unreconciled entry. The filter only affects the entries list **while the panel is open** — collapsing the panel disables the filter's effect regardless of the checkbox state.
+  - "Inclure lignes pointées" checkbox: **ticked by default when the panel is opened** — already-reconciled entries stay visible until the user unticks it to narrow the list down to the still-unreconciled entries — disabled/grayed out if the account has no unreconciled entry. The filter only affects the entries list **while the panel is open** — collapsing the panel disables the filter's effect regardless of the checkbox state.
 - Entries are created and edited **inline** in the list: a dedicated row for creating a new entry, and clicking an existing entry turns it into an editable row in place (no separate form or modal). Fields: label, category (with a quick-create shortcut on the fly), date, debit/credit selector synced with the amount, reconciliation checkbox, description, amount.
 - The system entry (opening balance) is shown in the list but **read-only**; editing it happens on the account settings screen (4.2).
 - Utility features:

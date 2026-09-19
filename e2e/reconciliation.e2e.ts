@@ -81,11 +81,11 @@ describe('reconciliation', () => {
       'aria-expanded',
       'true',
     );
-    // Opening the panel no longer force-enables the filter — already-reconciled
-    // entries stay visible until the user opts in.
+    // Opening the panel leaves "Inclure lignes pointées" ticked — already
+    // reconciled entries stay visible until the user opts out.
     await expect($('[data-testid="reconciliation-filter"]')).toHaveAttribute(
       'aria-checked',
-      'false',
+      'true',
     );
     await expect(entryRow(RECONCILED_ENTRY)).toExist();
     await expect(entryRow(PENDING_ENTRY)).toExist();
@@ -94,7 +94,7 @@ describe('reconciliation', () => {
 
     await expect($('[data-testid="reconciliation-filter"]')).toHaveAttribute(
       'aria-checked',
-      'true',
+      'false',
     );
     await expect(entryRow(RECONCILED_ENTRY)).not.toExist();
     await expect(entryRow(PENDING_ENTRY)).toExist();
