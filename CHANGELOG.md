@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.10.2] - 2026-09-19
+
+### Bug Fixes
+
+- Rotate signing keypair
+
 ## [0.10.1] - 2026-09-19
 
 ### Bug Fixes
