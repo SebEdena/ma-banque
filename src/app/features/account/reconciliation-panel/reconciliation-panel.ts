@@ -8,7 +8,7 @@ import {
   signal,
 } from '@angular/core';
 import { NgIcon, provideIcons } from '@ng-icons/core';
-import { lucideCheck, lucideCircleAlert, lucideCircleCheck } from '@ng-icons/lucide';
+import { lucideCircleAlert, lucideCircleCheck } from '@ng-icons/lucide';
 import { HlmDatePickerImports } from '@spartan-ng/helm/date-picker';
 
 import type { CurrencyFormat, DateFormat } from '@core/display-settings/display-settings.types';
@@ -16,6 +16,7 @@ import { formatAmount, formatDate, parseFormattedDate } from '@core/display-sett
 import { ReconciliationSummary } from '@data/reconciliation/reconciliation-api';
 import { AmountInput, formatAmountInput, parseAmount } from '@shared/amount-input/amount-input';
 import { parseIsoDate, toIsoDate } from '@shared/iso-date/iso-date';
+import { ReconciliationFilter } from '../reconciliation-filter/reconciliation-filter';
 
 const BANK_BALANCE_INVALID_MESSAGE = 'Montant invalide';
 
@@ -37,10 +38,10 @@ const BANK_BALANCE_INVALID_MESSAGE = 'Montant invalide';
  */
 @Component({
   selector: 'app-reconciliation-panel',
-  imports: [NgIcon, AmountInput, ...HlmDatePickerImports],
+  imports: [NgIcon, AmountInput, ReconciliationFilter, ...HlmDatePickerImports],
   templateUrl: './reconciliation-panel.html',
   styleUrl: '../accent.css',
-  providers: [provideIcons({ lucideCheck, lucideCircleAlert, lucideCircleCheck })],
+  providers: [provideIcons({ lucideCircleAlert, lucideCircleCheck })],
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class ReconciliationPanel {

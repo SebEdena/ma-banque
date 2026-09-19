@@ -115,4 +115,17 @@ describe('EntryRow', () => {
 
     expect(bubbled).toBe(0);
   });
+
+  it('gives the checkbox a hit area wider than its visible box, so a near miss still toggles it', async () => {
+    const fixture = await createEntryRow(entry());
+
+    // Negative margins cancel the padding's contribution to the row's flex
+    // flow, so the checkbox stays 19px there while the button element itself
+    // — the actual click target — covers the row's own left padding and half
+    // the gap before the date column. See the template comment for why.
+    const button = one(fixture, 'entry-reconciled') as HTMLButtonElement;
+    expect(button.className).toContain('-ml-5');
+    expect(button.className).toContain('-mr-2');
+    expect(button.className).toContain('self-stretch');
+  });
 });
