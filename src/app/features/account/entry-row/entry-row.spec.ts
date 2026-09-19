@@ -120,9 +120,10 @@ describe('EntryRow', () => {
     const fixture = await createEntryRow(entry());
 
     // Negative margins cancel the padding's contribution to the row's flex
-    // flow, so the checkbox stays 19px there while the button element itself
-    // — the actual click target — covers the row's own left padding and half
-    // the gap before the date column. See the template comment for why.
+    // flow, so the checkbox stays size-7 there while the button element
+    // itself — the actual click target — covers the row's own left padding
+    // and half the gap before the date column. See the template comment for
+    // why.
     const button = one(fixture, 'entry-reconciled') as HTMLButtonElement;
     expect(button.className).toContain('-ml-5');
     expect(button.className).toContain('-mr-2');

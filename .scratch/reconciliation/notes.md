@@ -146,15 +146,26 @@ development"}}'`, start `tauri-driver` (the config's `driverProvider` is
   `entry-row.html`'s reconcile button now carries its own hit-area
   expansion: `-ml-5 -mr-2 ... pl-5 pr-2 self-stretch`, padding pushed out and
   cancelled back by an equal negative margin, so the button's flow footprint
-  in the row stays 19px (matching the locked system-entry icon it sits next
-  to) while its actual clickable box covers the row's left padding, the full
-  row height and half the gap before the date column. That's dead space no
-  other zone claims, so it costs nothing to hand it to the checkbox — a click
-  aimed there but a little off now toggles reconciled instead of falling
-  through to the row's `startEdit`. The visible 19px chip moved to a nested
-  `<span>` so the button itself stays the sole interactive element (keeps
-  `@angular-eslint/template/interactive-supports-focus` happy without a
-  second, redundant focus stop).
+  in the row stays at its chip size (matching the locked system-entry icon
+  it sits next to) while its actual clickable box covers the row's left
+  padding, the full row height and half the gap before the date column.
+  That's dead space no other zone claims, so it costs nothing to hand it to
+  the checkbox — a click aimed there but a little off now toggles reconciled
+  instead of falling through to the row's `startEdit`. The visible chip
+  moved to a nested `<span>` so the button itself stays the sole interactive
+  element (keeps `@angular-eslint/template/interactive-supports-focus` happy
+  without a second, redundant focus stop).
+  **Second review round: visible size bumped to match the delete button.**
+  The chip was 19px; a reviewer asked for it to visually match the row's
+  delete icon button (`size-7`/28px, `rounded-lg`). Bumped the reconcile
+  chip, the system-entry lock chip beside it (same column, kept in sync so
+  system/non-system rows don't jump width), and the inline edit-form's own
+  reconcile button (`entry-form.html`, same control shown while editing) all
+  to `size-7`/`rounded-lg`, with their icons going from 10/12px to 14px to
+  match the delete button's 14px trash icon. The hit-area trick above is
+  unaffected — it's driven by the row's own padding/gap, not the chip's
+  size — and still verified live to catch near-miss clicks without falling
+  through to `startEdit`.
   `ReconciliationPanel`'s "Inclure lignes pointées" checkbox is now its own
   `ReconciliationFilter` component (`account/reconciliation-filter/`, flat
   alongside `entry-row`/`reconciliation-panel` per this feature's existing
