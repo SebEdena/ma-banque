@@ -11,7 +11,10 @@ import { FieldTree, form, requiredError, schema, submit, validate } from '@angul
 import { NgIcon, provideIcons } from '@ng-icons/core';
 import { lucideX } from '@ng-icons/lucide';
 import { HlmButtonImports } from '@spartan-ng/helm/button';
+import { HlmDatePickerImports } from '@spartan-ng/helm/date-picker';
 
+import type { DateFormat } from '@core/display-settings/display-settings.types';
+import { formatDate, parseFormattedDate } from '@core/display-settings/format';
 import { Category } from '@data/categories/categories-api';
 import {
   Frequency,
@@ -26,7 +29,7 @@ import {
   withDebitSign,
   withPendingSign,
 } from '@shared/amount-input/amount-input';
-import { todayIso } from '@shared/iso-date/iso-date';
+import { parseIsoDate, todayIso, toIsoDate } from '@shared/iso-date/iso-date';
 import { provideCatalogIcons } from '@shared/pickers/icon-catalog';
 import { AMOUNT_INVALID_MESSAGE, LABEL_REQUIRED_MESSAGE } from '../entry-field-messages';
 import { RowCategory, UNCATEGORIZED } from '../row-category';
@@ -141,7 +144,7 @@ export function draftOf(rule: RecurringRule): RuleDraft {
  */
 @Component({
   selector: 'app-recurring-rule-form',
-  imports: [NgIcon, AmountInput, ...HlmButtonImports],
+  imports: [NgIcon, AmountInput, ...HlmButtonImports, ...HlmDatePickerImports],
   templateUrl: './recurring-rule-form.html',
   styleUrl: '../accent.css',
   providers: [provideCatalogIcons(), provideIcons({ lucideX })],
@@ -151,6 +154,7 @@ export class RecurringRuleForm {
   readonly draft = model.required<RuleDraft>();
   readonly categories = input.required<Category[]>();
   readonly saving = input(false);
+  readonly dateFormat = input.required<DateFormat>();
 
   /** A save attempt on a valid draft, carrying its parsed wire payload. */
   readonly saved = output<RecurringRuleInput>();
@@ -191,6 +195,28 @@ export class RecurringRuleForm {
     return (id === null ? undefined : this.categoriesById().get(id)) ?? UNCATEGORIZED;
   });
 
+  /**
+   * The two schedule dates through `hlm-date-picker` — the same component
+   * `EntryForm` uses for the entry date, wired the same way, so a rule's
+   * dates pick up the calendar popover and the display-format round-trip
+   * instead of the browser's own native date input and locale.
+   */
+  protected readonly startDate = computed(() => parseIsoDate(this.draft().startDate));
+  protected readonly endDate = computed(() => {
+    const endDate = this.draft().endDate;
+    return endDate === '' ? undefined : parseIsoDate(endDate);
+  });
+
+  /** Display format while a date field isn't focused — matches the list row's own format. */
+  protected readonly formatDraftDate = computed(() => {
+    const format = this.dateFormat();
+    return (date: Date): string => formatDate(date, format);
+  });
+
+  /** Typing/edit format matches the display format — no surprise reformat on focus. */
+  protected readonly parseInputDate = (value: string): Date | null =>
+    parseFormattedDate(value, this.dateFormat());
+
   protected patch(changes: Partial<RuleDraft>): void {
     this.draft.update((draft) => ({ ...draft, ...changes }));
   }
@@ -204,6 +230,17 @@ export class RecurringRuleForm {
   /** See `EntryForm.onAmountInput` — same reasoning, same helper. */
   protected onAmountInput(value: string): void {
     this.patch({ amount: withPendingSign(this.draft().amount, value, this.pendingDebit()) });
+  }
+
+  protected onStartDateChange(date: Date | null): void {
+    if (date === null) {
+      return;
+    }
+    this.patch({ startDate: toIsoDate(date) });
+  }
+
+  protected onEndDateChange(date: Date | null): void {
+    this.patch({ endDate: date === null ? '' : toIsoDate(date) });
   }
 
   /**

@@ -42,24 +42,22 @@ export function ruleRowPartContaining(label: string, testId: string, text: strin
 }
 
 /**
- * Sets a native `<input type="date">` from a `YYYY-MM-DD` string. Typing into
- * one drives its locale-formatted day/month/year segments rather than its
- * value, so writing the value and raising the `input` event the component
- * listens for is the only reliable way in.
+ * Sets a rule form date field — `hlm-date-picker-input`, the same component
+ * `EntryForm` uses for the entry date — from a `YYYY-MM-DD` string. The
+ * `data-testid` sits on the wrapping `<hlm-date-picker-input>`, not the
+ * `<input>` it renders internally, so the actual field is reached through
+ * it; and the display format is the app's seeded `DMY`, not raw ISO, since
+ * that's what the field parses.
  */
 export async function setDateInput(testId: string, isoDate: string): Promise<void> {
-  await browser.execute(
-    (id: string, value: string) => {
-      const input = document.querySelector<HTMLInputElement>(`[data-testid="${id}"]`);
-      if (input === null) {
-        throw new Error(`No date input carries data-testid="${id}"`);
-      }
-      input.value = value;
-      input.dispatchEvent(new Event('input', { bubbles: true }));
-    },
-    testId,
-    isoDate,
-  );
+  await (await $(`[data-testid="${testId}"] input`)).setValue(isoToDmy(isoDate));
+  await browser.keys('Enter');
+}
+
+/** `YYYY-MM-DD` to `DD/MM/YYYY`, the app's seeded display format. */
+function isoToDmy(isoDate: string): string {
+  const [year, month, day] = isoDate.split('-');
+  return `${day}/${month}/${year}`;
 }
 
 /**

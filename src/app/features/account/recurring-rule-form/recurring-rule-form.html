@@ -168,15 +168,25 @@
   <div class="flex gap-3">
     <div class="flex flex-1 flex-col gap-1.5">
       <label for="recurring-form-start-date" class="text-sm font-semibold">Date de début</label>
-      <input
-        id="recurring-form-start-date"
-        type="date"
-        data-testid="recurring-form-start-date"
-        data-accent
-        class="rounded-[10px] bg-muted px-3 py-2 text-sm outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50"
-        [value]="draft().startDate"
-        (input)="patch({ startDate: $any($event.target).value })"
-      />
+      <hlm-date-picker
+        captionLayout="dropdown"
+        [date]="startDate()"
+        [formatDate]="formatDraftDate()"
+        (dateChange)="onStartDateChange($event)"
+      >
+        <hlm-date-picker-input
+          inputId="recurring-form-start-date"
+          data-testid="recurring-form-start-date"
+          data-accent
+          aria-label="Date de début"
+          calendarAriaLabel="Ouvrir le calendrier"
+          clearAriaLabel="Effacer la date de début"
+          [showClear]="false"
+          [formatInputDate]="formatDraftDate()"
+          [parseDate]="parseInputDate"
+          class="w-full rounded-[10px] bg-muted px-3 py-2 text-sm outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50"
+        />
+      </hlm-date-picker>
     </div>
 
     <div class="flex flex-1 flex-col gap-1.5">
@@ -184,15 +194,26 @@
         Date de fin (optionnel)
       </label>
       <div class="flex items-center gap-1.5">
-        <input
-          id="recurring-form-end-date"
-          type="date"
-          data-testid="recurring-form-end-date"
-          data-accent
-          class="min-w-0 flex-1 rounded-[10px] bg-muted px-3 py-2 text-sm outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50"
-          [value]="draft().endDate"
-          (input)="patch({ endDate: $any($event.target).value })"
-        />
+        <hlm-date-picker
+          captionLayout="dropdown"
+          [date]="endDate()"
+          [formatDate]="formatDraftDate()"
+          (dateChange)="onEndDateChange($event)"
+          class="min-w-0 flex-1"
+        >
+          <hlm-date-picker-input
+            inputId="recurring-form-end-date"
+            data-testid="recurring-form-end-date"
+            data-accent
+            aria-label="Date de fin"
+            calendarAriaLabel="Ouvrir le calendrier"
+            clearAriaLabel="Effacer la date de fin"
+            [showClear]="false"
+            [formatInputDate]="formatDraftDate()"
+            [parseDate]="parseInputDate"
+            class="w-full rounded-[10px] bg-muted px-3 py-2 text-sm outline-none transition-all focus-visible:ring-3 focus-visible:ring-ring/50"
+          />
+        </hlm-date-picker>
         <button
           type="button"
           data-testid="recurring-form-end-date-clear"

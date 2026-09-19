@@ -1,7 +1,12 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideBrnCalendarI18n } from '@spartan-ng/brain/calendar';
+import { provideNativeDateAdapter } from '@spartan-ng/brain/date-time';
 
+import { FRENCH_CALENDAR_I18N } from '@core/display-settings/calendar-i18n';
+import { formatDate } from '@core/display-settings/format';
 import { Category } from '@data/categories/categories-api';
 import { RecurringRule, RecurringRulesApi } from '@data/recurring-rules/recurring-rules-api';
+import { parseIsoDate } from '@shared/iso-date/iso-date';
 import { RecurringRulesModal } from './recurring-rules-modal';
 
 function rule(overrides: Partial<RecurringRule> = {}): RecurringRule {
@@ -58,7 +63,11 @@ async function createModal(
 ): Promise<ComponentFixture<RecurringRulesModal>> {
   await TestBed.configureTestingModule({
     imports: [RecurringRulesModal],
-    providers: [{ provide: RecurringRulesApi, useValue: api }],
+    providers: [
+      { provide: RecurringRulesApi, useValue: api },
+      provideNativeDateAdapter(),
+      provideBrnCalendarI18n(FRENCH_CALENDAR_I18N),
+    ],
   }).compileComponents();
 
   const fixture = TestBed.createComponent(RecurringRulesModal);
@@ -114,6 +123,33 @@ function select(fixture: ComponentFixture<unknown>, testId: string, value: strin
   fixture.detectChanges();
 }
 
+const DATE_FIELD_TEST_IDS = new Set(['recurring-form-start-date', 'recurring-form-end-date']);
+
+/**
+ * `hlm-date-picker-input`'s own `<input>` lives inside its component's
+ * template, so the field carrying `data-testid` isn't the one to type into.
+ */
+function dateInputEl(fixture: ComponentFixture<unknown>, testId: string): HTMLInputElement {
+  return (fixture.nativeElement as HTMLElement).querySelector(
+    `[data-testid="${testId}"] input`,
+  ) as HTMLInputElement;
+}
+
+/**
+ * Types an ISO `YYYY-MM-DD` date into a rule form date field, formatted per
+ * the modal's own `dateFormat` (`DMY` in this file's fixtures) since that is
+ * what `parseInputDate` reads. The picker only commits on blur/Enter — an
+ * `input` event alone, as a plain text field's `type()` uses, just edits the
+ * mirrored text.
+ */
+function typeDate(fixture: ComponentFixture<unknown>, testId: string, isoDate: string): void {
+  const field = dateInputEl(fixture, testId);
+  field.value = formatDate(parseIsoDate(isoDate), 'DMY');
+  field.dispatchEvent(new Event('input'));
+  field.dispatchEvent(new Event('blur'));
+  fixture.detectChanges();
+}
+
 describe('RecurringRulesModal', () => {
   describe('list', () => {
     it('renders one row per rule the Api reports', async () => {
@@ -147,14 +183,14 @@ describe('RecurringRulesModal', () => {
       );
     });
 
-    it('names both bounds of a rule that ends', async () => {
+    it('names only the start date, even on a rule that ends', async () => {
       const fixture = await createModal(
         stubApi([rule({ start_date: '2026-03-01', end_date: '2026-12-31' })]),
       );
 
-      expect(textIn(all(fixture, 'recurring-row')[0], 'recurring-row-schedule')).toContain(
-        'du 01/03/2026 au 31/12/2026',
-      );
+      const schedule = textIn(all(fixture, 'recurring-row')[0], 'recurring-row-schedule');
+      expect(schedule).toContain('depuis le 01/03/2026');
+      expect(schedule).not.toContain('31/12/2026');
     });
 
     it('shows an empty state and the create affordance when there are no rules', async () => {
@@ -195,7 +231,7 @@ describe('RecurringRulesModal', () => {
       type(fixture, 'recurring-form-description', 'Virement employeur');
       select(fixture, 'recurring-form-frequency', 'MONTHLY');
       type(fixture, 'recurring-form-interval', '1');
-      type(fixture, 'recurring-form-start-date', '2026-03-01');
+      typeDate(fixture, 'recurring-form-start-date', '2026-03-01');
       await click(fixture, 'recurring-save');
 
       expect(api.createRecurringRule).toHaveBeenCalledWith(1, {
@@ -217,7 +253,7 @@ describe('RecurringRulesModal', () => {
       await click(fixture, 'recurring-new');
       type(fixture, 'recurring-form-label', 'Salaire');
       type(fixture, 'recurring-form-amount', '2100');
-      type(fixture, 'recurring-form-start-date', '2026-03-01');
+      typeDate(fixture, 'recurring-form-start-date', '2026-03-01');
       await click(fixture, 'recurring-save');
 
       expect(has(fixture, 'recurring-scope-dialog')).toBe(false);
@@ -232,7 +268,7 @@ describe('RecurringRulesModal', () => {
       await click(fixture, 'recurring-new');
       type(fixture, 'recurring-form-label', 'Salaire');
       type(fixture, 'recurring-form-amount', '2100');
-      type(fixture, 'recurring-form-start-date', '2026-03-01');
+      typeDate(fixture, 'recurring-form-start-date', '2026-03-01');
       await click(fixture, 'recurring-save');
 
       expect(has(fixture, 'recurring-form')).toBe(false);
@@ -251,7 +287,7 @@ describe('RecurringRulesModal', () => {
       expect(el<HTMLInputElement>(fixture, 'recurring-form-label').value).toBe('Loyer');
       expect(el<HTMLInputElement>(fixture, 'recurring-form-amount').value).toBe('-750');
       expect(el<HTMLInputElement>(fixture, 'recurring-form-interval').value).toBe('2');
-      expect(el<HTMLInputElement>(fixture, 'recurring-form-end-date').value).toBe('2026-12-31');
+      expect(dateInputEl(fixture, 'recurring-form-end-date').value).toBe('31/12/2026');
     });
 
     it('opens both selects on the rule’s own poste and frequency', async () => {
@@ -401,9 +437,13 @@ describe('RecurringRulesModal', () => {
       await click(fixture, 'recurring-new');
       type(fixture, 'recurring-form-label', 'Loyer');
       type(fixture, 'recurring-form-amount', '-750');
-      type(fixture, 'recurring-form-start-date', '2026-03-01');
+      typeDate(fixture, 'recurring-form-start-date', '2026-03-01');
       for (const [testId, value] of Object.entries(changes)) {
-        type(fixture, testId, value);
+        if (DATE_FIELD_TEST_IDS.has(testId)) {
+          typeDate(fixture, testId, value);
+        } else {
+          type(fixture, testId, value);
+        }
       }
       await click(fixture, 'recurring-save');
       return [fixture, api];
