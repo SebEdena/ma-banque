@@ -5,13 +5,13 @@
   data-accent-solid
   [attr.aria-checked]="reconciled()"
   [attr.aria-label]="reconciled() ? 'Écriture pointée' : 'Écriture non pointée'"
-  class="flex size-[19px] shrink-0 items-center justify-center rounded-md border-[1.5px] border-border text-white outline-none"
+  class="flex size-7 shrink-0 items-center justify-center rounded-lg border-[1.5px] border-border text-white outline-none"
   [style.background-color]="reconciled() ? accountColor() : 'transparent'"
   [style.border-color]="reconciled() ? accountColor() : ''"
   (click)="reconciledToggled.emit()"
 >
   @if (reconciled()) {
-    <ng-icon name="lucideCheck" size="12" />
+    <ng-icon name="lucideCheck" size="14" />
   }
 </button>
 
