@@ -69,12 +69,13 @@ export class RecurringRuleList {
     );
   }
 
-  /** The date range a row spells out beside its frequency. */
+  /**
+   * The start date a row spells out beside its frequency. Deliberately
+   * start-only — an end date, when the rule has one, still stops generation,
+   * but naming it here read as a second date range to parse, not as
+   * information the row's whole point (what recurs, and since when) needed.
+   */
   protected dateRange(rule: RecurringRule): string {
-    const format = this.dateFormat();
-    const start = formatDate(parseIsoDate(rule.start_date), format);
-    return rule.end_date === null
-      ? `depuis le ${start}`
-      : `du ${start} au ${formatDate(parseIsoDate(rule.end_date), format)}`;
+    return `depuis le ${formatDate(parseIsoDate(rule.start_date), this.dateFormat())}`;
   }
 }

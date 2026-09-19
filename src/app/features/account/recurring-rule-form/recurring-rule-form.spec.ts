@@ -1,5 +1,8 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
+import { provideBrnCalendarI18n } from '@spartan-ng/brain/calendar';
+import { provideNativeDateAdapter } from '@spartan-ng/brain/date-time';
 
+import { FRENCH_CALENDAR_I18N } from '@core/display-settings/calendar-i18n';
 import { Category } from '@data/categories/categories-api';
 import { RecurringRuleInput } from '@data/recurring-rules/recurring-rules-api';
 import { RecurringRuleForm, RuleDraft, emptyDraft } from './recurring-rule-form';
@@ -20,11 +23,17 @@ async function createForm(
   draft: RuleDraft = emptyDraft(),
   categories: Category[] = [category()],
 ): Promise<ComponentFixture<RecurringRuleForm>> {
-  await TestBed.configureTestingModule({ imports: [RecurringRuleForm] }).compileComponents();
+  await TestBed.configureTestingModule({
+    imports: [RecurringRuleForm],
+    providers: [provideNativeDateAdapter(), provideBrnCalendarI18n(FRENCH_CALENDAR_I18N)],
+  }).compileComponents();
 
   const fixture = TestBed.createComponent(RecurringRuleForm);
   fixture.componentRef.setInput('draft', draft);
   fixture.componentRef.setInput('categories', categories);
+  // YMD matches the ISO `YYYY-MM-DD` fixture dates below, so the picker's
+  // display format doesn't need its own conversion in every assertion.
+  fixture.componentRef.setInput('dateFormat', 'YMD');
   fixture.detectChanges();
   return fixture;
 }
