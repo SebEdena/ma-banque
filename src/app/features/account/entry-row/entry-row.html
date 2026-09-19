@@ -7,6 +7,14 @@
     <ng-icon name="lucideLock" size="10" />
   </span>
 } @else {
+  <!--
+    The button's own padding, cancelled back out by a matching negative
+    margin, extends its hit area left into the row's padding and right into
+    half the gap before the date column — dead space no other zone claims —
+    without changing its 19px footprint in the row's flex flow. A click aimed
+    at the checkbox but a little off still toggles it instead of falling
+    through to the row's startEdit.
+  -->
   <button
     type="button"
     role="checkbox"
@@ -15,14 +23,18 @@
     [attr.data-reconciled]="entry().reconciled"
     [attr.aria-checked]="entry().reconciled"
     [attr.aria-label]="entry().reconciled ? 'Écriture pointée' : 'Écriture non pointée'"
-    class="flex size-[19px] shrink-0 items-center justify-center rounded-md border-[1.5px] text-white outline-none"
-    [style.background-color]="entry().reconciled ? accountColor() : 'transparent'"
-    [style.border-color]="entry().reconciled ? accountColor() : ''"
+    class="-ml-5 -mr-2 flex h-full shrink-0 items-center self-stretch pl-5 pr-2 outline-none"
     (click)="reconciledToggled.emit(); $event.stopPropagation()"
   >
-    @if (entry().reconciled) {
-      <ng-icon name="lucideCheck" size="12" />
-    }
+    <span
+      class="flex size-[19px] shrink-0 items-center justify-center rounded-md border-[1.5px] text-white"
+      [style.background-color]="entry().reconciled ? accountColor() : 'transparent'"
+      [style.border-color]="entry().reconciled ? accountColor() : ''"
+    >
+      @if (entry().reconciled) {
+        <ng-icon name="lucideCheck" size="12" />
+      }
+    </span>
   </button>
 }
 

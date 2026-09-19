@@ -141,3 +141,25 @@ development"}}'`, start `tauri-driver` (the config's `driverProvider` is
   truth. `e2e/reconciliation.e2e.ts`'s Pointage scenario now explicitly clicks
   `reconciliation-filter` after opening the panel before asserting the list
   narrowed.
+
+- **PR #15 review round: checkbox hit-target and filter extraction.**
+  `entry-row.html`'s reconcile button now carries its own hit-area
+  expansion: `-ml-5 -mr-2 ... pl-5 pr-2 self-stretch`, padding pushed out and
+  cancelled back by an equal negative margin, so the button's flow footprint
+  in the row stays 19px (matching the locked system-entry icon it sits next
+  to) while its actual clickable box covers the row's left padding, the full
+  row height and half the gap before the date column. That's dead space no
+  other zone claims, so it costs nothing to hand it to the checkbox — a click
+  aimed there but a little off now toggles reconciled instead of falling
+  through to the row's `startEdit`. The visible 19px chip moved to a nested
+  `<span>` so the button itself stays the sole interactive element (keeps
+  `@angular-eslint/template/interactive-supports-focus` happy without a
+  second, redundant focus stop).
+  `ReconciliationPanel`'s "Inclure lignes pointées" checkbox is now its own
+  `ReconciliationFilter` component (`account/reconciliation-filter/`, flat
+  alongside `entry-row`/`reconciliation-panel` per this feature's existing
+  layout — nothing here nests a component inside another's folder even when,
+  like `RecurringRuleList`, it's only ever used from one place). Inputs
+  `checked`/`disabled`/`accountColor`, output `toggled`; `ReconciliationPanel`
+  wires it exactly as it drove the inline markup before, so `data-testid`
+  and behavior are unchanged and every existing spec/E2E hook still holds.

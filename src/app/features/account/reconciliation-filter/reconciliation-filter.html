@@ -1,0 +1,22 @@
+<button
+  type="button"
+  role="checkbox"
+  data-testid="reconciliation-filter"
+  data-accent-solid
+  [attr.aria-checked]="checked()"
+  [attr.data-checked]="checked()"
+  [disabled]="disabled()"
+  class="flex items-center gap-2 text-[13px] font-semibold text-muted-foreground outline-none disabled:cursor-not-allowed disabled:opacity-50"
+  (click)="toggled.emit()"
+>
+  <span
+    class="flex size-[18px] items-center justify-center rounded-[5px] border-[1.5px] text-white"
+    [style.background-color]="checked() ? accountColor() : 'transparent'"
+    [style.border-color]="checked() ? accountColor() : ''"
+  >
+    @if (checked()) {
+      <ng-icon name="lucideCheck" size="12" />
+    }
+  </span>
+  Inclure lignes pointées
+</button>
