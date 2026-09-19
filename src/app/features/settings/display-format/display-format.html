@@ -1,5 +1,5 @@
-<section class="flex flex-col gap-6">
-  <div>
+<section class="flex flex-col">
+  <div class="border-b pb-5">
     <h2 class="mb-2 text-[12.5px] font-semibold text-muted-foreground">
       Date · aperçu {{ exampleDate | dateFormat: displaySettings.dateFormat() }}
     </h2>
@@ -10,7 +10,7 @@
     />
   </div>
 
-  <div>
+  <div class="border-b py-5">
     <h2 class="mb-2 text-[12.5px] font-semibold text-muted-foreground">
       Monétaire · aperçu {{ exampleAmount | currencyFormat: displaySettings.currencyFormat() }}
     </h2>
@@ -21,7 +21,7 @@
     />
   </div>
 
-  <div>
+  <div class="pt-5">
     <h2 class="mb-2 text-[12.5px] font-semibold text-muted-foreground">Thème</h2>
     <div class="flex gap-1 rounded-[10px] bg-muted p-1">
       @for (option of themeOptions; track option.value) {

@@ -1,4 +1,4 @@
 # Cross-issue notes
 
-- 05-settings-nav-simplify: the Settings section switcher uses the existing `hlm-select` (spartan/ui) component, not a native `<select>` — consistent with the rest of the app's select usage (e.g. `entry-form.html`'s category picker). Any later Settings-shell work should keep using `hlm-select` for consistency rather than introducing a native `<select>` or a different picker.
-- 05-settings-nav-simplify: `settings.css` (empty/unused) was deleted along with the sidebar markup it styled nothing for.
+- 05-settings-nav-simplify: reverted on PR review (ma-banque#16) — the `hlm-select` section switcher was replaced back with the original sidebar nav list. The reviewer confirmed the sidebar was the right mechanism; the ask was to restyle its rows (and the Affichage tab's content rows) with hairline dividers approximating a reference screenshot, not to swap it for a dropdown. Any later Settings-shell work should keep the sidebar nav, not reintroduce a select for section switching.
+- `settings.css` stays deleted (it was empty/unused before the revert too) — the reverted sidebar template no longer references a `styleUrl`.

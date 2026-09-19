@@ -4,9 +4,9 @@
 
 **Blocked by:** None — can start immediately
 
-**Status:** done
+**Status:** reverted — PR review (ma-banque#16) decided the sidebar nav was correct as-is; only its row styling needed a pass (dividers instead of pill hover), not a switch to a select control.
 
-- [ ] Settings section switcher is a standard form control (e.g. a select), not a sidebar nav list
-- [ ] All three sections (Postes, Affichage, Stockage) remain reachable and functionally unchanged
-- [ ] Layout adapts sensibly on narrow widths
-- [ ] Component tests updated to reflect the new switcher control
+- [x] ~~Settings section switcher is a standard form control (e.g. a select), not a sidebar nav list~~ reverted per review
+- [x] All three sections (Postes, Affichage, Stockage) remain reachable and functionally unchanged
+- [x] Sidebar rows now use hairline dividers, styled closer to the reference the reviewer attached
+- [x] Component tests updated back to the sidebar-nav assertions
