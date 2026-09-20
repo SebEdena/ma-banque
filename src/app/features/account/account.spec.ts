@@ -436,6 +436,36 @@ describe('Account', () => {
     expect(recurringRulesApi.openAccount).toHaveBeenCalledTimes(1);
   });
 
+  /**
+   * This app has no tray/background mode, but nothing stops a user leaving
+   * the window open across midnight. The per-account cache above must key
+   * on the day it ran for, or a session spanning midnight would replay
+   * yesterday's resolved promise forever and never ask the backend about
+   * today's occurrences — silently matching a real "recurring entries never
+   * showed up" report.
+   */
+  it('regenerates once a new day has begun instead of replaying yesterdays cache', async () => {
+    vi.useFakeTimers({ toFake: ['Date'] });
+    try {
+      vi.setSystemTime(new Date('2026-06-01T23:00:00'));
+      const recurringRulesApi = stubRecurringRulesApi();
+      const fixture = await createAccount(
+        stubEntriesApi([entry()]),
+        stubCategoriesApi(),
+        stubReconciliationApi(),
+        recurringRulesApi,
+      );
+
+      vi.setSystemTime(new Date('2026-06-02T00:30:00'));
+      await click(fixture, 'entries-sort-toggle');
+      await settle(fixture);
+
+      expect(recurringRulesApi.openAccount).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('renders a page of entries, most-recent-first by default', async () => {
     const entriesApi = stubEntriesApi([
       entry({ id: 1, label: 'Ancienne', date: '2026-02-01' }),
