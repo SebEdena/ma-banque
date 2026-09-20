@@ -172,6 +172,7 @@ mod tests {
                 start_date: IsoDate::parse("2026-03-01").unwrap(),
                 end_date: end_date.map(|d| IsoDate::parse(d).unwrap()),
             },
+            backfill_from: None,
         }
     }
 

@@ -28,7 +28,7 @@ pub struct StartupDbError(pub Mutex<Option<DbOpenError>>);
 /// Number of `.sql` files embedded in [`migrations`] — kept in sync with
 /// that function so the downgrade guard can tell "older than this" apart
 /// from "newer than this" without a public accessor on `Migrations`.
-const MIGRATION_COUNT: usize = 9;
+const MIGRATION_COUNT: usize = 10;
 
 /// How many pre-migration backups to keep (oldest dropped first).
 const MAX_BACKUPS: usize = 3;
@@ -60,6 +60,9 @@ fn migrations() -> Migrations<'static> {
         )),
         M::up(include_str!(
             "../../migrations/0009_recurring_rules_daily_frequency.sql"
+        )),
+        M::up(include_str!(
+            "../../migrations/0010_recurring_rules_backfill_from.sql"
         )),
     ];
     debug_assert_eq!(ms.len(), MIGRATION_COUNT);

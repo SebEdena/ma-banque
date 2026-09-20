@@ -20,7 +20,7 @@ use crate::domain::recurring::{
 use crate::infra::db::SharedConnection;
 
 const RULE_COLUMNS: &str = "id, account_id, label, category_id, type, amount, description, \
-     frequency, \"interval\", start_date, end_date";
+     frequency, \"interval\", start_date, end_date, backfill_from";
 
 const OVERRIDE_COLUMNS: &str =
     "rule_id, occurrence_date, label, category_id, type, amount, description";
@@ -113,6 +113,7 @@ fn to_rule(row: &Row<'_>) -> rusqlite::Result<Result<RecurringRule, RecurringErr
     let interval: i64 = row.get(8)?;
     let start_date: String = row.get(9)?;
     let end_date: Option<String> = row.get(10)?;
+    let backfill_from: Option<String> = row.get(11)?;
 
     Ok(Ok(RecurringRule {
         id,
@@ -134,6 +135,10 @@ fn to_rule(row: &Row<'_>) -> rusqlite::Result<Result<RecurringRule, RecurringErr
                 Ok(date) => date,
                 Err(e) => return Ok(Err(e)),
             },
+        },
+        backfill_from: match backfill_from.as_deref().map(parse_stored_date).transpose() {
+            Ok(date) => date,
+            Err(e) => return Ok(Err(e)),
         },
     }))
 }
@@ -370,6 +375,18 @@ impl RecurringRuleRepository for SqliteRecurringRuleRepository {
             .map_err(io_err)?;
 
         raw.as_deref().map(parse_stored_date).transpose()
+    }
+
+    fn set_backfill_from(&self, rule_id: i64, from: Option<IsoDate>) -> Result<(), RecurringError> {
+        self.conn
+            .lock()
+            .unwrap()
+            .execute(
+                "UPDATE recurring_rules SET backfill_from = ?1 WHERE id = ?2",
+                rusqlite::params![from.as_ref().map(IsoDate::as_str), rule_id],
+            )
+            .map(|_| ())
+            .map_err(io_err)
     }
 
     fn insert_occurrence_if_absent(
@@ -881,5 +898,27 @@ mod tests {
             repo.last_generated_date(rule.id).unwrap(),
             Some(date("2026-05-01"))
         );
+    }
+
+    #[test]
+    fn set_backfill_from_round_trips_and_can_be_cleared() {
+        let (conn, account_id) = fixture();
+        let repo = SqliteRecurringRuleRepository::new(conn);
+        let rule = repo
+            .create(account_id, &details("Loyer", -75_000, None))
+            .unwrap();
+        assert_eq!(repo.find(rule.id).unwrap().unwrap().backfill_from, None);
+
+        repo.set_backfill_from(rule.id, Some(date("2026-01-01")))
+            .unwrap();
+
+        assert_eq!(
+            repo.find(rule.id).unwrap().unwrap().backfill_from,
+            Some(date("2026-01-01"))
+        );
+
+        repo.set_backfill_from(rule.id, None).unwrap();
+
+        assert_eq!(repo.find(rule.id).unwrap().unwrap().backfill_from, None);
     }
 }

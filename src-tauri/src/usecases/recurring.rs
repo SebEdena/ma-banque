@@ -100,6 +100,7 @@ pub fn update_rule(
     if current.schedule != details.schedule {
         let updated = rules.update(id, &details)?;
         rules.delete_overrides(id)?;
+        rules.set_backfill_from(id, Some(details.schedule.start_date.clone()))?;
         return Ok(updated);
     }
 
@@ -172,12 +173,24 @@ pub fn generate_due_for_account(
         // hangs off that same screen, so every rule is created against an
         // already-stamped account — anchoring on the stamp would make "start
         // date in the past" backfill nothing at all (user story 6).
-        let window_start = match rules.last_generated_date(rule.id)? {
-            Some(_) => account
-                .last_viewed_date
-                .clone()
-                .unwrap_or_else(|| rule.schedule.start_date.clone()),
-            None => rule.schedule.start_date.clone(),
+        //
+        // `backfill_from` overrides both of the above, one time: a schedule
+        // edit that moved `start_date` earlier leaves this set to the new
+        // start date, so the window opens there instead of at the account's
+        // (now stale, relative to the edit) stamp. It is consumed below
+        // unconditionally once this rule's occurrences for this run have
+        // been processed — the backfill window reached `today` regardless of
+        // whether it produced anything, so there is nothing left to catch up
+        // on a second run.
+        let window_start = match &rule.backfill_from {
+            Some(from) => from.clone(),
+            None => match rules.last_generated_date(rule.id)? {
+                Some(_) => account
+                    .last_viewed_date
+                    .clone()
+                    .unwrap_or_else(|| rule.schedule.start_date.clone()),
+                None => rule.schedule.start_date.clone(),
+            },
         };
         let mut outstanding = rules.list_overrides(rule.id)?;
 
@@ -210,6 +223,16 @@ pub fn generate_due_for_account(
             .filter(|candidate| &candidate.occurrence_date <= today)
         {
             rules.delete_override(rule.id, &stale.occurrence_date)?;
+        }
+
+        // One-shot: this run's window already reached `today` off the
+        // backfill marker, so leaving it set would make the next run redo
+        // the same backfilled window instead of anchoring on the account's
+        // stamp as usual. Cleared unconditionally, even when the backfill
+        // produced nothing (an edit that moved `start_date` later than the
+        // account's stamp, say).
+        if rule.backfill_from.is_some() {
+            rules.set_backfill_from(rule.id, None)?;
         }
     }
 
@@ -312,6 +335,7 @@ mod tests {
                 account_id,
                 template: details.template.clone(),
                 schedule: details.schedule.clone(),
+                backfill_from: None,
             };
             drop(next);
             self.rules.borrow_mut().push(rule.clone());
@@ -382,6 +406,20 @@ mod tests {
                 .filter(|e| e.rule_id == rule_id)
                 .map(|e| e.date.clone())
                 .max())
+        }
+
+        fn set_backfill_from(
+            &self,
+            rule_id: i64,
+            from: Option<IsoDate>,
+        ) -> Result<(), RecurringError> {
+            let mut rules = self.rules.borrow_mut();
+            let rule = rules
+                .iter_mut()
+                .find(|r| r.id == rule_id)
+                .ok_or(RecurringError::NotFound)?;
+            rule.backfill_from = from;
+            Ok(())
         }
 
         fn insert_occurrence_if_absent(
@@ -1099,5 +1137,269 @@ mod tests {
         generate_due_for_account(&store, &accounts, 1, &date("2026-04-01")).unwrap();
 
         assert_eq!(store.list_overrides(created.id).unwrap().len(), 1);
+    }
+
+    /// Two rules on one account can be in wholly different phases of their
+    /// own windows within the same call: one already generated (so it opens
+    /// on the account's stamp) and one just added (so it opens on its own
+    /// start date, per user story 6) — the account's shared stamp must not
+    /// leak into the brand-new rule's window, and the new rule's own start
+    /// date must not affect the already-generated one's.
+    #[test]
+    fn each_rules_window_is_independent_of_the_other_rules_on_the_same_account() {
+        let store = FakeStore::default();
+        let loyer = create_rule(&store, 1, input("Loyer", -750.0)).unwrap();
+        let store = store.generated_occurrence(loyer.id, "2026-04-01");
+        let salaire = create_rule(
+            &store,
+            1,
+            RuleInput {
+                start_date: date("2026-05-10"),
+                ..input("Salaire", 2_100.0)
+            },
+        )
+        .unwrap();
+        let accounts = FakeAccounts::with(1, Some("2026-04-15"), false);
+
+        let generated =
+            generate_due_for_account(&store, &accounts, 1, &date("2026-06-01")).unwrap();
+
+        assert_eq!(generated, 3, "Loyer's 05-01 and 06-01, Salaire's 05-10");
+        let rows = store.generated.borrow();
+        let dates_for = |rule_id: i64| -> Vec<String> {
+            rows.iter()
+                .filter(|e| e.rule_id == rule_id)
+                .map(|e| e.date.to_string())
+                .collect()
+        };
+        assert_eq!(
+            dates_for(loyer.id),
+            ["2026-04-01", "2026-05-01", "2026-06-01"]
+        );
+        assert_eq!(
+            dates_for(salaire.id),
+            ["2026-05-10"],
+            "Salaire opens on its own start date, not the account's stale 04-15 stamp"
+        );
+    }
+
+    /// An override is keyed to one rule's id; a different rule landing an
+    /// occurrence on that exact same date must keep its own template.
+    #[test]
+    fn an_override_never_leaks_into_a_different_rules_occurrence_on_the_same_date() {
+        let store = FakeStore::default();
+        let loyer = create_rule(&store, 1, input("Loyer", -750.0)).unwrap();
+        let salaire = create_rule(&store, 1, input("Salaire", 2_100.0)).unwrap();
+        update_rule(
+            &store,
+            loyer.id,
+            input("Loyer", -800.0),
+            EditScope::NextOccurrenceOnly,
+        )
+        .unwrap();
+        let accounts = FakeAccounts::with(1, None, false);
+
+        generate_due_for_account(&store, &accounts, 1, &date("2026-03-01")).unwrap();
+
+        let rows = store.generated.borrow();
+        let amount_for = |rule_id: i64| -> i64 {
+            rows.iter()
+                .find(|e| e.rule_id == rule_id)
+                .unwrap()
+                .template
+                .amount
+                .to_cents()
+        };
+        assert_eq!(
+            amount_for(loyer.id),
+            -80_000,
+            "the override applies to its own rule's occurrence"
+        );
+        assert_eq!(
+            amount_for(salaire.id),
+            210_000,
+            "a same-dated occurrence on a different rule keeps its own template"
+        );
+    }
+
+    /// The "just this once" edit is meant to be repeatable every period: each
+    /// edit keys to whatever occurrence generation has actually reached, not
+    /// a date frozen at the first edit.
+    #[test]
+    fn next_occurrence_only_can_be_reapplied_after_each_generation_catches_up() {
+        let store = FakeStore::default();
+        let created = create_rule(&store, 1, input("Loyer", -750.0)).unwrap();
+        let accounts = FakeAccounts::with(1, None, false);
+
+        update_rule(
+            &store,
+            created.id,
+            input("Loyer", -800.0),
+            EditScope::NextOccurrenceOnly,
+        )
+        .unwrap();
+        generate_due_for_account(&store, &accounts, 1, &date("2026-03-01")).unwrap();
+
+        update_rule(
+            &store,
+            created.id,
+            input("Loyer", -820.0),
+            EditScope::NextOccurrenceOnly,
+        )
+        .unwrap();
+        generate_due_for_account(&store, &accounts, 1, &date("2026-04-01")).unwrap();
+
+        let amounts: Vec<_> = store
+            .generated
+            .borrow()
+            .iter()
+            .map(|e| e.template.amount.to_cents())
+            .collect();
+        assert_eq!(
+            amounts,
+            [-80_000, -82_000],
+            "each month's override lands on its own occurrence, in order"
+        );
+    }
+
+    /// The bug this feature fixes: editing an existing rule's schedule to
+    /// move `start_date` earlier must backfill the newly-in-range past
+    /// occurrences, not silently stay anchored on the account's stamp.
+    #[test]
+    fn a_schedule_edit_moving_start_date_earlier_backfills_the_newly_in_range_past_occurrences() {
+        let store = FakeStore::default();
+        let created = create_rule(&store, 1, input("Loyer", -750.0)).unwrap();
+        let store = store
+            .generated_occurrence(created.id, "2026-03-01")
+            .generated_occurrence(created.id, "2026-04-01")
+            .generated_occurrence(created.id, "2026-05-01");
+        let accounts = FakeAccounts::with(1, Some("2026-05-20"), false);
+
+        update_rule(
+            &store,
+            created.id,
+            RuleInput {
+                start_date: date("2026-01-01"),
+                ..input("Loyer", -750.0)
+            },
+            EditScope::AllFuture,
+        )
+        .unwrap();
+
+        let generated =
+            generate_due_for_account(&store, &accounts, 1, &date("2026-06-01")).unwrap();
+
+        assert_eq!(
+            generated, 3,
+            "January and February are newly backfilled, plus the normal June occurrence"
+        );
+        assert_eq!(
+            store.generated_dates(),
+            [
+                "2026-03-01",
+                "2026-04-01",
+                "2026-05-01",
+                "2026-01-01",
+                "2026-02-01",
+                "2026-06-01"
+            ]
+        );
+    }
+
+    /// The marker is one-shot: once a run has reached `today` off the
+    /// backfill date, a later run must anchor back on the account's stamp
+    /// rather than rescanning the old backfill window forever.
+    #[test]
+    fn the_backfill_marker_is_consumed_after_one_run_and_the_next_reverts_to_the_normal_window() {
+        let store = FakeStore::default();
+        let created = create_rule(&store, 1, input("Loyer", -750.0)).unwrap();
+        let store = store
+            .generated_occurrence(created.id, "2026-03-01")
+            .generated_occurrence(created.id, "2026-04-01")
+            .generated_occurrence(created.id, "2026-05-01");
+        let accounts = FakeAccounts::with(1, Some("2026-05-20"), false);
+        update_rule(
+            &store,
+            created.id,
+            RuleInput {
+                start_date: date("2026-01-01"),
+                ..input("Loyer", -750.0)
+            },
+            EditScope::AllFuture,
+        )
+        .unwrap();
+        generate_due_for_account(&store, &accounts, 1, &date("2026-06-01")).unwrap();
+        assert_eq!(
+            store.generated.borrow().len(),
+            6,
+            "March through June plus the backfilled January and February"
+        );
+        assert_eq!(
+            store.rules.borrow()[0].backfill_from,
+            None,
+            "the marker is cleared once its run has reached today"
+        );
+
+        let generated_next =
+            generate_due_for_account(&store, &accounts, 1, &date("2026-07-01")).unwrap();
+
+        assert_eq!(
+            generated_next, 1,
+            "only July is new; a rescan of the old backfill window would still \
+             produce no duplicates, but the account's stamp — not January — is \
+             now the window's start"
+        );
+        assert_eq!(store.generated.borrow().len(), 7);
+        assert!(
+            store
+                .generated
+                .borrow()
+                .iter()
+                .filter(|e| e.date.as_str() == "2026-06-01")
+                .count()
+                <= 1,
+            "no duplicate of an occurrence already written by the backfill run"
+        );
+    }
+
+    /// A schedule edit that moves `start_date` forward must not disturb
+    /// anything already generated, and must not manufacture an occurrence
+    /// before the new, later start date.
+    #[test]
+    fn a_schedule_edit_moving_start_date_later_backfills_nothing_before_the_new_start_date() {
+        let store = FakeStore::default();
+        let created = create_rule(&store, 1, input("Loyer", -750.0)).unwrap();
+        let store = store
+            .generated_occurrence(created.id, "2026-03-01")
+            .generated_occurrence(created.id, "2026-04-01");
+        let accounts = FakeAccounts::with(1, Some("2026-04-20"), false);
+
+        update_rule(
+            &store,
+            created.id,
+            RuleInput {
+                start_date: date("2026-06-01"),
+                ..input("Loyer", -750.0)
+            },
+            EditScope::AllFuture,
+        )
+        .unwrap();
+
+        let generated =
+            generate_due_for_account(&store, &accounts, 1, &date("2026-08-01")).unwrap();
+
+        assert_eq!(generated, 3, "June, July, and August — nothing before June");
+        assert_eq!(
+            store.generated_dates(),
+            [
+                "2026-03-01",
+                "2026-04-01",
+                "2026-06-01",
+                "2026-07-01",
+                "2026-08-01"
+            ],
+            "March and April, already generated under the old schedule, are untouched, \
+             and May never appears since it falls before the new start date"
+        );
     }
 }
