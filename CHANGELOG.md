@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.10.5] - 2026-09-20
+
+### Miscellaneous Tasks
+
+- Update release yaml
+
 ## [0.10.4] - 2026-09-20
 
 ### Bug Fixes
