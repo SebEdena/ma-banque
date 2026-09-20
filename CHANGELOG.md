@@ -2,6 +2,12 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.10.4] - 2026-09-20
+
+### Bug Fixes
+
+- Log to file, surface check failures, fix installer names
+
 ## [0.10.2] - 2026-09-19
 
 ### Bug Fixes
