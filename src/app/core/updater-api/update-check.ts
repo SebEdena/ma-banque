@@ -32,7 +32,7 @@ export class UpdateCheckService {
       return;
     }
 
-    toast(`Une mise à jour est disponible (v${update.version})`, {
+    toast.info(`Une mise à jour est disponible (v${update.version})`, {
       action: {
         label: 'Installer et redémarrer',
         onClick: () => void this.installAndRelaunch(),

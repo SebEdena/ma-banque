@@ -99,7 +99,12 @@ export class HlmToaster {
       ...options,
       classes: {
         ...options?.classes,
-        toast: hlm('rounded-2xl!', options?.classes?.toast),
+        // `pointer-events-none` below is on the toaster host, not this
+        // per-toast element: unlike vanilla sonner's CSS, this port never
+        // re-enables pointer events on `[data-sonner-toast]` itself, so a
+        // toast carrying an action button (the update-available prompt)
+        // would inherit `none` and never fire clicks without this.
+        toast: hlm('rounded-2xl! pointer-events-auto', options?.classes?.toast),
       },
     };
   });
@@ -120,11 +125,11 @@ export class HlmToaster {
   );
   /* eslint-enable @angular-eslint/no-input-rename */
 
-  // No toast in this app carries a close button or other interactive
-  // control (`closeButton` stays false everywhere it's used), so the
-  // toaster can safely ignore pointer events entirely — otherwise a toast
-  // sitting over a button blocks clicks on it, and a lingering mouse
-  // position over the toast pauses its own auto-dismiss timer indefinitely.
+  // The toaster host itself ignores pointer events — otherwise the empty
+  // space around/between toasts would block clicks on whatever's behind
+  // it — while `_computedToastOptions` above opts each individual toast
+  // back in, so a toast's own action button (e.g. the update-available
+  // prompt) and its hover-to-pause-dismiss behaviour still work.
   protected readonly _computedClass = computed(() =>
     hlm('toaster group pointer-events-none', this.userClass()),
   );
