@@ -2,6 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.10.7] - 2026-09-20
+
+### Bug Fixes
+
+- Scope toast pointer-events to toasts with an action button
+- Stop replaying a stale generation cache across midnight
+
+### Features
+
+- Backfill occurrences when a schedule edit moves the start date earlier
+
 ## [0.10.6] - 2026-09-20
 
 ### Bug Fixes
