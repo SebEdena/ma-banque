@@ -104,7 +104,14 @@ export class HlmToaster {
         // re-enables pointer events on `[data-sonner-toast]` itself, so a
         // toast carrying an action button (the update-available prompt)
         // would inherit `none` and never fire clicks without this.
-        toast: hlm('rounded-2xl! pointer-events-auto', options?.classes?.toast),
+        //
+        // Scoped to `:has([data-button])` rather than every toast: sonner
+        // also pauses a toast's auto-dismiss timer while the pointer is
+        // over it, which only matters for a toast someone might actually
+        // click — a plain informational toast with no control (e.g. "N
+        // écritures générées") must keep dismissing on its own timer
+        // regardless of where the pointer happens to be resting.
+        toast: hlm('rounded-2xl! has-[[data-button]]:pointer-events-auto', options?.classes?.toast),
       },
     };
   });
@@ -127,9 +134,10 @@ export class HlmToaster {
 
   // The toaster host itself ignores pointer events — otherwise the empty
   // space around/between toasts would block clicks on whatever's behind
-  // it — while `_computedToastOptions` above opts each individual toast
-  // back in, so a toast's own action button (e.g. the update-available
-  // prompt) and its hover-to-pause-dismiss behaviour still work.
+  // it — while `_computedToastOptions` above opts back in only the toasts
+  // that carry an action button, so that button (e.g. the update-available
+  // prompt) is clickable without also giving every plain toast the
+  // hover-to-pause-dismiss behaviour that comes with being interactive.
   protected readonly _computedClass = computed(() =>
     hlm('toaster group pointer-events-none', this.userClass()),
   );
