@@ -72,7 +72,10 @@ jobs:
           gh api "repos/${{ github.repository }}/releases/tags/$TAG" \
             --jq '.assets[] | select(.name | test("\\.(exe|msi)$")) | "\(.id)\t\(.name)"' |
           while IFS=$'\t' read -r id name; do
-            new_name="${name/Ma Banque/ma-banque}"
+            # tauri-action names installer files after `productName`
+            # ("Ma Banque"), and NSIS/MSI can't have a space in a filename,
+            # so the actual asset name has a literal dot ("Ma.Banque_...").
+            new_name="$(sed -E 's/Ma[. ]Banque/ma-banque/' <<< "$name")"
             if [ "$new_name" != "$name" ]; then
               gh api -X PATCH "repos/${{ github.repository }}/releases/assets/$id" -f name="$new_name"
             fi
