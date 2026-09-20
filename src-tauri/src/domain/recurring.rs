@@ -75,6 +75,12 @@ pub struct RecurringRule {
     pub account_id: i64,
     pub template: RuleTemplate,
     pub schedule: RuleSchedule,
+    /// A one-time override of the generation window's start, set whenever
+    /// the schedule is edited and consumed by the very next
+    /// `generate_due_for_account` run for this rule — generation bookkeeping,
+    /// not a user-facing field, which is why it lives here and not on
+    /// [`RecurringRuleDetails`]/[`RuleSchedule`].
+    pub backfill_from: Option<IsoDate>,
 }
 
 /// The two halves as supplied on save — the create/edit form's whole payload.
@@ -276,6 +282,12 @@ pub trait RecurringRuleRepository {
 
     /// Date of the rule's most recently generated occurrence, if any.
     fn last_generated_date(&self, rule_id: i64) -> Result<Option<IsoDate>, RecurringError>;
+
+    /// Writes the rule's one-time backfill marker — `Some(date)` when a
+    /// schedule edit just moved the window's start, `None` once the next
+    /// generation run has consumed it. Overwrites whatever was there before,
+    /// same as [`Self::save_override`] does for an occurrence override.
+    fn set_backfill_from(&self, rule_id: i64, from: Option<IsoDate>) -> Result<(), RecurringError>;
 
     /// Writes one occurrence as an ordinary, unreconciled entry, tagged with
     /// `rule_id`. `Ok(false)` means the occurrence was already present —
