@@ -99,12 +99,26 @@ pub fn run() {
             commands::statistics::month_bucketed,
         ])
         .setup(|app| {
+            // Registered unconditionally (not just debug builds) so a release
+            // install has something to inspect when a background check
+            // (e.g. the updater) fails silently on the frontend — see
+            // `UpdateCheckService`. Writes to the OS-standard app log
+            // directory, which `tauri_plugin_log`'s `LogDir` target resolves
+            // per-platform (e.g. `%APPDATA%/com.sebedena.mabanque/logs` on
+            // Windows).
+            app.handle().plugin(
+                tauri_plugin_log::Builder::default()
+                    .level(log::LevelFilter::Info)
+                    .targets([
+                        tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::LogDir {
+                            file_name: None,
+                        }),
+                        tauri_plugin_log::Target::new(tauri_plugin_log::TargetKind::Stdout),
+                    ])
+                    .build(),
+            )?;
+
             if cfg!(debug_assertions) {
-                app.handle().plugin(
-                    tauri_plugin_log::Builder::default()
-                        .level(log::LevelFilter::Info)
-                        .build(),
-                )?;
                 // Enables the WebdriverIO e2e suite's execute()/mock() API and log
                 // forwarding (see wdio.conf.ts). Never registered in release builds.
                 app.handle().plugin(tauri_plugin_wdio::init())?;

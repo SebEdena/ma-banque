@@ -7,6 +7,7 @@ import {
 import { provideRouter, withComponentInputBinding } from '@angular/router';
 import { provideBrnCalendarI18n } from '@spartan-ng/brain/calendar';
 import { provideNativeDateAdapter } from '@spartan-ng/brain/date-time';
+import { attachConsole } from '@tauri-apps/plugin-log';
 
 import { mockBackend } from '../environments/environment';
 import { routes } from './app.routes';
@@ -55,7 +56,14 @@ export const appConfig: ApplicationConfig = {
     provideNativeDateAdapter(),
     provideBrnCalendarI18n(FRENCH_CALENDAR_I18N),
     ...mockProviders,
-    // Fire-and-forget: an update check must never delay app boot or fail it.
-    provideAppInitializer(() => void inject(UpdateCheckService).run()),
+    // Fire-and-forget: neither forwarding console output to the Rust log
+    // file nor the update check may delay app boot or fail it. Skipped
+    // under `mockBackend` (no Tauri context to forward to).
+    provideAppInitializer(() => {
+      if (!mockBackend) {
+        void attachConsole();
+      }
+      void inject(UpdateCheckService).run();
+    }),
   ],
 };

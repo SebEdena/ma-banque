@@ -45,24 +45,12 @@ jobs:
       - uses: actions/cache@v6
         with:
           path: ${{ steps.npm-cache-dir.outputs.dir }}
-          # actions/setup-node's built-in `cache: npm` keys solely on the
-          # lockfile hash, with no restore-keys fallback — bump-version.yml
-          # changes that hash on every release (it bumps package.json's
-          # version right before tagging), so a bare lockfile-hash key
-          # would discard the whole npm cache instead of reusing the
-          # untouched dependency tree. The restore-keys prefix falls back
-          # to the nearest previous cache so npm only fetches the delta.
           key: ${{ runner.os }}-npm-${{ hashFiles('package-lock.json') }}
           restore-keys: |
             ${{ runner.os }}-npm-
       - run: npm ci
       - uses: tauri-apps/tauri-action@v1
         env:
-          # The auto-generated GITHUB_TOKEN has intermittently lacked
-          # release-creation rights on this repo despite contents: write
-          # being declared here (fails with "Resource not accessible by
-          # integration"). RELEASE_TOKEN is a PAT with Contents: write,
-          # used to sidestep that.
           GITHUB_TOKEN: ${{ secrets.RELEASE_TOKEN }}
           # Signs the bundle and makes tauri-action emit latest.json (the
           # in-app updater's manifest) as a release asset.
@@ -75,3 +63,17 @@ jobs:
           releaseDraft: false
           prerelease: false
           projectPath: src-tauri
+      - name: Rename installer assets to match mainBinaryName
+        shell: bash
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_TOKEN }}
+        run: |
+          TAG="${{ inputs.tag || github.ref_name }}"
+          gh api "repos/${{ github.repository }}/releases/tags/$TAG" \
+            --jq '.assets[] | select(.name | test("\\.(exe|msi)$")) | "\(.id)\t\(.name)"' |
+          while IFS=$'\t' read -r id name; do
+            new_name="${name/Ma.Banque/ma-banque}"
+            if [ "$new_name" != "$name" ]; then
+              gh api -X PATCH "repos/${{ github.repository }}/releases/assets/$id" -f name="$new_name"
+            fi
+          done

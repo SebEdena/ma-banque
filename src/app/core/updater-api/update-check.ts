@@ -7,8 +7,12 @@ import { UpdaterApi } from './updater-api';
  * Runs once at app startup (wired via `provideAppInitializer` in
  * `app.config.ts`, not from `App` itself, so unit tests that build `App`
  * directly through `TestBed` — see `app.spec.ts` — never trigger a real
- * network check). A failed check is silent (logged only): a background
- * update check must never interrupt someone opening their accounts.
+ * network check). A failed check never blocks or throws past `run()` — a
+ * background update check must never interrupt someone opening their
+ * accounts — but it is now reported (toast + `console.error`, forwarded to
+ * the Rust log file via `attachConsole()` in `app.config.ts`) rather than
+ * failing silently, since a silent failure previously left no trace of why
+ * the update toast never appeared.
  */
 @Service()
 export class UpdateCheckService {
@@ -20,6 +24,7 @@ export class UpdateCheckService {
       update = await this.updaterApi.checkForUpdate();
     } catch (error) {
       console.error('failed to check for updates', error);
+      toast.error('La vérification de mise à jour a échoué');
       return;
     }
 
@@ -42,7 +47,7 @@ export class UpdateCheckService {
       await this.updaterApi.relaunch();
     } catch (error) {
       console.error('failed to install the update', error);
-      toast.error("l'installation de la mise à jour a échoué");
+      toast.error("L'installation de la mise à jour a échoué");
     }
   }
 }
