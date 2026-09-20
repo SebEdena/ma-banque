@@ -2,6 +2,13 @@
 
 All notable changes to this project are documented in this file.
 
+## [0.10.6] - 2026-09-20
+
+### Bug Fixes
+
+- Make the update-toast action clickable and match error styling
+- Match the release renamer against the real dotted filename
+
 ## [0.10.5] - 2026-09-20
 
 ### Miscellaneous Tasks
