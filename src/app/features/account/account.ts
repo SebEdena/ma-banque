@@ -278,8 +278,13 @@ export class Account {
    * The in-flight (or settled) `openAccount` call per account, so the filter
    * and sort controls — which re-run the effect below — don't ask the backend
    * to generate again for an account it has already brought up to today.
+   *
+   * Keyed by the day it ran for, not just the account: this app has no
+   * tray/background mode, but a window left open across midnight must not
+   * keep replaying yesterday's promise and silently skip today's occurrences
+   * until the next restart.
    */
-  private readonly generation = new Map<number, Promise<void>>();
+  private readonly generation = new Map<number, { date: string; pending: Promise<void> }>();
 
   constructor() {
     effect(() => {
@@ -301,20 +306,23 @@ export class Account {
   }
 
   private generateDue(accountId: number): Promise<void> {
+    const today = todayIso();
+    const cached = this.generation.get(accountId);
     const pending =
-      this.generation.get(accountId) ??
-      this.recurringRulesApi.openAccount(accountId).then(
-        (count) => {
-          if (count > 0) {
-            toast.info(generatedEntriesMessage(count));
-          }
-        },
-        (error: unknown) => {
-          toast.error(parseRecurringError(error));
-        },
-      );
+      cached?.date === today
+        ? cached.pending
+        : this.recurringRulesApi.openAccount(accountId).then(
+            (count) => {
+              if (count > 0) {
+                toast.info(generatedEntriesMessage(count));
+              }
+            },
+            (error: unknown) => {
+              toast.error(parseRecurringError(error));
+            },
+          );
 
-    this.generation.set(accountId, pending);
+    this.generation.set(accountId, { date: today, pending });
     return pending;
   }
 
